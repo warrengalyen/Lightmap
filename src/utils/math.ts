@@ -1,0 +1,108 @@
+import type { Vector2 } from "../types";
+
+export function vectorAdd(a: Vector2, b: Vector2): Vector2 {
+    return { x: a.x + b.x, y: a.y + b.y };
+}
+
+export function vectorSubtract(a: Vector2, b: Vector2): Vector2 {
+    return { x: a.x - b.x, y: a.y - b.y };
+}
+
+export function vectorScale(v: Vector2, scalar: number): Vector2 {
+    return { x: v.x * scalar, y: v.y * scalar };
+}
+
+export function vectorLength(v: Vector2): number {
+    return Math.sqrt(v.x * v.x + v.y * v.y);
+}
+
+export function vectorNormalize(v: Vector2): Vector2 {
+    const len = vectorLength(v);
+    if (len === 0) return { x: 0, y: 0 };
+    return { x: v.x / len, y: v.y / len };
+}
+
+export function vectorDot(a: Vector2, b: Vector2): number {
+    return a.x * b.x + a.y * b.y;
+}
+
+export function vectorCross(a: Vector2, b: Vector2): number {
+    return a.x * b.y - a.y * b.x;
+}
+
+export function vectorPerpendicular(v: Vector2): Vector2 {
+    return { x: -v.y, y: v.x };
+}
+
+export function distancePointToPoint(a: Vector2, b: Vector2): number {
+    return vectorLength(vectorSubtract(b, a));
+}
+
+export function angleBetween(a: Vector2, b: Vector2): number {
+    const dot = vectorDot(a, b);
+    const lenA = vectorLength(a);
+    const lenB = vectorLength(b);
+    if (lenA === 0 || lenB === 0) return 0;
+    const cosAngle = Math.max(-1, Math.min(1, dot / (lenA * lenB)));
+    return Math.acos(cosAngle);
+}
+
+export function projectPointOntoLine(point: Vector2, lineStart: Vector2, lineDir: Vector2): Vector2 {
+    const toPoint = vectorSubtract(point, lineStart);
+    const t = vectorDot(toPoint, lineDir);
+    return vectorAdd(lineStart, vectorScale(lineDir, t));
+}
+
+export function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
+}
+
+export function smoothstep(edge0: number, edge1: number, x: number): number {
+    const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+    return t * t * (3 - 2 * t);
+}
+
+export function degToRad(degrees: number): number {
+    return degrees * (Math.PI / 180);
+}
+
+export function radToDeg(radians: number): number {
+    return radians * (180 / Math.PI);
+}
+
+export function lineSegmentsIntersect(a1: Vector2, a2: Vector2, b1: Vector2, b2: Vector2): boolean {
+    const d1 = vectorSubtract(a2, a1);
+    const d2 = vectorSubtract(b2, b1);
+    const d3 = vectorSubtract(b1, a1);
+
+    const cross = vectorCross(d1, d2);
+    if (Math.abs(cross) < 1e-10) return false;
+
+    const t = vectorCross(d3, d2) / cross;
+    const u = vectorCross(d3, d1) / cross;
+
+    return t > 0 && t < 1 && u > 0 && u < 1;
+}
+
+export function raySegmentIntersect(
+    rayOrigin: Vector2,
+    rayDir: Vector2,
+    segStart: Vector2,
+    segEnd: Vector2,
+): { t: number; point: Vector2 } | null {
+    const segDir = vectorSubtract(segEnd, segStart);
+    const cross = vectorCross(rayDir, segDir);
+
+    if (Math.abs(cross) < 1e-10) return null;
+
+    const d = vectorSubtract(segStart, rayOrigin);
+    const t = vectorCross(d, segDir) / cross;
+    const u = vectorCross(d, rayDir) / cross;
+
+    if (t < 0 || u < 0 || u > 1) return null;
+
+    return {
+        t,
+        point: vectorAdd(rayOrigin, vectorScale(rayDir, t)),
+    };
+}
