@@ -3,6 +3,13 @@ import type { Vector2, WallSegment, LightFixture } from "../types";
 import { LightIcon } from "../lighting/LightIcon";
 import { getAllDimensionLabels } from "../geometry/DimensionLabel";
 
+interface SnapGuide {
+    axis: "x" | "y";
+    value: number;
+    from: Vector2;
+    to: Vector2;
+}
+
 export class EditorRenderer {
     private scene: THREE.Scene;
     private wallsGroup: THREE.Group;
@@ -10,6 +17,7 @@ export class EditorRenderer {
     private lightsGroup: THREE.Group;
     private phantomLine: THREE.Line | null = null;
     private drawingVerticesGroup: THREE.Group;
+    private snapGuidesGroup: THREE.Group;
     private lightIcons: Map<string, LightIcon> = new Map();
     private vertexMeshes: THREE.Mesh[] = [];
 
@@ -20,11 +28,13 @@ export class EditorRenderer {
         this.labelsGroup = new THREE.Group();
         this.lightsGroup = new THREE.Group();
         this.drawingVerticesGroup = new THREE.Group();
+        this.snapGuidesGroup = new THREE.Group();
 
         this.scene.add(this.wallsGroup);
         this.scene.add(this.labelsGroup);
         this.scene.add(this.lightsGroup);
         this.scene.add(this.drawingVerticesGroup);
+        this.scene.add(this.snapGuidesGroup);
     }
 
     updateWalls(
@@ -251,6 +261,7 @@ export class EditorRenderer {
         this.labelsGroup.visible = visible;
         this.lightsGroup.visible = visible;
         this.drawingVerticesGroup.visible = visible;
+        this.snapGuidesGroup.visible = visible;
         if (this.phantomLine) {
             this.phantomLine.visible = visible;
         }
@@ -258,6 +269,37 @@ export class EditorRenderer {
 
     setLightsVisible(visible: boolean): void {
         this.lightsGroup.visible = visible;
+    }
+
+    setSnapGuides(guides: SnapGuide[]): void {
+        // Clear existing guides
+        while (this.snapGuidesGroup.children.length > 0) {
+            const child = this.snapGuidesGroup.children[0];
+            this.snapGuidesGroup.remove(child);
+            if (child instanceof THREE.Line) {
+                child.geometry.dispose();
+                (child.material as THREE.Material).dispose();
+            }
+        }
+
+        // Draw new guides
+        for (const guide of guides) {
+            const points = [
+                new THREE.Vector3(guide.from.x, guide.from.y, 0.15),
+                new THREE.Vector3(guide.to.x, guide.to.y, 0.15),
+            ];
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineDashedMaterial({
+                color: guide.axis === "x" ? 0xff6600 : 0x0066ff,
+                dashSize: 0.2,
+                gapSize: 0.1,
+            });
+
+            const line = new THREE.Line(geometry, material);
+            line.computeLineDistances();
+            this.snapGuidesGroup.add(line);
+        }
     }
 
     dispose(): void {

@@ -15,15 +15,25 @@ export class HeatmapRenderer {
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
+        // Initialize arrays with individual objects (not shared references)
+        const positions = [];
+        const lumens = [];
+        const beamAngles = [];
+        for (let i = 0; i < MAX_LIGHTS; i++) {
+            positions.push(new THREE.Vector2(0, 0));
+            lumens.push(0);
+            beamAngles.push(60);
+        }
+
         this.material = new THREE.ShaderMaterial({
             vertexShader: heatmapVertexShader,
             fragmentShader: heatmapFragmentShader,
             transparent: true,
             uniforms: {
                 uLightCount: { value: 0 },
-                uLightPositions: { value: new Array(MAX_LIGHTS).fill(new THREE.Vector2()) },
-                uLightLumens: { value: new Array(MAX_LIGHTS).fill(0) },
-                uLightBeamAngles: { value: new Array(MAX_LIGHTS).fill(60) },
+                uLightPositions: { value: positions },
+                uLightLumens: { value: lumens },
+                uLightBeamAngles: { value: beamAngles },
                 uCeilingHeight: { value: 8.0 },
             },
         });
@@ -48,29 +58,24 @@ export class HeatmapRenderer {
     }
 
     updateLights(lights: LightFixture[], ceilingHeight: number): void {
-        const positions: THREE.Vector2[] = [];
-        const lumens: number[] = [];
-        const beamAngles: number[] = [];
-
         const count = Math.min(lights.length, MAX_LIGHTS);
 
+        // Update each uniform individually to ensure Three.js detects changes
         for (let i = 0; i < MAX_LIGHTS; i++) {
             if (i < count) {
-                positions.push(new THREE.Vector2(lights[i].position.x, lights[i].position.y));
-                lumens.push(lights[i].properties.lumen);
-                beamAngles.push(lights[i].properties.beamAngle);
+                this.material.uniforms.uLightPositions.value[i].set(lights[i].position.x, lights[i].position.y);
+                this.material.uniforms.uLightLumens.value[i] = lights[i].properties.lumen;
+                this.material.uniforms.uLightBeamAngles.value[i] = lights[i].properties.beamAngle;
             } else {
-                positions.push(new THREE.Vector2(0, 0));
-                lumens.push(0);
-                beamAngles.push(60);
+                this.material.uniforms.uLightPositions.value[i].set(0, 0);
+                this.material.uniforms.uLightLumens.value[i] = 0;
+                this.material.uniforms.uLightBeamAngles.value[i] = 60;
             }
         }
 
         this.material.uniforms.uLightCount.value = count;
-        this.material.uniforms.uLightPositions.value = positions;
-        this.material.uniforms.uLightLumens.value = lumens;
-        this.material.uniforms.uLightBeamAngles.value = beamAngles;
         this.material.uniforms.uCeilingHeight.value = ceilingHeight;
+        this.material.uniformsNeedUpdate = true;
     }
 
     setVisible(visible: boolean): void {

@@ -163,6 +163,55 @@ export function insertVertexOnWall(wallId: string, position: import("../types").
     return insertedIndex;
 }
 
+export function moveWall(
+    wallId: string,
+    newStart: import("../types").Vector2,
+    newEnd: import("../types").Vector2,
+): void {
+    roomStore.update((state) => {
+        if (!state.isClosed || state.walls.length === 0) return state;
+
+        const wallIndex = state.walls.findIndex((w) => w.id === wallId);
+        if (wallIndex === -1) return state;
+
+        const numWalls = state.walls.length;
+        const newWalls = [...state.walls];
+
+        // Update the selected wall
+        const wall = newWalls[wallIndex];
+        newWalls[wallIndex] = {
+            ...wall,
+            start: { ...newStart },
+            end: { ...newEnd },
+            // Length stays the same since we're translating
+        };
+
+        // Update the previous wall's end point (it shares start vertex with this wall)
+        const prevWallIndex = (wallIndex - 1 + numWalls) % numWalls;
+        const prevWall = newWalls[prevWallIndex];
+        const prevLength = Math.sqrt(
+            Math.pow(newStart.x - prevWall.start.x, 2) + Math.pow(newStart.y - prevWall.start.y, 2),
+        );
+        newWalls[prevWallIndex] = {
+            ...prevWall,
+            end: { ...newStart },
+            length: prevLength,
+        };
+
+        // Update the next wall's start point (it shares end vertex with this wall)
+        const nextWallIndex = (wallIndex + 1) % numWalls;
+        const nextWall = newWalls[nextWallIndex];
+        const nextLength = Math.sqrt(Math.pow(nextWall.end.x - newEnd.x, 2) + Math.pow(nextWall.end.y - newEnd.y, 2));
+        newWalls[nextWallIndex] = {
+            ...nextWall,
+            start: { ...newEnd },
+            length: nextLength,
+        };
+
+        return { ...state, walls: newWalls };
+    });
+}
+
 export function deleteVertex(vertexIndex: number): boolean {
     let success = false;
 

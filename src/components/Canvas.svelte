@@ -11,7 +11,7 @@
   import { LightManager } from '../lighting/LightManager';
   import { roomStore, roomBounds, canPlaceLights } from '../stores/roomStore';
   import { viewMode, activeTool, selectedLightId, selectedWallId, selectedVertexIndex, isDrawingEnabled, isLightPlacementEnabled } from '../stores/appStore';
-  import { getVertices, updateVertexPosition, insertVertexOnWall, deleteVertex } from '../stores/roomStore';
+  import { getVertices, updateVertexPosition, insertVertexOnWall, deleteVertex, moveWall } from '../stores/roomStore';
   import { historyStore } from '../stores/historyStore';
   import { rafterConfig } from '../stores/settingsStore';
   import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig } from '../types';
@@ -45,6 +45,9 @@
   let currentSelectedVertexIndex: number | null = null;
   let isDraggingVertex = false;
   let isDraggingLight = false;
+  let isDraggingWall = false;
+  let wallDragStart: Vector2 | null = null;
+  let wallDragOriginalVertices: { start: Vector2; end: Vector2 } | null = null;
 
   $: currentViewMode = $viewMode;
   $: currentRoomState = $roomStore;
@@ -177,6 +180,12 @@
         selectedWallId.set(wall.id);
         selectedLightId.set(null);
         selectedVertexIndex.set(null);
+        isDraggingWall = true;
+        wallDragStart = { ...pos };
+        wallDragOriginalVertices = {
+          start: { ...wall.start },
+          end: { ...wall.end },
+        };
         return;
       }
     }
@@ -204,7 +213,22 @@
 
     // Handle vertex dragging
     if (isDraggingVertex && currentSelectedVertexIndex !== null) {
-      updateVertexPosition(currentSelectedVertexIndex, event.worldPos);
+      let targetPos = event.worldPos;
+
+      // Snap to other vertices when holding Shift
+      if (event.shiftKey) {
+        targetPos = snapToVertexAlignment(event.worldPos, currentSelectedVertexIndex);
+      }
+
+      updateVertexPosition(currentSelectedVertexIndex, targetPos);
+
+      // Update snap guides
+      if (event.shiftKey) {
+        const snapResult = getSnapAlignment(event.worldPos, currentSelectedVertexIndex);
+        editorRenderer.setSnapGuides(snapResult.guides);
+      } else {
+        editorRenderer.setSnapGuides([]);
+      }
       return;
     }
 
@@ -221,6 +245,39 @@
           ),
         }));
       }
+      return;
+    }
+
+    // Handle wall dragging
+    if (isDraggingWall && currentSelectedWallId && wallDragStart && wallDragOriginalVertices) {
+      const delta = {
+        x: event.worldPos.x - wallDragStart.x,
+        y: event.worldPos.y - wallDragStart.y,
+      };
+
+      let newStart = {
+        x: wallDragOriginalVertices.start.x + delta.x,
+        y: wallDragOriginalVertices.start.y + delta.y,
+      };
+      let newEnd = {
+        x: wallDragOriginalVertices.end.x + delta.x,
+        y: wallDragOriginalVertices.end.y + delta.y,
+      };
+
+      // Snap to other vertices when holding Shift
+      if (event.shiftKey) {
+        const wallIndex = currentRoomState.walls.findIndex(w => w.id === currentSelectedWallId);
+        if (wallIndex !== -1) {
+          const snapResult = getWallSnapAlignment(newStart, newEnd, wallIndex);
+          newStart = snapResult.snappedStart;
+          newEnd = snapResult.snappedEnd;
+          editorRenderer.setSnapGuides(snapResult.guides);
+        }
+      } else {
+        editorRenderer.setSnapGuides([]);
+      }
+
+      moveWall(currentSelectedWallId, newStart, newEnd);
       return;
     }
 
@@ -242,6 +299,174 @@
   function handleMouseUp(): void {
     isDraggingVertex = false;
     isDraggingLight = false;
+    isDraggingWall = false;
+    wallDragStart = null;
+    wallDragOriginalVertices = null;
+    editorRenderer?.setSnapGuides([]);
+  }
+
+  const SNAP_THRESHOLD = 0.5; // feet
+
+  interface SnapGuide {
+    axis: 'x' | 'y';
+    value: number;
+    from: Vector2;
+    to: Vector2;
+  }
+
+  function getSnapAlignment(pos: Vector2, excludeIndex: number): { snappedPos: Vector2; guides: SnapGuide[] } {
+    const vertices = getVertices(currentRoomState);
+    const guides: SnapGuide[] = [];
+    let snappedX = pos.x;
+    let snappedY = pos.y;
+    let snapXVertex: Vector2 | null = null;
+    let snapYVertex: Vector2 | null = null;
+
+    for (let i = 0; i < vertices.length; i++) {
+      if (i === excludeIndex) continue;
+
+      const v = vertices[i];
+
+      // Check X alignment
+      if (Math.abs(pos.x - v.x) < SNAP_THRESHOLD) {
+        if (!snapXVertex || Math.abs(pos.x - v.x) < Math.abs(pos.x - snapXVertex.x)) {
+          snappedX = v.x;
+          snapXVertex = v;
+        }
+      }
+
+      // Check Y alignment
+      if (Math.abs(pos.y - v.y) < SNAP_THRESHOLD) {
+        if (!snapYVertex || Math.abs(pos.y - v.y) < Math.abs(pos.y - snapYVertex.y)) {
+          snappedY = v.y;
+          snapYVertex = v;
+        }
+      }
+    }
+
+    // Create guide lines
+    if (snapXVertex) {
+      guides.push({
+        axis: 'x',
+        value: snappedX,
+        from: { x: snappedX, y: Math.min(pos.y, snapXVertex.y) - 1 },
+        to: { x: snappedX, y: Math.max(pos.y, snapXVertex.y) + 1 },
+      });
+    }
+
+    if (snapYVertex) {
+      guides.push({
+        axis: 'y',
+        value: snappedY,
+        from: { x: Math.min(pos.x, snapYVertex.x) - 1, y: snappedY },
+        to: { x: Math.max(pos.x, snapYVertex.x) + 1, y: snappedY },
+      });
+    }
+
+    return {
+      snappedPos: { x: snappedX, y: snappedY },
+      guides,
+    };
+  }
+
+  function snapToVertexAlignment(pos: Vector2, excludeIndex: number): Vector2 {
+    return getSnapAlignment(pos, excludeIndex).snappedPos;
+  }
+
+  function getWallSnapAlignment(
+    start: Vector2,
+    end: Vector2,
+    wallIndex: number
+  ): { snappedStart: Vector2; snappedEnd: Vector2; guides: SnapGuide[] } {
+    const vertices = getVertices(currentRoomState);
+    const guides: SnapGuide[] = [];
+
+    // Indices to exclude: the two vertices of this wall
+    const numWalls = currentRoomState.walls.length;
+    const startVertexIndex = wallIndex;
+    const endVertexIndex = (wallIndex + 1) % numWalls;
+
+    let snapDeltaX: number | null = null;
+    let snapDeltaY: number | null = null;
+    let snapXVertex: Vector2 | null = null;
+    let snapYVertex: Vector2 | null = null;
+    let snapFromStart = true;
+
+    // Check start vertex alignment
+    for (let i = 0; i < vertices.length; i++) {
+      if (i === startVertexIndex || i === endVertexIndex) continue;
+      const v = vertices[i];
+
+      // X alignment for start
+      if (Math.abs(start.x - v.x) < SNAP_THRESHOLD) {
+        if (snapDeltaX === null || Math.abs(start.x - v.x) < Math.abs(snapDeltaX)) {
+          snapDeltaX = v.x - start.x;
+          snapXVertex = v;
+          snapFromStart = true;
+        }
+      }
+      // Y alignment for start
+      if (Math.abs(start.y - v.y) < SNAP_THRESHOLD) {
+        if (snapDeltaY === null || Math.abs(start.y - v.y) < Math.abs(snapDeltaY)) {
+          snapDeltaY = v.y - start.y;
+          snapYVertex = v;
+          snapFromStart = true;
+        }
+      }
+
+      // X alignment for end
+      if (Math.abs(end.x - v.x) < SNAP_THRESHOLD) {
+        if (snapDeltaX === null || Math.abs(end.x - v.x) < Math.abs(snapDeltaX)) {
+          snapDeltaX = v.x - end.x;
+          snapXVertex = v;
+          snapFromStart = false;
+        }
+      }
+      // Y alignment for end
+      if (Math.abs(end.y - v.y) < SNAP_THRESHOLD) {
+        if (snapDeltaY === null || Math.abs(end.y - v.y) < Math.abs(snapDeltaY)) {
+          snapDeltaY = v.y - end.y;
+          snapYVertex = v;
+          snapFromStart = false;
+        }
+      }
+    }
+
+    // Apply snapping
+    let snappedStart = { ...start };
+    let snappedEnd = { ...end };
+
+    if (snapDeltaX !== null) {
+      snappedStart.x += snapDeltaX;
+      snappedEnd.x += snapDeltaX;
+    }
+    if (snapDeltaY !== null) {
+      snappedStart.y += snapDeltaY;
+      snappedEnd.y += snapDeltaY;
+    }
+
+    // Create guide lines
+    if (snapXVertex) {
+      const refPoint = snapFromStart ? snappedStart : snappedEnd;
+      guides.push({
+        axis: 'x',
+        value: snapXVertex.x,
+        from: { x: snapXVertex.x, y: Math.min(refPoint.y, snapXVertex.y) - 1 },
+        to: { x: snapXVertex.x, y: Math.max(refPoint.y, snapXVertex.y) + 1 },
+      });
+    }
+
+    if (snapYVertex) {
+      const refPoint = snapFromStart ? snappedStart : snappedEnd;
+      guides.push({
+        axis: 'y',
+        value: snapYVertex.y,
+        from: { x: Math.min(refPoint.x, snapYVertex.x) - 1, y: snapYVertex.y },
+        to: { x: Math.max(refPoint.x, snapYVertex.x) + 1, y: snapYVertex.y },
+      });
+    }
+
+    return { snappedStart, snappedEnd, guides };
   }
 
   function handleDoubleClick(event: InputEvent): void {
