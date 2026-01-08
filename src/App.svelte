@@ -17,6 +17,7 @@
   let snapType: string = '';
   let showLengthInput: boolean = false;
   let cleanupAutoSave: (() => void) | null = null;
+  let measurement: { deltaX: number; deltaY: number; distance: number } | null = null;
 
   function handleMouseMove(e: CustomEvent<{ worldPos: Vector2 }>): void {
     mousePos = e.detail.worldPos;
@@ -24,6 +25,10 @@
 
   function handleSnapChange(e: CustomEvent<{ snapType: string }>): void {
     snapType = e.detail.snapType;
+  }
+
+  function handleMeasurement(e: CustomEvent<{ deltaX: number; deltaY: number; distance: number } | null>): void {
+    measurement = e.detail;
   }
 
   function handleLengthSubmit(e: CustomEvent<{ length: number }>): void {
@@ -92,7 +97,26 @@
         bind:this={canvasComponent}
         on:mouseMove={handleMouseMove}
         on:snapChange={handleSnapChange}
+        on:measurement={handleMeasurement}
       />
+      {#if measurement}
+        <div class="measurement-panel">
+          <div class="measurement-title">Measurement</div>
+          <div class="measurement-row">
+            <span class="measurement-label" style="color: #ff6600;">ΔX:</span>
+            <span class="measurement-value">{Math.abs(measurement.deltaX).toFixed(2)} ft</span>
+          </div>
+          <div class="measurement-row">
+            <span class="measurement-label" style="color: #0066ff;">ΔY:</span>
+            <span class="measurement-value">{Math.abs(measurement.deltaY).toFixed(2)} ft</span>
+          </div>
+          <div class="measurement-row">
+            <span class="measurement-label" style="color: #ff00ff;">Distance:</span>
+            <span class="measurement-value">{measurement.distance.toFixed(2)} ft</span>
+          </div>
+          <div class="measurement-hint">Press M or Esc to clear</div>
+        </div>
+      {/if}
       <RafterControls />
     </div>
     <PropertyPanel />
@@ -165,5 +189,48 @@
     flex: 1;
     position: relative;
     overflow: hidden;
+  }
+
+  .measurement-panel {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-size: 13px;
+    min-width: 160px;
+  }
+
+  .measurement-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .measurement-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .measurement-label {
+    font-weight: 500;
+  }
+
+  .measurement-value {
+    font-family: monospace;
+    color: #333;
+  }
+
+  .measurement-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #888;
+    text-align: center;
   }
 </style>

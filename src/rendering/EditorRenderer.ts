@@ -18,6 +18,7 @@ export class EditorRenderer {
     private phantomLine: THREE.Line | null = null;
     private drawingVerticesGroup: THREE.Group;
     private snapGuidesGroup: THREE.Group;
+    private measurementGroup: THREE.Group;
     private lightIcons: Map<string, LightIcon> = new Map();
     private vertexMeshes: THREE.Mesh[] = [];
 
@@ -29,12 +30,14 @@ export class EditorRenderer {
         this.lightsGroup = new THREE.Group();
         this.drawingVerticesGroup = new THREE.Group();
         this.snapGuidesGroup = new THREE.Group();
+        this.measurementGroup = new THREE.Group();
 
         this.scene.add(this.wallsGroup);
         this.scene.add(this.labelsGroup);
         this.scene.add(this.lightsGroup);
         this.scene.add(this.drawingVerticesGroup);
         this.scene.add(this.snapGuidesGroup);
+        this.scene.add(this.measurementGroup);
     }
 
     updateWalls(
@@ -262,6 +265,7 @@ export class EditorRenderer {
         this.lightsGroup.visible = visible;
         this.drawingVerticesGroup.visible = visible;
         this.snapGuidesGroup.visible = visible;
+        this.measurementGroup.visible = visible;
         if (this.phantomLine) {
             this.phantomLine.visible = visible;
         }
@@ -299,6 +303,62 @@ export class EditorRenderer {
             const line = new THREE.Line(geometry, material);
             line.computeLineDistances();
             this.snapGuidesGroup.add(line);
+        }
+    }
+
+    setMeasurementLine(from: Vector2 | null, to: Vector2 | null): void {
+        // Clear existing measurement
+        while (this.measurementGroup.children.length > 0) {
+            const child = this.measurementGroup.children[0];
+            this.measurementGroup.remove(child);
+            if (child instanceof THREE.Line || child instanceof THREE.Mesh) {
+                child.geometry.dispose();
+                (child.material as THREE.Material).dispose();
+            }
+        }
+
+        if (!from || !to) return;
+
+        const z = 0.2;
+
+        // Draw diagonal line (main measurement)
+        const diagonalPoints = [new THREE.Vector3(from.x, from.y, z), new THREE.Vector3(to.x, to.y, z)];
+        const diagonalGeom = new THREE.BufferGeometry().setFromPoints(diagonalPoints);
+        const diagonalMat = new THREE.LineBasicMaterial({ color: 0xff00ff, linewidth: 2 });
+        const diagonalLine = new THREE.Line(diagonalGeom, diagonalMat);
+        this.measurementGroup.add(diagonalLine);
+
+        // Draw X component (horizontal dashed line)
+        const xPoints = [new THREE.Vector3(from.x, from.y, z), new THREE.Vector3(to.x, from.y, z)];
+        const xGeom = new THREE.BufferGeometry().setFromPoints(xPoints);
+        const xMat = new THREE.LineDashedMaterial({
+            color: 0xff6600,
+            dashSize: 0.15,
+            gapSize: 0.1,
+        });
+        const xLine = new THREE.Line(xGeom, xMat);
+        xLine.computeLineDistances();
+        this.measurementGroup.add(xLine);
+
+        // Draw Y component (vertical dashed line)
+        const yPoints = [new THREE.Vector3(to.x, from.y, z), new THREE.Vector3(to.x, to.y, z)];
+        const yGeom = new THREE.BufferGeometry().setFromPoints(yPoints);
+        const yMat = new THREE.LineDashedMaterial({
+            color: 0x0066ff,
+            dashSize: 0.15,
+            gapSize: 0.1,
+        });
+        const yLine = new THREE.Line(yGeom, yMat);
+        yLine.computeLineDistances();
+        this.measurementGroup.add(yLine);
+
+        // Draw endpoint markers
+        for (const point of [from, to]) {
+            const markerGeom = new THREE.CircleGeometry(0.15, 16);
+            const markerMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+            const marker = new THREE.Mesh(markerGeom, markerMat);
+            marker.position.set(point.x, point.y, z + 0.01);
+            this.measurementGroup.add(marker);
         }
     }
 

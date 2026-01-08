@@ -31,6 +31,7 @@
   const dispatch = createEventDispatcher<{
     mouseMove: { worldPos: Vector2 };
     snapChange: { snapType: string };
+    measurement: { from: Vector2; to: Vector2; deltaX: number; deltaY: number; distance: number } | null;
   }>();
 
   let currentMousePos: Vector2 = { x: 0, y: 0 };
@@ -48,6 +49,9 @@
   let isDraggingWall = false;
   let wallDragStart: Vector2 | null = null;
   let wallDragOriginalVertices: { start: Vector2; end: Vector2 } | null = null;
+  let isMeasuring = false;
+  let measureFromVertex: Vector2 | null = null;
+  let measureToVertex: Vector2 | null = null;
 
   $: currentViewMode = $viewMode;
   $: currentRoomState = $roomStore;
@@ -95,6 +99,27 @@
   }
 
   function handleClick(event: InputEvent): void {
+    // Handle measurement mode
+    if (isMeasuring && measureFromVertex) {
+      const clickedVertexIndex = getVertexAtPosition(event.worldPos, getVertices(currentRoomState), 0.4);
+      if (clickedVertexIndex !== null) {
+        const vertices = getVertices(currentRoomState);
+        measureToVertex = vertices[clickedVertexIndex];
+        const deltaX = measureToVertex.x - measureFromVertex.x;
+        const deltaY = measureToVertex.y - measureFromVertex.y;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        dispatch('measurement', {
+          from: measureFromVertex,
+          to: measureToVertex,
+          deltaX,
+          deltaY,
+          distance,
+        });
+        editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+      }
+      return;
+    }
+
     if (isDrawing) {
       handleDrawingClick(event.worldPos);
     } else if (isPlacingLights && $canPlaceLights) {
@@ -522,6 +547,9 @@
 
     switch (event.key) {
       case 'Escape':
+        if (isMeasuring) {
+          clearMeasurement();
+        }
         if (wallBuilder.drawing) {
           wallBuilder.cancel();
           editorRenderer.setPhantomLine(null, null);
@@ -566,7 +594,30 @@
       case 'R':
         rafterConfig.update(c => ({ ...c, visible: !c.visible }));
         break;
+
+      case 'm':
+      case 'M':
+        // Enter measurement mode if a vertex is selected
+        if (currentSelectedVertexIndex !== null && !isMeasuring) {
+          const vertices = getVertices(currentRoomState);
+          measureFromVertex = vertices[currentSelectedVertexIndex];
+          measureToVertex = null;
+          isMeasuring = true;
+          dispatch('measurement', null); // Clear any previous measurement display
+        } else if (isMeasuring) {
+          // Exit measurement mode
+          clearMeasurement();
+        }
+        break;
     }
+  }
+
+  function clearMeasurement(): void {
+    isMeasuring = false;
+    measureFromVertex = null;
+    measureToVertex = null;
+    editorRenderer?.setMeasurementLine(null, null);
+    dispatch('measurement', null);
   }
 
   function animate(): void {
