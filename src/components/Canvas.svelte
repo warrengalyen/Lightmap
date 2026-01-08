@@ -53,6 +53,7 @@
   let isMeasuring = false;
   let measureFromVertex: Vector2 | null = null;
   let measureToVertex: Vector2 | null = null;
+  let didDragVertex = false;
 
   $: currentViewMode = $viewMode;
   $: currentRoomState = $roomStore;
@@ -105,23 +106,17 @@
   }
 
   function handleClick(event: InputEvent): void {
-    // Handle measurement mode
+    // Handle measurement mode - allow vertex selection for dragging
+    // Measurement endpoint is set on mouseup if vertex wasn't dragged
     if (isMeasuring && measureFromVertex) {
       const clickedVertexIndex = getVertexAtPosition(event.worldPos, getVertices(currentRoomState), 0.4);
       if (clickedVertexIndex !== null) {
-        const vertices = getVertices(currentRoomState);
-        measureToVertex = vertices[clickedVertexIndex];
-        const deltaX = measureToVertex.x - measureFromVertex.x;
-        const deltaY = measureToVertex.y - measureFromVertex.y;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        dispatch('measurement', {
-          from: measureFromVertex,
-          to: measureToVertex,
-          deltaX,
-          deltaY,
-          distance,
-        });
-        editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+        // Select vertex for potential dragging
+        selectedVertexIndex.set(clickedVertexIndex);
+        selectedWallId.set(null);
+        selectedLightId.set(null);
+        isDraggingVertex = true;
+        didDragVertex = false;
       }
       return;
     }
@@ -244,6 +239,7 @@
 
     // Handle vertex dragging
     if (isDraggingVertex && currentSelectedVertexIndex !== null) {
+      didDragVertex = true;
       let targetPos = event.worldPos;
 
       // Snap to other vertices when holding Shift
@@ -252,6 +248,29 @@
       }
 
       updateVertexPosition(currentSelectedVertexIndex, targetPos);
+
+      // Update measurement line if measuring and this vertex is an endpoint
+      if (isMeasuring && measureFromVertex && measureToVertex) {
+        const vertices = getVertices(currentRoomState);
+        // Update measurement with current vertex positions
+        const fromIdx = vertices.findIndex(v =>
+          Math.abs(v.x - measureFromVertex!.x) < 0.01 && Math.abs(v.y - measureFromVertex!.y) < 0.01
+        );
+        const toIdx = vertices.findIndex(v =>
+          Math.abs(v.x - measureToVertex!.x) < 0.01 && Math.abs(v.y - measureToVertex!.y) < 0.01
+        );
+
+        // If dragging one of the measurement vertices, update the measurement
+        if (currentSelectedVertexIndex === fromIdx) {
+          measureFromVertex = targetPos;
+          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+          dispatchMeasurement();
+        } else if (currentSelectedVertexIndex === toIdx) {
+          measureToVertex = targetPos;
+          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+          dispatchMeasurement();
+        }
+      }
 
       // Update snap guides
       if (event.shiftKey) {
@@ -328,12 +347,35 @@
   }
 
   function handleMouseUp(): void {
+    // If measuring and a vertex was selected but not dragged, set it as measurement endpoint
+    if (isMeasuring && measureFromVertex && currentSelectedVertexIndex !== null && isDraggingVertex && !didDragVertex) {
+      const vertices = getVertices(currentRoomState);
+      measureToVertex = vertices[currentSelectedVertexIndex];
+      editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+      dispatchMeasurement();
+    }
+
     isDraggingVertex = false;
     isDraggingLight = false;
     isDraggingWall = false;
+    didDragVertex = false;
     wallDragStart = null;
     wallDragOriginalVertices = null;
     editorRenderer?.setSnapGuides([]);
+  }
+
+  function dispatchMeasurement(): void {
+    if (!measureFromVertex || !measureToVertex) return;
+    const deltaX = measureToVertex.x - measureFromVertex.x;
+    const deltaY = measureToVertex.y - measureFromVertex.y;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    dispatch('measurement', {
+      from: measureFromVertex,
+      to: measureToVertex,
+      deltaX,
+      deltaY,
+      distance,
+    });
   }
 
   const SNAP_THRESHOLD = 0.5; // feet
