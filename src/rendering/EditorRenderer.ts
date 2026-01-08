@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { Vector2, WallSegment, LightFixture } from "../types";
+import type { Vector2, WallSegment, LightFixture, UnitFormat } from "../types";
 import { LightIcon } from "../lighting/LightIcon";
 import { getAllDimensionLabels } from "../geometry/DimensionLabel";
 
@@ -21,6 +21,8 @@ export class EditorRenderer {
     private measurementGroup: THREE.Group;
     private lightIcons: Map<string, LightIcon> = new Map();
     private vertexMeshes: THREE.Mesh[] = [];
+    private currentUnitFormat: UnitFormat = "feet-inches";
+    private currentWalls: WallSegment[] = [];
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -129,6 +131,8 @@ export class EditorRenderer {
     }
 
     private updateLabels(walls: WallSegment[]): void {
+        this.currentWalls = walls;
+
         while (this.labelsGroup.children.length > 0) {
             const child = this.labelsGroup.children[0];
             this.labelsGroup.remove(child);
@@ -138,26 +142,40 @@ export class EditorRenderer {
             }
         }
 
-        const labels = getAllDimensionLabels(walls, 0.5, false);
+        const labels = getAllDimensionLabels(walls, { offset: 0.5, unitFormat: this.currentUnitFormat });
 
         for (const label of labels) {
             const sprite = this.createTextSprite(label.text);
             sprite.position.set(label.position.x, label.position.y, 0.2);
-            sprite.scale.set(1.5, 0.5, 1);
             this.labelsGroup.add(sprite);
+        }
+    }
+
+    setUnitFormat(format: UnitFormat): void {
+        if (this.currentUnitFormat !== format) {
+            this.currentUnitFormat = format;
+            this.updateLabels(this.currentWalls);
         }
     }
 
     private createTextSprite(text: string): THREE.Sprite {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d")!;
-        canvas.width = 256;
-        canvas.height = 64;
 
+        // Measure text to size canvas appropriately
+        const fontSize = 24;
+        const padding = 12;
+        context.font = `${fontSize}px Arial`;
+        const textWidth = context.measureText(text).width;
+
+        canvas.width = Math.ceil(textWidth + padding * 2);
+        canvas.height = fontSize + padding;
+
+        // Redraw with correct canvas size
+        context.font = `${fontSize}px Arial`;
         context.fillStyle = "white";
         context.fillRect(0, 0, canvas.width, canvas.height);
 
-        context.font = "24px Arial";
         context.fillStyle = "black";
         context.textAlign = "center";
         context.textBaseline = "middle";
@@ -165,7 +183,13 @@ export class EditorRenderer {
 
         const texture = new THREE.CanvasTexture(canvas);
         const material = new THREE.SpriteMaterial({ map: texture });
-        return new THREE.Sprite(material);
+        const sprite = new THREE.Sprite(material);
+
+        // Scale sprite based on canvas aspect ratio
+        const aspectRatio = canvas.width / canvas.height;
+        sprite.scale.set(aspectRatio * 0.5, 0.5, 1);
+
+        return sprite;
     }
 
     setPhantomLine(start: Vector2 | null, end: Vector2 | null): void {

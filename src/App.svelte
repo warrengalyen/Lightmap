@@ -10,6 +10,7 @@
   import { roomStore } from './stores/roomStore';
   import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
+  import { initSettingsFromRoom } from './stores/settingsStore';
   import type { Vector2 } from './types';
 
   let canvasComponent: Canvas;
@@ -66,6 +67,7 @@
     const savedState = loadFromLocalStorage();
     if (savedState) {
       roomStore.set(savedState);
+      initSettingsFromRoom();
     }
 
     cleanupAutoSave = setupAutoSave(roomStore);

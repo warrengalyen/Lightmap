@@ -6,6 +6,8 @@ export interface RoomState {
     walls: WallSegment[];
     lights: LightFixture[];
     isClosed: boolean;
+    rafterConfig?: RafterConfig;
+    displayPreferences?: DisplayPreferences;
 }
 
 export type AppMode = "drafting" | "viewing";
@@ -27,9 +29,12 @@ export interface RafterConfig {
     visible: boolean;
 }
 
+export type UnitFormat = "feet-inches" | "inches";
+
 export interface DisplayPreferences {
     useFractions: boolean;
     snapThreshold: number;
+    unitFormat: UnitFormat;
 }
 
 export const DEFAULT_ROOM_STATE: RoomState = {
@@ -42,7 +47,7 @@ export const DEFAULT_ROOM_STATE: RoomState = {
 export const DEFAULT_APP_STATE: AppState = {
     mode: "drafting",
     viewMode: "editor",
-    activeTool: "draw",
+    activeTool: "select",
     selectedLightId: null,
 };
 
@@ -57,4 +62,5 @@ export const DEFAULT_RAFTER_CONFIG: RafterConfig = {
 export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {
     useFractions: true,
     snapThreshold: 0.5,
+    unitFormat: "feet-inches",
 };

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { activeTool, viewMode, setActiveTool, setViewMode } from '../stores/appStore';
   import { canPlaceLights } from '../stores/roomStore';
-  import { toggleRafters, rafterConfig } from '../stores/settingsStore';
+  import { toggleRafters, rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
   import { historyStore, canUndo, canRedo } from '../stores/historyStore';
   import type { Tool, ViewMode } from '../types';
 
@@ -11,6 +11,7 @@
   let raftersVisible: boolean;
   let undoEnabled: boolean;
   let redoEnabled: boolean;
+  let unitFormat: 'feet-inches' | 'inches';
 
   $: currentTool = $activeTool;
   $: currentViewMode = $viewMode;
@@ -18,6 +19,7 @@
   $: raftersVisible = $rafterConfig.visible;
   $: undoEnabled = $canUndo;
   $: redoEnabled = $canRedo;
+  $: unitFormat = $displayPreferences.unitFormat;
 
   function handleToolChange(tool: Tool): void {
     setActiveTool(tool);
@@ -124,6 +126,17 @@
     >
       <span class="icon">⊞</span>
       Rafters
+    </button>
+  </div>
+
+  <div class="toolbar-section">
+    <span class="section-label">Units</span>
+    <button
+      class="toggle-button"
+      on:click={toggleUnitFormat}
+      title="Toggle Units (U)"
+    >
+      {unitFormat === 'feet-inches' ? "ft' in\"" : 'in"'}
     </button>
   </div>
 </div>

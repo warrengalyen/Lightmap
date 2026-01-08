@@ -1,4 +1,4 @@
-import type { Vector2, WallSegment } from "../types";
+import type { Vector2, WallSegment, UnitFormat } from "../types";
 import { vectorAdd, vectorScale, vectorSubtract, vectorNormalize, vectorPerpendicular } from "../utils/math";
 import { formatImperial } from "../utils/format";
 
@@ -8,11 +8,15 @@ export interface DimensionLabelData {
     angle: number;
 }
 
-export function getDimensionLabel(
-    wall: WallSegment,
-    offset: number = 0.5,
-    useDecimal: boolean = false,
-): DimensionLabelData {
+export interface LabelOptions {
+    offset?: number;
+    useDecimal?: boolean;
+    unitFormat?: UnitFormat;
+}
+
+export function getDimensionLabel(wall: WallSegment, options: LabelOptions = {}): DimensionLabelData {
+    const { offset = 0.5, useDecimal = false, unitFormat = "feet-inches" } = options;
+
     const midpoint = vectorScale(vectorAdd(wall.start, wall.end), 0.5);
     const dir = vectorNormalize(vectorSubtract(wall.end, wall.start));
     const perp = vectorPerpendicular(dir);
@@ -24,15 +28,11 @@ export function getDimensionLabel(
 
     return {
         position: labelPos,
-        text: formatImperial(wall.length, { decimal: useDecimal }),
+        text: formatImperial(wall.length, { decimal: useDecimal, format: unitFormat }),
         angle,
     };
 }
 
-export function getAllDimensionLabels(
-    walls: WallSegment[],
-    offset: number = 0.5,
-    useDecimal: boolean = false,
-): DimensionLabelData[] {
-    return walls.map((wall) => getDimensionLabel(wall, offset, useDecimal));
+export function getAllDimensionLabels(walls: WallSegment[], options: LabelOptions = {}): DimensionLabelData[] {
+    return walls.map((wall) => getDimensionLabel(wall, options));
 }

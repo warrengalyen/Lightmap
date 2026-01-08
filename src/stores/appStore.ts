@@ -3,7 +3,7 @@ import type { AppMode, ViewMode, Tool } from "../types";
 
 export const appMode = writable<AppMode>("drafting");
 export const viewMode = writable<ViewMode>("editor");
-export const activeTool = writable<Tool>("draw");
+export const activeTool = writable<Tool>("select");
 export const selectedLightId = writable<string | null>(null);
 export const selectedWallId = writable<string | null>(null);
 export const selectedVertexIndex = writable<number | null>(null);

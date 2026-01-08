@@ -1,12 +1,42 @@
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
 import type { RafterConfig, DisplayPreferences } from "../types";
 import { DEFAULT_RAFTER_CONFIG, DEFAULT_DISPLAY_PREFERENCES } from "../types";
+import { roomStore } from "./roomStore";
 
 export const rafterConfig = writable<RafterConfig>({ ...DEFAULT_RAFTER_CONFIG });
 
 export const displayPreferences = writable<DisplayPreferences>({
     ...DEFAULT_DISPLAY_PREFERENCES,
 });
+
+// Flag to prevent circular updates during initialization
+let isInitializing = false;
+
+// Sync settings to roomStore when they change
+rafterConfig.subscribe((config) => {
+    if (!isInitializing) {
+        roomStore.update((state) => ({ ...state, rafterConfig: config }));
+    }
+});
+
+displayPreferences.subscribe((prefs) => {
+    if (!isInitializing) {
+        roomStore.update((state) => ({ ...state, displayPreferences: prefs }));
+    }
+});
+
+// Initialize settings from roomStore
+export function initSettingsFromRoom(): void {
+    isInitializing = true;
+    const state = get(roomStore);
+    if (state.rafterConfig) {
+        rafterConfig.set(state.rafterConfig);
+    }
+    if (state.displayPreferences) {
+        displayPreferences.set(state.displayPreferences);
+    }
+    isInitializing = false;
+}
 
 export function toggleRafters(): void {
     rafterConfig.update((config) => ({ ...config, visible: !config.visible }));
@@ -18,4 +48,15 @@ export function setRafterOrientation(orientation: "horizontal" | "vertical"): vo
 
 export function setRafterSpacing(spacing: number): void {
     rafterConfig.update((config) => ({ ...config, spacing }));
+}
+
+export function toggleUnitFormat(): void {
+    displayPreferences.update((prefs) => ({
+        ...prefs,
+        unitFormat: prefs.unitFormat === "feet-inches" ? "inches" : "feet-inches",
+    }));
+}
+
+export function setUnitFormat(format: "feet-inches" | "inches"): void {
+    displayPreferences.update((prefs) => ({ ...prefs, unitFormat: format }));
 }

@@ -1,5 +1,6 @@
 export interface FormatOptions {
     decimal?: boolean;
+    format?: 'feet-inches' | 'inches';
 }
 
 export function formatImperial(feet: number, options: FormatOptions = {}): string {
@@ -8,6 +9,11 @@ export function formatImperial(feet: number, options: FormatOptions = {}): strin
     }
 
     const totalInches = Math.round(feet * 12);
+
+    if (options.format === 'inches') {
+        return `${totalInches}"`;
+    }
+
     const wholeFeet = Math.floor(totalInches / 12);
     const inches = totalInches % 12;
 

@@ -13,8 +13,8 @@
   import { viewMode, activeTool, selectedLightId, selectedWallId, selectedVertexIndex, isDrawingEnabled, isLightPlacementEnabled } from '../stores/appStore';
   import { getVertices, updateVertexPosition, insertVertexOnWall, deleteVertex, moveWall } from '../stores/roomStore';
   import { historyStore } from '../stores/historyStore';
-  import { rafterConfig } from '../stores/settingsStore';
-  import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig } from '../types';
+  import { rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
+  import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences } from '../types';
 
   let container: HTMLDivElement;
   let scene: Scene;
@@ -39,6 +39,7 @@
   let currentRoomState: RoomState;
   let currentBounds: BoundingBox;
   let currentRafterConfig: RafterConfig;
+  let currentDisplayPrefs: DisplayPreferences;
   let isDrawing = false;
   let isPlacingLights = false;
   let currentSelectedLightId: string | null = null;
@@ -62,6 +63,7 @@
   $: currentSelectedWallId = $selectedWallId;
   $: currentSelectedVertexIndex = $selectedVertexIndex;
   $: currentRafterConfig = $rafterConfig;
+  $: currentDisplayPrefs = $displayPreferences;
 
   $: if (scene && currentViewMode) {
     updateViewMode(currentViewMode);
@@ -85,6 +87,10 @@
   $: if (rafterOverlay && currentRafterConfig && currentBounds) {
     rafterOverlay.updateConfig(currentRafterConfig);
     rafterOverlay.render(currentBounds);
+  }
+
+  $: if (editorRenderer && currentDisplayPrefs) {
+    editorRenderer.setUnitFormat(currentDisplayPrefs.unitFormat);
   }
 
   function updateViewMode(mode: ViewMode): void {
@@ -593,6 +599,11 @@
       case 'r':
       case 'R':
         rafterConfig.update(c => ({ ...c, visible: !c.visible }));
+        break;
+
+      case 'u':
+      case 'U':
+        toggleUnitFormat();
         break;
 
       case 'm':
