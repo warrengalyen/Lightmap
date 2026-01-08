@@ -54,6 +54,7 @@
   let measureFromVertex: Vector2 | null = null;
   let measureToVertex: Vector2 | null = null;
   let didDragVertex = false;
+  let measureFromLightId: string | null = null; // Track if measuring from a light
 
   $: currentViewMode = $viewMode;
   $: currentRoomState = $roomStore;
@@ -109,6 +110,28 @@
     // Handle measurement mode - allow vertex selection for dragging
     // Measurement endpoint is set on mouseup if vertex wasn't dragged
     if (isMeasuring && measureFromVertex) {
+      // If measuring from a light, allow clicking on walls
+      if (measureFromLightId) {
+        const wall = editorRenderer.getWallAtPosition(event.worldPos, currentRoomState.walls, 0.4);
+        if (wall) {
+          // Project light position onto wall to get perpendicular point
+          measureToVertex = projectPointOntoWallPerpendicular(measureFromVertex, wall);
+          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+          dispatchMeasurement();
+          return;
+        }
+        // Also allow clicking vertices when measuring from light
+        const clickedVertexIndex = getVertexAtPosition(event.worldPos, getVertices(currentRoomState), 0.4);
+        if (clickedVertexIndex !== null) {
+          const vertices = getVertices(currentRoomState);
+          measureToVertex = vertices[clickedVertexIndex];
+          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+          dispatchMeasurement();
+        }
+        return;
+      }
+
+      // Measuring from vertex - allow vertex selection for dragging
       const clickedVertexIndex = getVertexAtPosition(event.worldPos, getVertices(currentRoomState), 0.4);
       if (clickedVertexIndex !== null) {
         // Select vertex for potential dragging
@@ -294,6 +317,13 @@
               : light
           ),
         }));
+
+        // Update measurement if measuring from this light
+        if (isMeasuring && measureFromLightId === currentSelectedLightId && measureToVertex) {
+          measureFromVertex = { ...event.worldPos };
+          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+          dispatchMeasurement();
+        }
       }
       return;
     }
@@ -575,6 +605,23 @@
     };
   }
 
+  function projectPointOntoWallPerpendicular(point: Vector2, wall: import('../types').WallSegment): Vector2 {
+    const dx = wall.end.x - wall.start.x;
+    const dy = wall.end.y - wall.start.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) return { ...wall.start };
+
+    let t = ((point.x - wall.start.x) * dx + (point.y - wall.start.y) * dy) / lengthSq;
+    // Clamp to wall segment bounds
+    t = Math.max(0, Math.min(1, t));
+
+    return {
+      x: wall.start.x + t * dx,
+      y: wall.start.y + t * dy,
+    };
+  }
+
   function handleKeyDown(event: InputEvent): void {
     if (!event.key) return;
 
@@ -650,13 +697,24 @@
 
       case 'm':
       case 'M':
-        // Enter measurement mode if a vertex is selected
+        // Enter measurement mode if a vertex or light is selected
         if (currentSelectedVertexIndex !== null && !isMeasuring) {
           const vertices = getVertices(currentRoomState);
           measureFromVertex = vertices[currentSelectedVertexIndex];
           measureToVertex = null;
+          measureFromLightId = null;
           isMeasuring = true;
           dispatch('measurement', null); // Clear any previous measurement display
+        } else if (currentSelectedLightId && !isMeasuring) {
+          // Start measurement from a light
+          const light = currentRoomState.lights.find(l => l.id === currentSelectedLightId);
+          if (light) {
+            measureFromVertex = { ...light.position };
+            measureFromLightId = currentSelectedLightId;
+            measureToVertex = null;
+            isMeasuring = true;
+            dispatch('measurement', null);
+          }
         } else if (isMeasuring) {
           // Exit measurement mode
           clearMeasurement();
@@ -669,6 +727,7 @@
     isMeasuring = false;
     measureFromVertex = null;
     measureToVertex = null;
+    measureFromLightId = null;
     editorRenderer?.setMeasurementLine(null, null);
     dispatch('measurement', null);
   }
