@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Vector2, WallSegment, LightFixture, UnitFormat } from "../types";
 import { LightIcon } from "../lighting/LightIcon";
 import { getAllDimensionLabels } from "../geometry/DimensionLabel";
+import { formatImperial } from "../utils/format";
 
 interface SnapGuide {
     axis: "x" | "y";
@@ -23,6 +24,7 @@ export class EditorRenderer {
     private vertexMeshes: THREE.Mesh[] = [];
     private currentUnitFormat: UnitFormat = "feet-inches";
     private currentWalls: WallSegment[] = [];
+    private currentMeasurement: { from: Vector2; to: Vector2 } | null = null;
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -155,6 +157,10 @@ export class EditorRenderer {
         if (this.currentUnitFormat !== format) {
             this.currentUnitFormat = format;
             this.updateLabels(this.currentWalls);
+            // Re-render measurement line with new unit format
+            if (this.currentMeasurement) {
+                this.setMeasurementLine(this.currentMeasurement.from, this.currentMeasurement.to);
+            }
         }
     }
 
@@ -331,12 +337,20 @@ export class EditorRenderer {
     }
 
     setMeasurementLine(from: Vector2 | null, to: Vector2 | null): void {
+        // Store current measurement for re-rendering on unit format change
+        this.currentMeasurement = from && to ? { from, to } : null;
+
         // Clear existing measurement
         while (this.measurementGroup.children.length > 0) {
             const child = this.measurementGroup.children[0];
             this.measurementGroup.remove(child);
-            if (child instanceof THREE.Line || child instanceof THREE.Mesh) {
-                child.geometry.dispose();
+            if (child instanceof THREE.Line || child instanceof THREE.Mesh || child instanceof THREE.Sprite) {
+                if (child instanceof THREE.Sprite) {
+                    child.material.map?.dispose();
+                }
+                if ("geometry" in child) {
+                    child.geometry.dispose();
+                }
                 (child.material as THREE.Material).dispose();
             }
         }
@@ -344,6 +358,8 @@ export class EditorRenderer {
         if (!from || !to) return;
 
         const z = 0.2;
+        const deltaX = Math.abs(to.x - from.x);
+        const deltaY = Math.abs(to.y - from.y);
 
         // Draw diagonal line (main measurement)
         const diagonalPoints = [new THREE.Vector3(from.x, from.y, z), new THREE.Vector3(to.x, to.y, z)];
@@ -353,28 +369,48 @@ export class EditorRenderer {
         this.measurementGroup.add(diagonalLine);
 
         // Draw X component (horizontal dashed line)
-        const xPoints = [new THREE.Vector3(from.x, from.y, z), new THREE.Vector3(to.x, from.y, z)];
-        const xGeom = new THREE.BufferGeometry().setFromPoints(xPoints);
-        const xMat = new THREE.LineDashedMaterial({
-            color: 0xff6600,
-            dashSize: 0.15,
-            gapSize: 0.1,
-        });
-        const xLine = new THREE.Line(xGeom, xMat);
-        xLine.computeLineDistances();
-        this.measurementGroup.add(xLine);
+        if (deltaX > 0.1) {
+            const xPoints = [new THREE.Vector3(from.x, from.y, z), new THREE.Vector3(to.x, from.y, z)];
+            const xGeom = new THREE.BufferGeometry().setFromPoints(xPoints);
+            const xMat = new THREE.LineDashedMaterial({
+                color: 0xff6600,
+                dashSize: 0.15,
+                gapSize: 0.1,
+            });
+            const xLine = new THREE.Line(xGeom, xMat);
+            xLine.computeLineDistances();
+            this.measurementGroup.add(xLine);
+
+            // X label
+            const xLabel = this.createMeasurementLabel(
+                formatImperial(deltaX, { format: this.currentUnitFormat }),
+                0xff6600,
+            );
+            xLabel.position.set((from.x + to.x) / 2, from.y - 0.4, z + 0.01);
+            this.measurementGroup.add(xLabel);
+        }
 
         // Draw Y component (vertical dashed line)
-        const yPoints = [new THREE.Vector3(to.x, from.y, z), new THREE.Vector3(to.x, to.y, z)];
-        const yGeom = new THREE.BufferGeometry().setFromPoints(yPoints);
-        const yMat = new THREE.LineDashedMaterial({
-            color: 0x0066ff,
-            dashSize: 0.15,
-            gapSize: 0.1,
-        });
-        const yLine = new THREE.Line(yGeom, yMat);
-        yLine.computeLineDistances();
-        this.measurementGroup.add(yLine);
+        if (deltaY > 0.1) {
+            const yPoints = [new THREE.Vector3(to.x, from.y, z), new THREE.Vector3(to.x, to.y, z)];
+            const yGeom = new THREE.BufferGeometry().setFromPoints(yPoints);
+            const yMat = new THREE.LineDashedMaterial({
+                color: 0x0066ff,
+                dashSize: 0.15,
+                gapSize: 0.1,
+            });
+            const yLine = new THREE.Line(yGeom, yMat);
+            yLine.computeLineDistances();
+            this.measurementGroup.add(yLine);
+
+            // Y label
+            const yLabel = this.createMeasurementLabel(
+                formatImperial(deltaY, { format: this.currentUnitFormat }),
+                0x0066ff,
+            );
+            yLabel.position.set(to.x + 0.5, (from.y + to.y) / 2, z + 0.01);
+            this.measurementGroup.add(yLabel);
+        }
 
         // Draw endpoint markers
         for (const point of [from, to]) {
@@ -384,6 +420,39 @@ export class EditorRenderer {
             marker.position.set(point.x, point.y, z + 0.01);
             this.measurementGroup.add(marker);
         }
+    }
+
+    private createMeasurementLabel(text: string, color: number): THREE.Sprite {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d")!;
+
+        const fontSize = 20;
+        const padding = 6;
+        context.font = `bold ${fontSize}px Arial`;
+        const textWidth = context.measureText(text).width;
+
+        canvas.width = Math.ceil(textWidth + padding * 2);
+        canvas.height = fontSize + padding;
+
+        // Draw background
+        context.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw text
+        context.font = `bold ${fontSize}px Arial`;
+        context.fillStyle = "white";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+
+        const aspectRatio = canvas.width / canvas.height;
+        sprite.scale.set(aspectRatio * 0.4, 0.4, 1);
+
+        return sprite;
     }
 
     dispose(): void {
