@@ -55,6 +55,7 @@
   let measureToVertex: Vector2 | null = null;
   let didDragVertex = false;
   let measureFromLightId: string | null = null; // Track if measuring from a light
+  let measureToWallId: string | null = null; // Track if measuring to a wall
 
   $: currentViewMode = $viewMode;
   $: currentRoomState = $roomStore;
@@ -110,11 +111,23 @@
     // Handle measurement mode - allow vertex selection for dragging
     // Measurement endpoint is set on mouseup if vertex wasn't dragged
     if (isMeasuring && measureFromVertex) {
-      // If measuring from a light, allow clicking on walls
+      // If measuring from a light, allow clicking on walls or dragging the light
       if (measureFromLightId) {
+        // Check if clicking on the source light to drag it
+        const clickedLight = lightManager.getLightAt(event.worldPos, 0.5);
+        if (clickedLight && clickedLight.id === measureFromLightId) {
+          // Select light for dragging
+          selectedLightId.set(clickedLight.id);
+          selectedWallId.set(null);
+          selectedVertexIndex.set(null);
+          isDraggingLight = true;
+          return;
+        }
+
         const wall = editorRenderer.getWallAtPosition(event.worldPos, currentRoomState.walls, 0.4);
         if (wall) {
           // Project light position onto wall to get perpendicular point
+          measureToWallId = wall.id;
           measureToVertex = projectPointOntoWallPerpendicular(measureFromVertex, wall);
           editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
           dispatchMeasurement();
@@ -330,10 +343,21 @@
         }));
 
         // Update measurement if measuring from this light
-        if (isMeasuring && measureFromLightId === currentSelectedLightId && measureToVertex) {
+        if (isMeasuring && measureFromLightId === currentSelectedLightId) {
           measureFromVertex = { ...targetPos };
-          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-          dispatchMeasurement();
+
+          // If measuring to a wall, recalculate the projection
+          if (measureToWallId) {
+            const wall = currentRoomState.walls.find(w => w.id === measureToWallId);
+            if (wall) {
+              measureToVertex = projectPointOntoWallPerpendicular(measureFromVertex, wall);
+            }
+          }
+
+          if (measureToVertex) {
+            editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
+            dispatchMeasurement();
+          }
         }
       }
       return;
@@ -794,6 +818,7 @@
     measureFromVertex = null;
     measureToVertex = null;
     measureFromLightId = null;
+    measureToWallId = null;
     editorRenderer?.setMeasurementLine(null, null);
     dispatch('measurement', null);
   }
