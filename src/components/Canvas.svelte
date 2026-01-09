@@ -307,20 +307,31 @@
 
     // Handle light dragging
     if (isDraggingLight && currentSelectedLightId) {
+      let targetPos = event.worldPos;
+
+      // Snap to other lights when holding Shift
+      if (event.shiftKey) {
+        const snapResult = getLightSnapAlignment(event.worldPos, currentSelectedLightId);
+        targetPos = snapResult.snappedPos;
+        editorRenderer.setSnapGuides(snapResult.guides);
+      } else {
+        editorRenderer.setSnapGuides([]);
+      }
+
       // Only allow moving lights inside the room
-      if (currentRoomState.isClosed && polygonValidator.isPointInside(event.worldPos, currentRoomState.walls)) {
+      if (currentRoomState.isClosed && polygonValidator.isPointInside(targetPos, currentRoomState.walls)) {
         roomStore.update(state => ({
           ...state,
           lights: state.lights.map(light =>
             light.id === currentSelectedLightId
-              ? { ...light, position: { ...event.worldPos } }
+              ? { ...light, position: { ...targetPos } }
               : light
           ),
         }));
 
         // Update measurement if measuring from this light
         if (isMeasuring && measureFromLightId === currentSelectedLightId && measureToVertex) {
-          measureFromVertex = { ...event.worldPos };
+          measureFromVertex = { ...targetPos };
           editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
           dispatchMeasurement();
         }
@@ -474,6 +485,61 @@
 
   function snapToVertexAlignment(pos: Vector2, excludeIndex: number): Vector2 {
     return getSnapAlignment(pos, excludeIndex).snappedPos;
+  }
+
+  function getLightSnapAlignment(pos: Vector2, excludeLightId: string): { snappedPos: Vector2; guides: SnapGuide[] } {
+    const lights = currentRoomState.lights;
+    const guides: SnapGuide[] = [];
+    let snappedX = pos.x;
+    let snappedY = pos.y;
+    let snapXLight: Vector2 | null = null;
+    let snapYLight: Vector2 | null = null;
+
+    for (const light of lights) {
+      if (light.id === excludeLightId) continue;
+
+      const p = light.position;
+
+      // Check X alignment
+      if (Math.abs(pos.x - p.x) < SNAP_THRESHOLD) {
+        if (!snapXLight || Math.abs(pos.x - p.x) < Math.abs(pos.x - snapXLight.x)) {
+          snappedX = p.x;
+          snapXLight = p;
+        }
+      }
+
+      // Check Y alignment
+      if (Math.abs(pos.y - p.y) < SNAP_THRESHOLD) {
+        if (!snapYLight || Math.abs(pos.y - p.y) < Math.abs(pos.y - snapYLight.y)) {
+          snappedY = p.y;
+          snapYLight = p;
+        }
+      }
+    }
+
+    // Create guide lines
+    if (snapXLight) {
+      guides.push({
+        axis: 'x',
+        value: snappedX,
+        from: { x: snappedX, y: Math.min(pos.y, snapXLight.y) - 1 },
+        to: { x: snappedX, y: Math.max(pos.y, snapXLight.y) + 1 },
+      });
+    }
+
+    if (snapYLight) {
+      guides.push({
+        axis: 'y',
+        value: snappedY,
+        from: { x: Math.min(pos.x, snapYLight.x) - 1, y: snappedY },
+        to: { x: Math.max(pos.x, snapYLight.x) + 1, y: snappedY },
+      });
+    }
+
+    return {
+      snappedPos: { x: snappedX, y: snappedY },
+      guides,
+    };
   }
 
   function getWallSnapAlignment(
