@@ -9,12 +9,18 @@
   import { WallBuilder } from '../geometry/WallBuilder';
   import { PolygonValidator } from '../geometry/PolygonValidator';
   import { LightManager } from '../lighting/LightManager';
-  import { roomStore, roomBounds, canPlaceLights } from '../stores/roomStore';
+  import { SnapController } from '../controllers/SnapController';
+  import { MeasurementController } from '../controllers/MeasurementController';
+  import { roomStore, roomBounds, canPlaceLights, getVertices, updateVertexPosition, insertVertexOnWall, deleteVertex, moveWall } from '../stores/roomStore';
   import { viewMode, activeTool, selectedLightId, selectedWallId, selectedVertexIndex, isDrawingEnabled, isLightPlacementEnabled } from '../stores/appStore';
-  import { getVertices, updateVertexPosition, insertVertexOnWall, deleteVertex, moveWall } from '../stores/roomStore';
   import { historyStore } from '../stores/historyStore';
   import { rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
+  import { findVertexAtPosition, projectPointOntoSegment, projectPointOntoSegmentForInsertion } from '../utils/math';
   import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences } from '../types';
+
+  // ============================================
+  // Component State
+  // ============================================
 
   let container: HTMLDivElement;
   let scene: Scene;
@@ -26,6 +32,8 @@
   let wallBuilder: WallBuilder;
   let polygonValidator: PolygonValidator;
   let lightManager: LightManager;
+  let snapController: SnapController;
+  let measurementController: MeasurementController;
   let animationFrameId: number;
 
   const dispatch = createEventDispatcher<{
@@ -33,6 +41,10 @@
     snapChange: { snapType: string };
     measurement: { from: Vector2; to: Vector2; deltaX: number; deltaY: number; distance: number } | null;
   }>();
+
+  // ============================================
+  // Reactive State
+  // ============================================
 
   let currentMousePos: Vector2 = { x: 0, y: 0 };
   let currentViewMode: ViewMode = 'editor';
@@ -45,18 +57,18 @@
   let currentSelectedLightId: string | null = null;
   let currentSelectedWallId: string | null = null;
   let currentSelectedVertexIndex: number | null = null;
+
+  // Drag state
   let isDraggingVertex = false;
   let isDraggingLight = false;
   let isDraggingWall = false;
+  let didDragVertex = false;
   let wallDragStart: Vector2 | null = null;
   let wallDragOriginalVertices: { start: Vector2; end: Vector2 } | null = null;
-  let isMeasuring = false;
-  let measureFromVertex: Vector2 | null = null;
-  let measureToVertex: Vector2 | null = null;
-  let didDragVertex = false;
-  let measureFromLightId: string | null = null; // Track if measuring from a light
-  let measureToWallId: string | null = null; // Track if measuring to a wall
-  let measureToLightId: string | null = null; // Track if measuring to a light
+
+  // ============================================
+  // Store Subscriptions
+  // ============================================
 
   $: currentViewMode = $viewMode;
   $: currentRoomState = $roomStore;
@@ -68,6 +80,10 @@
   $: currentSelectedVertexIndex = $selectedVertexIndex;
   $: currentRafterConfig = $rafterConfig;
   $: currentDisplayPrefs = $displayPreferences;
+
+  // ============================================
+  // Reactive Updates
+  // ============================================
 
   $: if (scene && currentViewMode) {
     updateViewMode(currentViewMode);
@@ -97,78 +113,26 @@
     editorRenderer.setUnitFormat(currentDisplayPrefs.unitFormat);
   }
 
+  // ============================================
+  // View Mode
+  // ============================================
+
   function updateViewMode(mode: ViewMode): void {
     if (!editorRenderer || !heatmapRenderer || !shadowRenderer) return;
 
     editorRenderer.setVisible(mode === 'editor');
     heatmapRenderer.setVisible(mode === 'heatmap');
     shadowRenderer.setVisible(mode === 'shadow');
-
-    // Show lights in both editor and shadow modes
     editorRenderer.setLightsVisible(mode === 'editor' || mode === 'shadow');
   }
 
+  // ============================================
+  // Click Handling
+  // ============================================
+
   function handleClick(event: InputEvent): void {
-    // Handle measurement mode - allow vertex selection for dragging
-    // Measurement endpoint is set on mouseup if vertex wasn't dragged
-    if (isMeasuring && measureFromVertex) {
-      // If measuring from a light, allow clicking on walls, other lights, or dragging the light
-      if (measureFromLightId) {
-        const clickedLight = lightManager.getLightAt(event.worldPos, 0.5);
-
-        // Check if clicking on the source light to drag it
-        if (clickedLight && clickedLight.id === measureFromLightId) {
-          // Select light for dragging
-          selectedLightId.set(clickedLight.id);
-          selectedWallId.set(null);
-          selectedVertexIndex.set(null);
-          isDraggingLight = true;
-          return;
-        }
-
-        // Check if clicking on another light to measure to it
-        if (clickedLight && clickedLight.id !== measureFromLightId) {
-          measureToLightId = clickedLight.id;
-          measureToWallId = null;
-          measureToVertex = { ...clickedLight.position };
-          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-          dispatchMeasurement();
-          return;
-        }
-
-        const wall = editorRenderer.getWallAtPosition(event.worldPos, currentRoomState.walls, 0.4);
-        if (wall) {
-          // Project light position onto wall to get perpendicular point
-          measureToWallId = wall.id;
-          measureToLightId = null;
-          measureToVertex = projectPointOntoWallPerpendicular(measureFromVertex, wall);
-          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-          dispatchMeasurement();
-          return;
-        }
-        // Also allow clicking vertices when measuring from light
-        const clickedVertexIndex = getVertexAtPosition(event.worldPos, getVertices(currentRoomState), 0.4);
-        if (clickedVertexIndex !== null) {
-          measureToLightId = null;
-          measureToWallId = null;
-          const vertices = getVertices(currentRoomState);
-          measureToVertex = vertices[clickedVertexIndex];
-          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-          dispatchMeasurement();
-        }
-        return;
-      }
-
-      // Measuring from vertex - allow vertex selection for dragging
-      const clickedVertexIndex = getVertexAtPosition(event.worldPos, getVertices(currentRoomState), 0.4);
-      if (clickedVertexIndex !== null) {
-        // Select vertex for potential dragging
-        selectedVertexIndex.set(clickedVertexIndex);
-        selectedWallId.set(null);
-        selectedLightId.set(null);
-        isDraggingVertex = true;
-        didDragVertex = false;
-      }
+    if (measurementController.isActive) {
+      handleMeasurementClick(event);
       return;
     }
 
@@ -181,10 +145,59 @@
     }
   }
 
+  function handleMeasurementClick(event: InputEvent): void {
+    const vertices = getVertices(currentRoomState);
+
+    if (measurementController.isFromLight) {
+      // Measuring from a light
+      const clickedLight = lightManager.getLightAt(event.worldPos, 0.5);
+
+      // Check if clicking on the source light to drag it
+      if (clickedLight && clickedLight.id === measurementController.sourceLightId) {
+        selectedLightId.set(clickedLight.id);
+        selectedWallId.set(null);
+        selectedVertexIndex.set(null);
+        isDraggingLight = true;
+        return;
+      }
+
+      // Check if clicking on another light to measure to it
+      if (clickedLight && clickedLight.id !== measurementController.sourceLightId) {
+        measurementController.setTargetLight(clickedLight.id, clickedLight.position);
+        updateMeasurementDisplay();
+        return;
+      }
+
+      // Check for wall click
+      const wall = editorRenderer.getWallAtPosition(event.worldPos, currentRoomState.walls, 0.4);
+      if (wall) {
+        measurementController.setTargetWall(wall.id, wall);
+        updateMeasurementDisplay();
+        return;
+      }
+
+      // Check for vertex click
+      const clickedVertexIndex = findVertexAtPosition(event.worldPos, vertices, 0.4);
+      if (clickedVertexIndex !== null) {
+        measurementController.setTargetVertex(clickedVertexIndex, vertices[clickedVertexIndex]);
+        updateMeasurementDisplay();
+      }
+    } else {
+      // Measuring from vertex - allow vertex selection for dragging
+      const clickedVertexIndex = findVertexAtPosition(event.worldPos, vertices, 0.4);
+      if (clickedVertexIndex !== null) {
+        selectedVertexIndex.set(clickedVertexIndex);
+        selectedWallId.set(null);
+        selectedLightId.set(null);
+        isDraggingVertex = true;
+        didDragVertex = false;
+      }
+    }
+  }
+
   function handleDrawingClick(pos: Vector2): void {
     if (!wallBuilder.drawing) {
       wallBuilder.startDrawing(pos);
-      // Show the starting vertex immediately
       editorRenderer.updateDrawingVertices(wallBuilder.getVertices());
     } else {
       const snappedPos = wallBuilder.continueDrawing(pos);
@@ -193,14 +206,9 @@
       if (snap?.snapType === 'closure' && wallBuilder.vertexCount >= 3) {
         const walls = wallBuilder.closeLoop();
         if (walls && polygonValidator.isValid(walls)) {
-          // Clear drawing vertices and phantom line
           editorRenderer.updateDrawingVertices([]);
           editorRenderer.setPhantomLine(null, null);
-          roomStore.update(state => ({
-            ...state,
-            walls,
-            isClosed: true,
-          }));
+          roomStore.update(state => ({ ...state, walls, isClosed: true }));
         } else {
           wallBuilder.cancel();
           editorRenderer.updateDrawingVertices([]);
@@ -208,29 +216,23 @@
         }
       } else {
         wallBuilder.placeVertex(snappedPos);
-        // Update the drawing vertices display
         editorRenderer.updateDrawingVertices(wallBuilder.getVertices());
       }
     }
   }
 
   function handleLightPlacement(pos: Vector2): void {
-    if (!polygonValidator.isPointInside(pos, currentRoomState.walls)) {
-      return;
-    }
+    if (!polygonValidator.isPointInside(pos, currentRoomState.walls)) return;
 
     const newLight = lightManager.addLight(pos);
-    roomStore.update(state => ({
-      ...state,
-      lights: [...state.lights, newLight],
-    }));
+    roomStore.update(state => ({ ...state, lights: [...state.lights, newLight] }));
   }
 
   function handleSelection(pos: Vector2): void {
-    // First check for vertices (only if room is closed)
+    // Check vertices first (if room is closed)
     if (currentRoomState.isClosed) {
       const vertices = getVertices(currentRoomState);
-      const vertexIndex = getVertexAtPosition(pos, vertices, 0.3);
+      const vertexIndex = findVertexAtPosition(pos, vertices, 0.3);
       if (vertexIndex !== null) {
         selectedVertexIndex.set(vertexIndex);
         selectedWallId.set(null);
@@ -240,7 +242,7 @@
       }
     }
 
-    // Then check for lights
+    // Check lights
     const light = lightManager.getLightAt(pos, 0.5);
     if (light) {
       selectedLightId.set(light.id);
@@ -250,7 +252,7 @@
       return;
     }
 
-    // Then check for walls (only if room is closed)
+    // Check walls (if room is closed)
     if (currentRoomState.isClosed) {
       const wall = editorRenderer.getWallAtPosition(pos, currentRoomState.walls, 0.3);
       if (wall) {
@@ -259,194 +261,187 @@
         selectedVertexIndex.set(null);
         isDraggingWall = true;
         wallDragStart = { ...pos };
-        wallDragOriginalVertices = {
-          start: { ...wall.start },
-          end: { ...wall.end },
-        };
+        wallDragOriginalVertices = { start: { ...wall.start }, end: { ...wall.end } };
         return;
       }
     }
 
-    // Nothing selected
+    // Clear selection
     selectedLightId.set(null);
     selectedWallId.set(null);
     selectedVertexIndex.set(null);
   }
 
-  function getVertexAtPosition(pos: Vector2, vertices: Vector2[], tolerance: number): number | null {
-    for (let i = 0; i < vertices.length; i++) {
-      const v = vertices[i];
-      const dist = Math.sqrt(Math.pow(pos.x - v.x, 2) + Math.pow(pos.y - v.y, 2));
-      if (dist <= tolerance) {
-        return i;
-      }
-    }
-    return null;
-  }
+  // ============================================
+  // Mouse Move Handling
+  // ============================================
 
   function handleMouseMove(event: InputEvent): void {
     currentMousePos = event.worldPos;
     dispatch('mouseMove', { worldPos: event.worldPos });
 
-    // Handle vertex dragging
     if (isDraggingVertex && currentSelectedVertexIndex !== null) {
-      didDragVertex = true;
-      let targetPos = event.worldPos;
-
-      // Snap to other vertices when holding Shift
-      if (event.shiftKey) {
-        targetPos = snapToVertexAlignment(event.worldPos, currentSelectedVertexIndex);
-      }
-
-      updateVertexPosition(currentSelectedVertexIndex, targetPos);
-
-      // Update measurement line if measuring and this vertex is an endpoint
-      if (isMeasuring && measureFromVertex && measureToVertex) {
-        const vertices = getVertices(currentRoomState);
-        // Update measurement with current vertex positions
-        const fromIdx = vertices.findIndex(v =>
-          Math.abs(v.x - measureFromVertex!.x) < 0.01 && Math.abs(v.y - measureFromVertex!.y) < 0.01
-        );
-        const toIdx = vertices.findIndex(v =>
-          Math.abs(v.x - measureToVertex!.x) < 0.01 && Math.abs(v.y - measureToVertex!.y) < 0.01
-        );
-
-        // If dragging one of the measurement vertices, update the measurement
-        if (currentSelectedVertexIndex === fromIdx) {
-          measureFromVertex = targetPos;
-          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-          dispatchMeasurement();
-        } else if (currentSelectedVertexIndex === toIdx) {
-          measureToVertex = targetPos;
-          editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-          dispatchMeasurement();
-        }
-      }
-
-      // Update snap guides
-      if (event.shiftKey) {
-        const snapResult = getSnapAlignment(event.worldPos, currentSelectedVertexIndex);
-        editorRenderer.setSnapGuides(snapResult.guides);
-      } else {
-        editorRenderer.setSnapGuides([]);
-      }
+      handleVertexDrag(event);
       return;
     }
 
-    // Handle light dragging
     if (isDraggingLight && currentSelectedLightId) {
-      let targetPos = event.worldPos;
-
-      // Snap to other lights when holding Shift
-      if (event.shiftKey) {
-        const snapResult = getLightSnapAlignment(event.worldPos, currentSelectedLightId);
-        targetPos = snapResult.snappedPos;
-        editorRenderer.setSnapGuides(snapResult.guides);
-      } else {
-        editorRenderer.setSnapGuides([]);
-      }
-
-      // Only allow moving lights inside the room
-      if (currentRoomState.isClosed && polygonValidator.isPointInside(targetPos, currentRoomState.walls)) {
-        roomStore.update(state => ({
-          ...state,
-          lights: state.lights.map(light =>
-            light.id === currentSelectedLightId
-              ? { ...light, position: { ...targetPos } }
-              : light
-          ),
-        }));
-
-        // Update measurement if this light is part of the measurement
-        if (isMeasuring && measureFromVertex) {
-          let measurementUpdated = false;
-
-          // If this is the source light
-          if (measureFromLightId === currentSelectedLightId) {
-            measureFromVertex = { ...targetPos };
-
-            // If measuring to a wall, recalculate the projection
-            if (measureToWallId) {
-              const wall = currentRoomState.walls.find(w => w.id === measureToWallId);
-              if (wall) {
-                measureToVertex = projectPointOntoWallPerpendicular(measureFromVertex, wall);
-              }
-            }
-            measurementUpdated = true;
-          }
-
-          // If this is the target light
-          if (measureToLightId === currentSelectedLightId) {
-            measureToVertex = { ...targetPos };
-            measurementUpdated = true;
-          }
-
-          if (measurementUpdated && measureToVertex) {
-            editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-            dispatchMeasurement();
-          }
-        }
-      }
+      handleLightDrag(event);
       return;
     }
 
-    // Handle wall dragging
     if (isDraggingWall && currentSelectedWallId && wallDragStart && wallDragOriginalVertices) {
-      const delta = {
-        x: event.worldPos.x - wallDragStart.x,
-        y: event.worldPos.y - wallDragStart.y,
-      };
-
-      let newStart = {
-        x: wallDragOriginalVertices.start.x + delta.x,
-        y: wallDragOriginalVertices.start.y + delta.y,
-      };
-      let newEnd = {
-        x: wallDragOriginalVertices.end.x + delta.x,
-        y: wallDragOriginalVertices.end.y + delta.y,
-      };
-
-      // Snap to other vertices when holding Shift
-      if (event.shiftKey) {
-        const wallIndex = currentRoomState.walls.findIndex(w => w.id === currentSelectedWallId);
-        if (wallIndex !== -1) {
-          const snapResult = getWallSnapAlignment(newStart, newEnd, wallIndex);
-          newStart = snapResult.snappedStart;
-          newEnd = snapResult.snappedEnd;
-          editorRenderer.setSnapGuides(snapResult.guides);
-        }
-      } else {
-        editorRenderer.setSnapGuides([]);
-      }
-
-      moveWall(currentSelectedWallId, newStart, newEnd);
+      handleWallDrag(event);
       return;
     }
 
     if (wallBuilder.drawing) {
-      const snappedPos = wallBuilder.continueDrawing(event.worldPos);
-      const lastVertex = wallBuilder.lastVertex;
+      handleDrawingMove(event);
+    }
+  }
 
-      if (lastVertex) {
-        editorRenderer.setPhantomLine(lastVertex, snappedPos);
-      }
+  function handleVertexDrag(event: InputEvent): void {
+    didDragVertex = true;
+    const vertices = getVertices(currentRoomState);
+    let targetPos = event.worldPos;
 
-      const snap = wallBuilder.currentSnap;
-      if (snap) {
-        dispatch('snapChange', { snapType: snap.snapType });
+    // Snap when holding Shift
+    if (event.shiftKey) {
+      const snapResult = snapController.snapToVertices(event.worldPos, vertices, currentSelectedVertexIndex!);
+      targetPos = snapResult.snappedPos;
+      editorRenderer.setSnapGuides(snapResult.guides);
+    } else {
+      editorRenderer.setSnapGuides([]);
+    }
+
+    updateVertexPosition(currentSelectedVertexIndex!, targetPos);
+
+    // Update measurement if vertex is part of it
+    if (measurementController.isActive && measurementController.toPosition) {
+      updateMeasurementForVertexDrag(targetPos, vertices);
+    }
+  }
+
+  function updateMeasurementForVertexDrag(targetPos: Vector2, vertices: Vector2[]): void {
+    const fromPos = measurementController.fromPosition;
+    const toPos = measurementController.toPosition;
+    if (!fromPos || !toPos) return;
+
+    // Check if dragged vertex matches from position
+    const fromMatch = Math.abs(vertices[currentSelectedVertexIndex!]?.x - fromPos.x) < 0.01 &&
+                      Math.abs(vertices[currentSelectedVertexIndex!]?.y - fromPos.y) < 0.01;
+
+    // Check if dragged vertex matches to position
+    const toMatch = Math.abs(vertices[currentSelectedVertexIndex!]?.x - toPos.x) < 0.01 &&
+                    Math.abs(vertices[currentSelectedVertexIndex!]?.y - toPos.y) < 0.01;
+
+    if (fromMatch) {
+      measurementController.updateSourcePosition(targetPos);
+      updateMeasurementDisplay();
+    } else if (toMatch) {
+      measurementController.updateTargetPosition(targetPos);
+      updateMeasurementDisplay();
+    }
+  }
+
+  function handleLightDrag(event: InputEvent): void {
+    let targetPos = event.worldPos;
+
+    // Snap when holding Shift
+    if (event.shiftKey) {
+      const snapResult = snapController.snapToLights(event.worldPos, currentRoomState.lights, currentSelectedLightId!);
+      targetPos = snapResult.snappedPos;
+      editorRenderer.setSnapGuides(snapResult.guides);
+    } else {
+      editorRenderer.setSnapGuides([]);
+    }
+
+    // Only move if inside room
+    if (!currentRoomState.isClosed || !polygonValidator.isPointInside(targetPos, currentRoomState.walls)) {
+      return;
+    }
+
+    roomStore.update(state => ({
+      ...state,
+      lights: state.lights.map(light =>
+        light.id === currentSelectedLightId ? { ...light, position: { ...targetPos } } : light
+      ),
+    }));
+
+    // Update measurement if this light is part of it
+    if (measurementController.isActive) {
+      if (measurementController.sourceLightId === currentSelectedLightId) {
+        measurementController.updateSourcePosition(targetPos, currentRoomState.walls);
+        updateMeasurementDisplay();
+      } else if (measurementController.targetLightId === currentSelectedLightId) {
+        measurementController.updateTargetPosition(targetPos);
+        updateMeasurementDisplay();
       }
     }
   }
 
-  function handleMouseUp(): void {
-    // If measuring and a vertex was selected but not dragged, set it as measurement endpoint
-    if (isMeasuring && measureFromVertex && currentSelectedVertexIndex !== null && isDraggingVertex && !didDragVertex) {
-      const vertices = getVertices(currentRoomState);
-      measureToVertex = vertices[currentSelectedVertexIndex];
-      editorRenderer.setMeasurementLine(measureFromVertex, measureToVertex);
-      dispatchMeasurement();
+  function handleWallDrag(event: InputEvent): void {
+    const delta = {
+      x: event.worldPos.x - wallDragStart!.x,
+      y: event.worldPos.y - wallDragStart!.y,
+    };
+
+    let newStart = {
+      x: wallDragOriginalVertices!.start.x + delta.x,
+      y: wallDragOriginalVertices!.start.y + delta.y,
+    };
+    let newEnd = {
+      x: wallDragOriginalVertices!.end.x + delta.x,
+      y: wallDragOriginalVertices!.end.y + delta.y,
+    };
+
+    // Snap when holding Shift
+    if (event.shiftKey) {
+      const wallIndex = currentRoomState.walls.findIndex(w => w.id === currentSelectedWallId);
+      if (wallIndex !== -1) {
+        const vertices = getVertices(currentRoomState);
+        const numWalls = currentRoomState.walls.length;
+        const excludeIndices = [wallIndex, (wallIndex + 1) % numWalls];
+        const snapResult = snapController.snapWallToVertices(newStart, newEnd, vertices, excludeIndices);
+        newStart = snapResult.snappedStart;
+        newEnd = snapResult.snappedEnd;
+        editorRenderer.setSnapGuides(snapResult.guides);
+      }
+    } else {
+      editorRenderer.setSnapGuides([]);
     }
 
+    moveWall(currentSelectedWallId!, newStart, newEnd);
+  }
+
+  function handleDrawingMove(event: InputEvent): void {
+    const snappedPos = wallBuilder.continueDrawing(event.worldPos);
+    const lastVertex = wallBuilder.lastVertex;
+
+    if (lastVertex) {
+      editorRenderer.setPhantomLine(lastVertex, snappedPos);
+    }
+
+    const snap = wallBuilder.currentSnap;
+    if (snap) {
+      dispatch('snapChange', { snapType: snap.snapType });
+    }
+  }
+
+  // ============================================
+  // Mouse Up Handling
+  // ============================================
+
+  function handleMouseUp(): void {
+    // Set measurement endpoint if vertex was clicked but not dragged
+    if (measurementController.isActive && !measurementController.isFromLight &&
+        currentSelectedVertexIndex !== null && isDraggingVertex && !didDragVertex) {
+      const vertices = getVertices(currentRoomState);
+      measurementController.setTargetVertex(currentSelectedVertexIndex, vertices[currentSelectedVertexIndex]);
+      updateMeasurementDisplay();
+    }
+
+    // Reset drag state
     isDraggingVertex = false;
     isDraggingLight = false;
     isDraggingWall = false;
@@ -456,246 +451,15 @@
     editorRenderer?.setSnapGuides([]);
   }
 
-  function dispatchMeasurement(): void {
-    if (!measureFromVertex || !measureToVertex) return;
-    const deltaX = measureToVertex.x - measureFromVertex.x;
-    const deltaY = measureToVertex.y - measureFromVertex.y;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    dispatch('measurement', {
-      from: measureFromVertex,
-      to: measureToVertex,
-      deltaX,
-      deltaY,
-      distance,
-    });
-  }
-
-  const SNAP_THRESHOLD = 0.5; // feet
-
-  interface SnapGuide {
-    axis: 'x' | 'y';
-    value: number;
-    from: Vector2;
-    to: Vector2;
-  }
-
-  function getSnapAlignment(pos: Vector2, excludeIndex: number): { snappedPos: Vector2; guides: SnapGuide[] } {
-    const vertices = getVertices(currentRoomState);
-    const guides: SnapGuide[] = [];
-    let snappedX = pos.x;
-    let snappedY = pos.y;
-    let snapXVertex: Vector2 | null = null;
-    let snapYVertex: Vector2 | null = null;
-
-    for (let i = 0; i < vertices.length; i++) {
-      if (i === excludeIndex) continue;
-
-      const v = vertices[i];
-
-      // Check X alignment
-      if (Math.abs(pos.x - v.x) < SNAP_THRESHOLD) {
-        if (!snapXVertex || Math.abs(pos.x - v.x) < Math.abs(pos.x - snapXVertex.x)) {
-          snappedX = v.x;
-          snapXVertex = v;
-        }
-      }
-
-      // Check Y alignment
-      if (Math.abs(pos.y - v.y) < SNAP_THRESHOLD) {
-        if (!snapYVertex || Math.abs(pos.y - v.y) < Math.abs(pos.y - snapYVertex.y)) {
-          snappedY = v.y;
-          snapYVertex = v;
-        }
-      }
-    }
-
-    // Create guide lines
-    if (snapXVertex) {
-      guides.push({
-        axis: 'x',
-        value: snappedX,
-        from: { x: snappedX, y: Math.min(pos.y, snapXVertex.y) - 1 },
-        to: { x: snappedX, y: Math.max(pos.y, snapXVertex.y) + 1 },
-      });
-    }
-
-    if (snapYVertex) {
-      guides.push({
-        axis: 'y',
-        value: snappedY,
-        from: { x: Math.min(pos.x, snapYVertex.x) - 1, y: snappedY },
-        to: { x: Math.max(pos.x, snapYVertex.x) + 1, y: snappedY },
-      });
-    }
-
-    return {
-      snappedPos: { x: snappedX, y: snappedY },
-      guides,
-    };
-  }
-
-  function snapToVertexAlignment(pos: Vector2, excludeIndex: number): Vector2 {
-    return getSnapAlignment(pos, excludeIndex).snappedPos;
-  }
-
-  function getLightSnapAlignment(pos: Vector2, excludeLightId: string): { snappedPos: Vector2; guides: SnapGuide[] } {
-    const lights = currentRoomState.lights;
-    const guides: SnapGuide[] = [];
-    let snappedX = pos.x;
-    let snappedY = pos.y;
-    let snapXLight: Vector2 | null = null;
-    let snapYLight: Vector2 | null = null;
-
-    for (const light of lights) {
-      if (light.id === excludeLightId) continue;
-
-      const p = light.position;
-
-      // Check X alignment
-      if (Math.abs(pos.x - p.x) < SNAP_THRESHOLD) {
-        if (!snapXLight || Math.abs(pos.x - p.x) < Math.abs(pos.x - snapXLight.x)) {
-          snappedX = p.x;
-          snapXLight = p;
-        }
-      }
-
-      // Check Y alignment
-      if (Math.abs(pos.y - p.y) < SNAP_THRESHOLD) {
-        if (!snapYLight || Math.abs(pos.y - p.y) < Math.abs(pos.y - snapYLight.y)) {
-          snappedY = p.y;
-          snapYLight = p;
-        }
-      }
-    }
-
-    // Create guide lines
-    if (snapXLight) {
-      guides.push({
-        axis: 'x',
-        value: snappedX,
-        from: { x: snappedX, y: Math.min(pos.y, snapXLight.y) - 1 },
-        to: { x: snappedX, y: Math.max(pos.y, snapXLight.y) + 1 },
-      });
-    }
-
-    if (snapYLight) {
-      guides.push({
-        axis: 'y',
-        value: snappedY,
-        from: { x: Math.min(pos.x, snapYLight.x) - 1, y: snappedY },
-        to: { x: Math.max(pos.x, snapYLight.x) + 1, y: snappedY },
-      });
-    }
-
-    return {
-      snappedPos: { x: snappedX, y: snappedY },
-      guides,
-    };
-  }
-
-  function getWallSnapAlignment(
-    start: Vector2,
-    end: Vector2,
-    wallIndex: number
-  ): { snappedStart: Vector2; snappedEnd: Vector2; guides: SnapGuide[] } {
-    const vertices = getVertices(currentRoomState);
-    const guides: SnapGuide[] = [];
-
-    // Indices to exclude: the two vertices of this wall
-    const numWalls = currentRoomState.walls.length;
-    const startVertexIndex = wallIndex;
-    const endVertexIndex = (wallIndex + 1) % numWalls;
-
-    let snapDeltaX: number | null = null;
-    let snapDeltaY: number | null = null;
-    let snapXVertex: Vector2 | null = null;
-    let snapYVertex: Vector2 | null = null;
-    let snapFromStart = true;
-
-    // Check start vertex alignment
-    for (let i = 0; i < vertices.length; i++) {
-      if (i === startVertexIndex || i === endVertexIndex) continue;
-      const v = vertices[i];
-
-      // X alignment for start
-      if (Math.abs(start.x - v.x) < SNAP_THRESHOLD) {
-        if (snapDeltaX === null || Math.abs(start.x - v.x) < Math.abs(snapDeltaX)) {
-          snapDeltaX = v.x - start.x;
-          snapXVertex = v;
-          snapFromStart = true;
-        }
-      }
-      // Y alignment for start
-      if (Math.abs(start.y - v.y) < SNAP_THRESHOLD) {
-        if (snapDeltaY === null || Math.abs(start.y - v.y) < Math.abs(snapDeltaY)) {
-          snapDeltaY = v.y - start.y;
-          snapYVertex = v;
-          snapFromStart = true;
-        }
-      }
-
-      // X alignment for end
-      if (Math.abs(end.x - v.x) < SNAP_THRESHOLD) {
-        if (snapDeltaX === null || Math.abs(end.x - v.x) < Math.abs(snapDeltaX)) {
-          snapDeltaX = v.x - end.x;
-          snapXVertex = v;
-          snapFromStart = false;
-        }
-      }
-      // Y alignment for end
-      if (Math.abs(end.y - v.y) < SNAP_THRESHOLD) {
-        if (snapDeltaY === null || Math.abs(end.y - v.y) < Math.abs(snapDeltaY)) {
-          snapDeltaY = v.y - end.y;
-          snapYVertex = v;
-          snapFromStart = false;
-        }
-      }
-    }
-
-    // Apply snapping
-    let snappedStart = { ...start };
-    let snappedEnd = { ...end };
-
-    if (snapDeltaX !== null) {
-      snappedStart.x += snapDeltaX;
-      snappedEnd.x += snapDeltaX;
-    }
-    if (snapDeltaY !== null) {
-      snappedStart.y += snapDeltaY;
-      snappedEnd.y += snapDeltaY;
-    }
-
-    // Create guide lines
-    if (snapXVertex) {
-      const refPoint = snapFromStart ? snappedStart : snappedEnd;
-      guides.push({
-        axis: 'x',
-        value: snapXVertex.x,
-        from: { x: snapXVertex.x, y: Math.min(refPoint.y, snapXVertex.y) - 1 },
-        to: { x: snapXVertex.x, y: Math.max(refPoint.y, snapXVertex.y) + 1 },
-      });
-    }
-
-    if (snapYVertex) {
-      const refPoint = snapFromStart ? snappedStart : snappedEnd;
-      guides.push({
-        axis: 'y',
-        value: snapYVertex.y,
-        from: { x: Math.min(refPoint.x, snapYVertex.x) - 1, y: snapYVertex.y },
-        to: { x: Math.max(refPoint.x, snapYVertex.x) + 1, y: snapYVertex.y },
-      });
-    }
-
-    return { snappedStart, snappedEnd, guides };
-  }
+  // ============================================
+  // Double Click Handling
+  // ============================================
 
   function handleDoubleClick(event: InputEvent): void {
-    // Double-click on a wall to insert a vertex
     if (currentRoomState.isClosed && $activeTool === 'select') {
       const wall = editorRenderer.getWallAtPosition(event.worldPos, currentRoomState.walls, 0.3);
       if (wall) {
-        // Project the click position onto the wall to get the exact insertion point
-        const insertPos = projectPointOntoWall(event.worldPos, wall);
+        const insertPos = projectPointOntoSegmentForInsertion(event.worldPos, wall.start, wall.end);
         const newVertexIndex = insertVertexOnWall(wall.id, insertPos);
         if (newVertexIndex !== null) {
           selectedVertexIndex.set(newVertexIndex);
@@ -706,49 +470,16 @@
     }
   }
 
-  function projectPointOntoWall(point: Vector2, wall: import('../types').WallSegment): Vector2 {
-    const dx = wall.end.x - wall.start.x;
-    const dy = wall.end.y - wall.start.y;
-    const lengthSq = dx * dx + dy * dy;
-
-    if (lengthSq === 0) return { ...wall.start };
-
-    let t = ((point.x - wall.start.x) * dx + (point.y - wall.start.y) * dy) / lengthSq;
-    t = Math.max(0.1, Math.min(0.9, t)); // Keep some distance from endpoints
-
-    return {
-      x: wall.start.x + t * dx,
-      y: wall.start.y + t * dy,
-    };
-  }
-
-  function projectPointOntoWallPerpendicular(point: Vector2, wall: import('../types').WallSegment): Vector2 {
-    const dx = wall.end.x - wall.start.x;
-    const dy = wall.end.y - wall.start.y;
-    const lengthSq = dx * dx + dy * dy;
-
-    if (lengthSq === 0) return { ...wall.start };
-
-    let t = ((point.x - wall.start.x) * dx + (point.y - wall.start.y) * dy) / lengthSq;
-    // Clamp to wall segment bounds
-    t = Math.max(0, Math.min(1, t));
-
-    return {
-      x: wall.start.x + t * dx,
-      y: wall.start.y + t * dy,
-    };
-  }
+  // ============================================
+  // Keyboard Handling
+  // ============================================
 
   function handleKeyDown(event: InputEvent): void {
     if (!event.key) return;
 
-    // Handle undo/redo
+    // Undo/Redo
     if (event.ctrlKey && event.key.toLowerCase() === 'z') {
-      if (event.shiftKey) {
-        historyStore.redo();
-      } else {
-        historyStore.undo();
-      }
+      event.shiftKey ? historyStore.redo() : historyStore.undo();
       return;
     }
 
@@ -759,35 +490,12 @@
 
     switch (event.key) {
       case 'Escape':
-        if (isMeasuring) {
-          clearMeasurement();
-        }
-        if (wallBuilder.drawing) {
-          wallBuilder.cancel();
-          editorRenderer.setPhantomLine(null, null);
-          editorRenderer.updateDrawingVertices([]);
-        }
-        selectedLightId.set(null);
-        selectedWallId.set(null);
-        selectedVertexIndex.set(null);
+        handleEscape();
         break;
 
       case 'Delete':
       case 'Backspace':
-        if (currentSelectedLightId) {
-          lightManager.removeLight(currentSelectedLightId);
-          roomStore.update(state => ({
-            ...state,
-            lights: state.lights.filter(l => l.id !== currentSelectedLightId),
-          }));
-          selectedLightId.set(null);
-        } else if (currentSelectedVertexIndex !== null) {
-          // Delete selected vertex (merge adjacent walls)
-          if (currentRoomState.walls.length > 3) {
-            deleteVertex(currentSelectedVertexIndex);
-            selectedVertexIndex.set(null);
-          }
-        }
+        handleDelete();
         break;
 
       case '1':
@@ -814,47 +522,94 @@
 
       case 'm':
       case 'M':
-        // Enter measurement mode if a vertex or light is selected
-        if (currentSelectedVertexIndex !== null && !isMeasuring) {
-          const vertices = getVertices(currentRoomState);
-          measureFromVertex = vertices[currentSelectedVertexIndex];
-          measureToVertex = null;
-          measureFromLightId = null;
-          isMeasuring = true;
-          dispatch('measurement', null); // Clear any previous measurement display
-        } else if (currentSelectedLightId && !isMeasuring) {
-          // Start measurement from a light
-          const light = currentRoomState.lights.find(l => l.id === currentSelectedLightId);
-          if (light) {
-            measureFromVertex = { ...light.position };
-            measureFromLightId = currentSelectedLightId;
-            measureToVertex = null;
-            isMeasuring = true;
-            dispatch('measurement', null);
-          }
-        } else if (isMeasuring) {
-          // Exit measurement mode
-          clearMeasurement();
-        }
+        handleMeasurementToggle();
         break;
     }
   }
 
+  function handleEscape(): void {
+    if (measurementController.isActive) {
+      clearMeasurement();
+    }
+    if (wallBuilder.drawing) {
+      wallBuilder.cancel();
+      editorRenderer.setPhantomLine(null, null);
+      editorRenderer.updateDrawingVertices([]);
+    }
+    selectedLightId.set(null);
+    selectedWallId.set(null);
+    selectedVertexIndex.set(null);
+  }
+
+  function handleDelete(): void {
+    if (currentSelectedLightId) {
+      lightManager.removeLight(currentSelectedLightId);
+      roomStore.update(state => ({
+        ...state,
+        lights: state.lights.filter(l => l.id !== currentSelectedLightId),
+      }));
+      selectedLightId.set(null);
+    } else if (currentSelectedVertexIndex !== null && currentRoomState.walls.length > 3) {
+      deleteVertex(currentSelectedVertexIndex);
+      selectedVertexIndex.set(null);
+    }
+  }
+
+  function handleMeasurementToggle(): void {
+    if (measurementController.isActive) {
+      clearMeasurement();
+      return;
+    }
+
+    // Start from vertex
+    if (currentSelectedVertexIndex !== null) {
+      const vertices = getVertices(currentRoomState);
+      measurementController.startFromVertex(currentSelectedVertexIndex, vertices[currentSelectedVertexIndex]);
+      dispatch('measurement', null);
+      return;
+    }
+
+    // Start from light
+    if (currentSelectedLightId) {
+      const light = currentRoomState.lights.find(l => l.id === currentSelectedLightId);
+      if (light) {
+        measurementController.startFromLight(currentSelectedLightId, light.position);
+        dispatch('measurement', null);
+      }
+    }
+  }
+
+  // ============================================
+  // Measurement Helpers
+  // ============================================
+
+  function updateMeasurementDisplay(): void {
+    const from = measurementController.fromPosition;
+    const to = measurementController.toPosition;
+    editorRenderer.setMeasurementLine(from, to);
+
+    const data = measurementController.getMeasurementData();
+    dispatch('measurement', data);
+  }
+
   function clearMeasurement(): void {
-    isMeasuring = false;
-    measureFromVertex = null;
-    measureToVertex = null;
-    measureFromLightId = null;
-    measureToWallId = null;
-    measureToLightId = null;
+    measurementController.clear();
     editorRenderer?.setMeasurementLine(null, null);
     dispatch('measurement', null);
   }
+
+  // ============================================
+  // Animation
+  // ============================================
 
   function animate(): void {
     scene.render();
     animationFrameId = requestAnimationFrame(animate);
   }
+
+  // ============================================
+  // Lifecycle
+  // ============================================
 
   onMount(() => {
     scene = new Scene(container);
@@ -866,11 +621,13 @@
     wallBuilder = new WallBuilder();
     polygonValidator = new PolygonValidator();
     lightManager = new LightManager();
+    snapController = new SnapController();
+    measurementController = new MeasurementController();
 
     inputManager.on('click', handleClick);
     inputManager.on('dblclick', handleDoubleClick);
     inputManager.on('move', handleMouseMove);
-    inputManager.on('drag', handleMouseMove);  // Also handle drag events for phantom line during drawing
+    inputManager.on('drag', handleMouseMove);
     inputManager.on('mouseup', handleMouseUp);
     inputManager.on('keydown', handleKeyDown);
 
@@ -895,6 +652,10 @@
     rafterOverlay?.dispose();
     scene?.dispose();
   });
+
+  // ============================================
+  // Exported Methods
+  // ============================================
 
   export function setManualLength(length: number): void {
     wallBuilder.setManualLength(length);

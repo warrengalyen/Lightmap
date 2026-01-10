@@ -106,3 +106,62 @@ export function raySegmentIntersect(
         point: vectorAdd(rayOrigin, vectorScale(rayDir, t)),
     };
 }
+
+/**
+ * Projects a point onto a line segment, clamped to segment bounds.
+ * Returns the closest point on the segment to the given point.
+ */
+export function projectPointOntoSegment(point: Vector2, segStart: Vector2, segEnd: Vector2): Vector2 {
+    const dx = segEnd.x - segStart.x;
+    const dy = segEnd.y - segStart.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) return { ...segStart };
+
+    const t = clamp(((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq, 0, 1);
+
+    return {
+        x: segStart.x + t * dx,
+        y: segStart.y + t * dy,
+    };
+}
+
+/**
+ * Projects a point onto a line segment for vertex insertion.
+ * Clamped to 0.1-0.9 to keep distance from endpoints.
+ */
+export function projectPointOntoSegmentForInsertion(point: Vector2, segStart: Vector2, segEnd: Vector2): Vector2 {
+    const dx = segEnd.x - segStart.x;
+    const dy = segEnd.y - segStart.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) return { ...segStart };
+
+    const t = clamp(((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq, 0.1, 0.9);
+
+    return {
+        x: segStart.x + t * dx,
+        y: segStart.y + t * dy,
+    };
+}
+
+/**
+ * Calculates the distance from a point to a line segment.
+ */
+export function distancePointToSegment(point: Vector2, segStart: Vector2, segEnd: Vector2): number {
+    const projected = projectPointOntoSegment(point, segStart, segEnd);
+    return distancePointToPoint(point, projected);
+}
+
+/**
+ * Finds the index of a vertex at or near a given position.
+ * Returns null if no vertex is within the tolerance.
+ */
+export function findVertexAtPosition(pos: Vector2, vertices: Vector2[], tolerance: number): number | null {
+    for (let i = 0; i < vertices.length; i++) {
+        if (distancePointToPoint(pos, vertices[i]) <= tolerance) {
+            return i;
+        }
+    }
+    return null;
+}
