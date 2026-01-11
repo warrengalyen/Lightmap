@@ -7,6 +7,7 @@ export class LightIcon {
     readonly mesh: THREE.Group;
     private iconMesh: THREE.Mesh;
     private beamPreview: THREE.Line;
+    private selectionRing: THREE.Line;
     private selected: boolean = false;
     private light: LightFixture;
     private ceilingHeight: number;
@@ -17,9 +18,11 @@ export class LightIcon {
         this.mesh = new THREE.Group();
         this.iconMesh = this.createIconMesh();
         this.beamPreview = this.createBeamPreview();
+        this.selectionRing = this.createSelectionRing();
 
         this.mesh.add(this.iconMesh);
         this.mesh.add(this.beamPreview);
+        this.mesh.add(this.selectionRing);
         this.updatePosition();
     }
 
@@ -52,6 +55,27 @@ export class LightIcon {
         });
 
         return new THREE.Line(geometry, material);
+    }
+
+    private createSelectionRing(): THREE.Line {
+        const radius = 0.5; // Fixed size ring around the light icon
+        const segments = 32;
+        const points: THREE.Vector3[] = [];
+
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0.05));
+        }
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+            color: 0x00aaff,
+            linewidth: 2,
+        });
+
+        const ring = new THREE.Line(geometry, material);
+        ring.visible = false; // Hidden by default
+        return ring;
     }
 
     private getBeamRadius(): number {
@@ -90,6 +114,10 @@ export class LightIcon {
     setSelected(selected: boolean): void {
         this.selected = selected;
 
+        // Show/hide selection ring
+        this.selectionRing.visible = selected;
+
+        // Update beam preview appearance
         const lineMaterial = this.beamPreview.material as THREE.LineBasicMaterial;
         if (selected) {
             lineMaterial.color.setHex(0x00aaff);
@@ -113,5 +141,7 @@ export class LightIcon {
         (this.iconMesh.material as THREE.Material).dispose();
         this.beamPreview.geometry.dispose();
         (this.beamPreview.material as THREE.Material).dispose();
+        this.selectionRing.geometry.dispose();
+        (this.selectionRing.material as THREE.Material).dispose();
     }
 }
