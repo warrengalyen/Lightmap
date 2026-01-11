@@ -31,9 +31,19 @@ export class LightingStatsCalculator {
             return null;
         }
 
-        const minLux = Math.min(...samples);
-        const maxLux = Math.max(...samples);
-        const avgLux = samples.reduce((sum, v) => sum + v, 0) / samples.length;
+        // Sort samples for percentile calculations
+        const sorted = [...samples].sort((a, b) => a - b);
+        const n = sorted.length;
+
+        // Use 5th percentile for min and 95th for max to exclude outliers
+        const p5Index = Math.floor(n * 0.05);
+        const p95Index = Math.floor(n * 0.95);
+
+        const minLux = sorted[p5Index] ?? sorted[0];
+        const maxLux = sorted[p95Index] ?? sorted[n - 1];
+        const avgLux = samples.reduce((sum, v) => sum + v, 0) / n;
+
+        // Uniformity: ratio of 5th percentile to average (more robust than absolute min)
         const uniformityRatio = avgLux > 0 ? minLux / avgLux : 0;
         const coverageGrade = this.calculateGrade(uniformityRatio, avgLux);
 
@@ -60,11 +70,12 @@ export class LightingStatsCalculator {
         gridSpacing: number,
     ): number[] {
         const samples: number[] = [];
+        const wallMargin = 1.5; // Exclude points within 1.5ft of walls (standard practice)
 
         for (let x = bounds.minX; x <= bounds.maxX; x += gridSpacing) {
             for (let y = bounds.minY; y <= bounds.maxY; y += gridSpacing) {
                 const point = { x, y };
-                if (this.isPointInPolygon(point, walls)) {
+                if (this.isPointInPolygon(point, walls) && this.getDistanceToNearestWall(point, walls) >= wallMargin) {
                     const lux = this.lightCalculator.calculateLux(point, lights, ceilingHeight);
                     samples.push(lux);
                 }
@@ -72,6 +83,39 @@ export class LightingStatsCalculator {
         }
 
         return samples;
+    }
+
+    private getDistanceToNearestWall(point: Vector2, walls: WallSegment[]): number {
+        let minDist = Infinity;
+
+        for (const wall of walls) {
+            const dist = this.pointToSegmentDistance(point, wall.start, wall.end);
+            if (dist < minDist) {
+                minDist = dist;
+            }
+        }
+
+        return minDist;
+    }
+
+    private pointToSegmentDistance(point: Vector2, segStart: Vector2, segEnd: Vector2): number {
+        const dx = segEnd.x - segStart.x;
+        const dy = segEnd.y - segStart.y;
+        const lengthSq = dx * dx + dy * dy;
+
+        if (lengthSq === 0) {
+            // Segment is a point
+            return Math.sqrt((point.x - segStart.x) ** 2 + (point.y - segStart.y) ** 2);
+        }
+
+        // Project point onto line, clamped to segment
+        let t = ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq;
+        t = Math.max(0, Math.min(1, t));
+
+        const projX = segStart.x + t * dx;
+        const projY = segStart.y + t * dy;
+
+        return Math.sqrt((point.x - projX) ** 2 + (point.y - projY) ** 2);
     }
 
     private isPointInPolygon(point: Vector2, walls: WallSegment[]): boolean {
