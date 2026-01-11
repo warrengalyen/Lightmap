@@ -2,6 +2,9 @@
   import { activeTool, viewMode, setActiveTool, setViewMode } from '../stores/appStore';
   import { canPlaceLights } from '../stores/roomStore';
   import { toggleRafters, rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
+  import { toggleLightingStats, lightingStatsConfig } from '../stores/lightingStatsStore';
+  import { toggleDeadZones, deadZoneConfig } from '../stores/deadZoneStore';
+  import { toggleSpacingWarnings, spacingConfig } from '../stores/spacingStore';
   import { historyStore, canUndo, canRedo } from '../stores/historyStore';
   import type { Tool, ViewMode } from '../types';
 
@@ -12,6 +15,9 @@
   let undoEnabled: boolean;
   let redoEnabled: boolean;
   let unitFormat: 'feet-inches' | 'inches';
+  let statsVisible: boolean;
+  let deadZonesEnabled: boolean;
+  let spacingEnabled: boolean;
 
   $: currentTool = $activeTool;
   $: currentViewMode = $viewMode;
@@ -20,6 +26,9 @@
   $: undoEnabled = $canUndo;
   $: redoEnabled = $canRedo;
   $: unitFormat = $displayPreferences.unitFormat;
+  $: statsVisible = $lightingStatsConfig.visible;
+  $: deadZonesEnabled = $deadZoneConfig.enabled;
+  $: spacingEnabled = $spacingConfig.enabled;
 
   function handleToolChange(tool: Tool): void {
     setActiveTool(tool);
@@ -118,14 +127,47 @@
 
   <div class="toolbar-section">
     <span class="section-label">Overlay</span>
+    <div class="button-group">
+      <button
+        class="toggle-button"
+        class:active={raftersVisible}
+        on:click={toggleRafters}
+        title="Toggle Rafters (R)"
+      >
+        <span class="icon">⊞</span>
+        Rafters
+      </button>
+      <button
+        class="toggle-button"
+        class:active={deadZonesEnabled}
+        on:click={toggleDeadZones}
+        title="Toggle Dead Zones"
+      >
+        <span class="icon">⚠</span>
+        Dead Zones
+      </button>
+      <button
+        class="toggle-button"
+        class:active={spacingEnabled}
+        on:click={toggleSpacingWarnings}
+        title="Toggle Spacing Warnings"
+      >
+        <span class="icon">↔</span>
+        Spacing
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar-section">
+    <span class="section-label">Analysis</span>
     <button
       class="toggle-button"
-      class:active={raftersVisible}
-      on:click={toggleRafters}
-      title="Toggle Rafters (R)"
+      class:active={statsVisible}
+      on:click={toggleLightingStats}
+      title="Toggle Lighting Stats (Q)"
     >
-      <span class="icon">⊞</span>
-      Rafters
+      <span class="icon">📊</span>
+      Stats
     </button>
   </div>
 

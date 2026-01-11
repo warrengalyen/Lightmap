@@ -7,6 +7,7 @@
   import LengthInput from './components/LengthInput.svelte';
   import RafterControls from './components/RafterControls.svelte';
   import FileMenu from './components/FileMenu.svelte';
+  import LightingStatsPanel from './components/LightingStatsPanel.svelte';
   import { roomStore } from './stores/roomStore';
   import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
@@ -120,6 +121,7 @@
         </div>
       {/if}
       <RafterControls />
+      <LightingStatsPanel />
     </div>
     <PropertyPanel />
   </main>

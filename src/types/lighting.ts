@@ -17,3 +17,65 @@ export const DEFAULT_LIGHT_PROPERTIES: LightProperties = {
     beamAngle: 60,
     warmth: 2700,
 };
+
+// Lighting Stats Types
+export interface LightingMetrics {
+    minLux: number;
+    maxLux: number;
+    avgLux: number;
+    uniformityRatio: number;
+    coverageGrade: "A" | "B" | "C" | "D" | "F";
+    sampleCount: number;
+}
+
+export interface LightingStatsConfig {
+    visible: boolean;
+    gridSpacing: number;
+}
+
+export const DEFAULT_LIGHTING_STATS_CONFIG: LightingStatsConfig = {
+    visible: false,
+    gridSpacing: 0.5,
+};
+
+// Dead Zone Types
+export interface DeadZoneConfig {
+    enabled: boolean;
+    threshold: number;
+    color: { r: number; g: number; b: number };
+    opacity: number;
+}
+
+export const DEFAULT_DEAD_ZONE_CONFIG: DeadZoneConfig = {
+    enabled: false,
+    threshold: 5,
+    color: { r: 1.0, g: 0.0, b: 0.0 },
+    opacity: 0.4,
+};
+
+// Spacing Warning Types
+export type SpacingWarningType = "too_close" | "too_far";
+export type SpacingSeverity = "low" | "medium" | "high";
+
+export interface SpacingWarning {
+    light1Id: string;
+    light2Id: string;
+    light1Position: { x: number; y: number };
+    light2Position: { x: number; y: number };
+    type: SpacingWarningType;
+    severity: SpacingSeverity;
+    actualDistance: number;
+    optimalDistance: number;
+}
+
+export interface SpacingConfig {
+    enabled: boolean;
+    overlapFactor: number;
+    gapTolerance: number;
+}
+
+export const DEFAULT_SPACING_CONFIG: SpacingConfig = {
+    enabled: false,
+    overlapFactor: 0.7,
+    gapTolerance: 0.3,
+};

@@ -6,6 +6,8 @@
   import { HeatmapRenderer } from '../rendering/HeatmapRenderer';
   import { ShadowRenderer } from '../rendering/ShadowRenderer';
   import { RafterOverlay } from '../rendering/RafterOverlay';
+  import { DeadZoneRenderer } from '../rendering/DeadZoneRenderer';
+  import { SpacingWarningRenderer } from '../rendering/SpacingWarningRenderer';
   import { WallBuilder } from '../geometry/WallBuilder';
   import { PolygonValidator } from '../geometry/PolygonValidator';
   import { LightManager } from '../lighting/LightManager';
@@ -15,8 +17,11 @@
   import { viewMode, activeTool, selectedLightId, selectedWallId, selectedVertexIndex, isDrawingEnabled, isLightPlacementEnabled } from '../stores/appStore';
   import { historyStore } from '../stores/historyStore';
   import { rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
+  import { deadZoneConfig } from '../stores/deadZoneStore';
+  import { spacingConfig, spacingWarnings } from '../stores/spacingStore';
+  import { toggleLightingStats } from '../stores/lightingStatsStore';
   import { findVertexAtPosition, projectPointOntoSegment, projectPointOntoSegmentForInsertion } from '../utils/math';
-  import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences } from '../types';
+  import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences, DeadZoneConfig, SpacingConfig, SpacingWarning } from '../types';
 
   // ============================================
   // Component State
@@ -29,6 +34,8 @@
   let heatmapRenderer: HeatmapRenderer;
   let shadowRenderer: ShadowRenderer;
   let rafterOverlay: RafterOverlay;
+  let deadZoneRenderer: DeadZoneRenderer;
+  let spacingWarningRenderer: SpacingWarningRenderer;
   let wallBuilder: WallBuilder;
   let polygonValidator: PolygonValidator;
   let lightManager: LightManager;
@@ -52,6 +59,9 @@
   let currentBounds: BoundingBox;
   let currentRafterConfig: RafterConfig;
   let currentDisplayPrefs: DisplayPreferences;
+  let currentDeadZoneConfig: DeadZoneConfig;
+  let currentSpacingConfig: SpacingConfig;
+  let currentSpacingWarnings: SpacingWarning[];
   let isDrawing = false;
   let isPlacingLights = false;
   let currentSelectedLightId: string | null = null;
@@ -80,6 +90,9 @@
   $: currentSelectedVertexIndex = $selectedVertexIndex;
   $: currentRafterConfig = $rafterConfig;
   $: currentDisplayPrefs = $displayPreferences;
+  $: currentDeadZoneConfig = $deadZoneConfig;
+  $: currentSpacingConfig = $spacingConfig;
+  $: currentSpacingWarnings = $spacingWarnings;
 
   // ============================================
   // Reactive Updates
@@ -111,6 +124,24 @@
 
   $: if (editorRenderer && currentDisplayPrefs) {
     editorRenderer.setUnitFormat(currentDisplayPrefs.unitFormat);
+  }
+
+  $: if (deadZoneRenderer && currentRoomState && currentBounds) {
+    deadZoneRenderer.updateBounds(currentBounds);
+    deadZoneRenderer.updateLights(currentRoomState.lights, currentRoomState.ceilingHeight);
+  }
+
+  $: if (deadZoneRenderer && currentDeadZoneConfig) {
+    deadZoneRenderer.setVisible(currentDeadZoneConfig.enabled);
+    deadZoneRenderer.updateConfig(currentDeadZoneConfig);
+  }
+
+  $: if (spacingWarningRenderer && currentSpacingConfig) {
+    spacingWarningRenderer.setVisible(currentSpacingConfig.enabled);
+  }
+
+  $: if (spacingWarningRenderer && currentSpacingWarnings) {
+    spacingWarningRenderer.updateWarnings(currentSpacingWarnings);
   }
 
   // ============================================
@@ -524,6 +555,11 @@
       case 'M':
         handleMeasurementToggle();
         break;
+
+      case 'q':
+      case 'Q':
+        toggleLightingStats();
+        break;
     }
   }
 
@@ -618,6 +654,8 @@
     heatmapRenderer = new HeatmapRenderer(scene.scene);
     shadowRenderer = new ShadowRenderer(scene.scene);
     rafterOverlay = new RafterOverlay(scene.scene, currentRafterConfig);
+    deadZoneRenderer = new DeadZoneRenderer(scene.scene);
+    spacingWarningRenderer = new SpacingWarningRenderer(scene.scene);
     wallBuilder = new WallBuilder();
     polygonValidator = new PolygonValidator();
     lightManager = new LightManager();
@@ -633,6 +671,8 @@
 
     heatmapRenderer.setVisible(false);
     shadowRenderer.setVisible(false);
+    deadZoneRenderer.setVisible(false);
+    spacingWarningRenderer.setVisible(false);
 
     if (currentRoomState.lights.length > 0) {
       lightManager.setLights(currentRoomState.lights);
@@ -650,6 +690,8 @@
     heatmapRenderer?.dispose();
     shadowRenderer?.dispose();
     rafterOverlay?.dispose();
+    deadZoneRenderer?.dispose();
+    spacingWarningRenderer?.dispose();
     scene?.dispose();
   });
 

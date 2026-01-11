@@ -15,22 +15,33 @@ export class LightCalculator {
     calculateSingleLight(point: Vector2, light: LightFixture, height: number): number {
         const dx = light.position.x - point.x;
         const dy = light.position.y - point.y;
-        const dz = height;
 
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (distance < 0.001) {
+        const horizontalDist = Math.sqrt(dx * dx + dy * dy);
+        const dist3D = Math.sqrt(horizontalDist * horizontalDist + height * height);
+
+        if (dist3D < 0.001) {
             return light.properties.lumen / (4 * Math.PI);
         }
 
-        const horizontalDist = Math.sqrt(dx * dx + dy * dy);
-        const angleFromVertical = Math.atan2(horizontalDist, dz);
-
+        // Angle from vertical (0 = directly below light)
+        const angleFromVertical = Math.atan2(horizontalDist, height);
         const halfBeam = degToRad(light.properties.beamAngle / 2);
-        const beamAtten = 1 - smoothstep(halfBeam * 0.8, halfBeam, angleFromVertical);
 
-        const intensity = light.properties.lumen / (4 * Math.PI * distance * distance);
+        // Beam attenuation - soft falloff at beam edge (matches shader)
+        const beamAtten = 1 - smoothstep(halfBeam * 0.7, halfBeam * 1.2, angleFromVertical);
 
-        return intensity * beamAtten;
+        // Cosine factor for surface illumination (Lambert's cosine law)
+        const cosAngle = height / dist3D;
+
+        // Convert lumens to candelas for a directional light (matches shader)
+        // For a spotlight: I = lumens / (2 * PI * (1 - cos(halfBeam)))
+        const solidAngle = 2 * Math.PI * (1 - Math.cos(halfBeam));
+        const candelas = light.properties.lumen / Math.max(solidAngle, 0.1);
+
+        // Illuminance = candelas * cos(angle) / distance^2
+        const lux = (candelas * cosAngle) / (dist3D * dist3D);
+
+        return lux * beamAtten;
     }
 
     getBeamRadius(light: LightFixture, ceilingHeight: number): number {
