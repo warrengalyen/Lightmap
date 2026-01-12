@@ -19,6 +19,8 @@ export const DEFAULT_LIGHT_PROPERTIES: LightProperties = {
 };
 
 // Lighting Stats Types
+export type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "office" | "hallway";
+
 export interface LightingMetrics {
     minLux: number;
     maxLux: number;
@@ -26,16 +28,35 @@ export interface LightingMetrics {
     uniformityRatio: number;
     coverageGrade: "A" | "B" | "C" | "D" | "F";
     sampleCount: number;
+    // New metrics
+    roomArea: number;
+    totalLumens: number;
+    lumensPerSqFt: number;
+    recommendedLumens: number;
+    additionalLightsNeeded: number;
+    roomType: RoomType;
 }
+
+// Lumens per square foot recommendations by room type
+export const ROOM_LIGHTING_STANDARDS: Record<RoomType, { min: number; ideal: number; label: string }> = {
+    living: { min: 10, ideal: 20, label: "Living Room" },
+    kitchen: { min: 30, ideal: 50, label: "Kitchen" },
+    bedroom: { min: 10, ideal: 20, label: "Bedroom" },
+    bathroom: { min: 40, ideal: 60, label: "Bathroom" },
+    office: { min: 30, ideal: 50, label: "Home Office" },
+    hallway: { min: 5, ideal: 10, label: "Hallway" },
+};
 
 export interface LightingStatsConfig {
     visible: boolean;
     gridSpacing: number;
+    roomType: RoomType;
 }
 
 export const DEFAULT_LIGHTING_STATS_CONFIG: LightingStatsConfig = {
     visible: false,
     gridSpacing: 0.5,
+    roomType: "living",
 };
 
 // Dead Zone Types

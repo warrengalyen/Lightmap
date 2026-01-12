@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { lightingStatsConfig, lightingMetrics } from '../stores/lightingStatsStore';
-  import type { LightingMetrics, LightingStatsConfig } from '../types';
+  import { lightingStatsConfig, lightingMetrics, setRoomType } from '../stores/lightingStatsStore';
+  import type { LightingMetrics, LightingStatsConfig, RoomType } from '../types';
+  import { ROOM_LIGHTING_STANDARDS } from '../types';
 
   let config: LightingStatsConfig;
   let metrics: LightingMetrics | null;
@@ -26,11 +27,40 @@
   function formatPercent(ratio: number): string {
     return (ratio * 100).toFixed(0) + '%';
   }
+
+  function formatNumber(n: number): string {
+    return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+
+  function handleRoomTypeChange(e: Event): void {
+    const value = (e.target as HTMLSelectElement).value as RoomType;
+    setRoomType(value);
+  }
+
+  const roomTypes: { value: RoomType; label: string }[] = [
+    { value: 'living', label: 'Living Room' },
+    { value: 'kitchen', label: 'Kitchen' },
+    { value: 'bedroom', label: 'Bedroom' },
+    { value: 'bathroom', label: 'Bathroom' },
+    { value: 'office', label: 'Home Office' },
+    { value: 'hallway', label: 'Hallway' },
+  ];
 </script>
 
 {#if config.visible}
   <div class="stats-panel">
-    <h4>Lighting Stats</h4>
+    <h4>Lighting Analysis</h4>
+
+    <div class="room-type-selector">
+      <label>
+        <span>Room Type</span>
+        <select value={config.roomType} on:change={handleRoomTypeChange}>
+          {#each roomTypes as rt}
+            <option value={rt.value}>{rt.label}</option>
+          {/each}
+        </select>
+      </label>
+    </div>
 
     {#if metrics}
       <div class="grade-section">
@@ -40,31 +70,49 @@
         </span>
       </div>
 
-      <div class="metrics-section">
-        <div class="metric-row">
-          <span class="metric-label">Min Lux</span>
-          <span class="metric-value">{formatLux(metrics.minLux)}</span>
+      <div class="metrics-section primary">
+        <div class="metric-row highlight">
+          <span class="metric-label">Total Lumens</span>
+          <span class="metric-value">{formatNumber(metrics.totalLumens)}</span>
+        </div>
+        <div class="metric-row highlight">
+          <span class="metric-label">Room Area</span>
+          <span class="metric-value">{formatNumber(metrics.roomArea)} ft²</span>
         </div>
         <div class="metric-row">
-          <span class="metric-label">Max Lux</span>
-          <span class="metric-value">{formatLux(metrics.maxLux)}</span>
+          <span class="metric-label">Lumens/ft²</span>
+          <span class="metric-value">{metrics.lumensPerSqFt.toFixed(1)}</span>
         </div>
-        <div class="metric-row">
-          <span class="metric-label">Avg Lux</span>
-          <span class="metric-value">{formatLux(metrics.avgLux)}</span>
+        <div class="metric-row recommended">
+          <span class="metric-label">Recommended</span>
+          <span class="metric-value">{formatNumber(metrics.recommendedLumens)} lm</span>
         </div>
+      </div>
+
+      {#if metrics.additionalLightsNeeded > 0}
+        <div class="recommendation">
+          Add <strong>{metrics.additionalLightsNeeded}</strong> more light{metrics.additionalLightsNeeded > 1 ? 's' : ''} for ideal brightness
+        </div>
+      {:else}
+        <div class="recommendation good">
+          Brightness is sufficient for a {ROOM_LIGHTING_STANDARDS[metrics.roomType].label.toLowerCase()}
+        </div>
+      {/if}
+
+      <div class="metrics-section secondary">
+        <div class="section-title">Distribution</div>
         <div class="metric-row">
           <span class="metric-label">Uniformity</span>
           <span class="metric-value">{formatPercent(metrics.uniformityRatio)}</span>
         </div>
-      </div>
-
-      <div class="sample-info">
-        {metrics.sampleCount} sample points
+        <div class="metric-row">
+          <span class="metric-label">Min/Max Lux</span>
+          <span class="metric-value">{formatLux(metrics.minLux)} - {formatLux(metrics.maxLux)}</span>
+        </div>
       </div>
     {:else}
       <div class="no-data">
-        Draw a closed room and add lights to see stats
+        Draw a closed room and add lights to see analysis
       </div>
     {/if}
   </div>
@@ -75,22 +123,47 @@
     position: absolute;
     top: 16px;
     right: 280px;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.98);
     padding: 16px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
     z-index: 100;
-    min-width: 180px;
+    min-width: 220px;
     border: 1px solid #ddd;
   }
 
   h4 {
     margin: 0 0 12px 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #333;
     padding-bottom: 8px;
     border-bottom: 1px solid #eee;
+  }
+
+  .room-type-selector {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .room-type-selector label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  .room-type-selector span {
+    color: #666;
+  }
+
+  .room-type-selector select {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
   }
 
   .grade-section {
@@ -108,7 +181,7 @@
   }
 
   .grade-value {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
   }
 
@@ -118,11 +191,39 @@
     gap: 6px;
   }
 
+  .metrics-section.primary {
+    margin-bottom: 12px;
+  }
+
+  .metrics-section.secondary {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
   .metric-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
+  }
+
+  .metric-row.highlight {
+    font-weight: 500;
+  }
+
+  .metric-row.recommended {
+    color: #666;
+    font-style: italic;
   }
 
   .metric-label {
@@ -135,13 +236,24 @@
     font-weight: 500;
   }
 
-  .sample-info {
-    margin-top: 12px;
-    padding-top: 8px;
-    border-top: 1px solid #eee;
-    font-size: 11px;
-    color: #999;
+  .recommendation {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #856404;
     text-align: center;
+  }
+
+  .recommendation.good {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+  }
+
+  .recommendation strong {
+    font-weight: 600;
   }
 
   .no-data {

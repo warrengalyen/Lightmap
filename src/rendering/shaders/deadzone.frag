@@ -20,20 +20,24 @@ void main() {
   float totalLux = 0.0;
 
   for (int i = 0; i < MAX_LIGHTS; i++) {
-    if (i >= uLightCount) break;
+    if (i >= uLightCount)
+      break;
 
     vec2 delta = uLightPositions[i] - vWorldPos;
     float horizDist = length(delta);
 
     // Calculate 3D distance from light to floor point
-    float dist3D = sqrt(horizDist * horizDist + uCeilingHeight * uCeilingHeight);
+    float dist3D =
+        sqrt(horizDist * horizDist + uCeilingHeight * uCeilingHeight);
 
     // Angle from vertical (0 = directly below light)
     float angleFromVert = atan(horizDist, uCeilingHeight);
-    float halfBeam = uLightBeamAngles[i] * 0.5 * 0.01745329; // degrees to radians
+    float halfBeam =
+        uLightBeamAngles[i] * 0.5 * 0.01745329; // degrees to radians
 
     // Beam attenuation - soft falloff at beam edge
-    float beamAtten = 1.0 - customSmoothstep(halfBeam * 0.7, halfBeam * 1.2, angleFromVert);
+    float beamAtten =
+        1.0 - customSmoothstep(halfBeam * 0.7, halfBeam * 1.2, angleFromVert);
 
     // Cosine factor for surface illumination (Lambert's cosine law)
     float cosAngle = uCeilingHeight / dist3D;

@@ -1,5 +1,5 @@
 import { writable, derived, type Readable } from "svelte/store";
-import type { LightingStatsConfig, LightingMetrics } from "../types";
+import type { LightingStatsConfig, LightingMetrics, RoomType } from "../types";
 import { DEFAULT_LIGHTING_STATS_CONFIG } from "../types";
 import { roomStore, roomBounds } from "./roomStore";
 import { LightingStatsCalculator } from "../lighting/LightingStatsCalculator";
@@ -43,6 +43,7 @@ const metricsInputs = derived([roomStore, roomBounds, lightingStatsConfig], ([$r
     bounds: $bounds,
     gridSpacing: $config.gridSpacing,
     visible: $config.visible,
+    roomType: $config.roomType,
 }));
 
 // Debounced version of inputs
@@ -60,6 +61,7 @@ export const lightingMetrics = derived<typeof debouncedInputs, LightingMetrics |
         $inputs.bounds,
         $inputs.ceilingHeight,
         $inputs.gridSpacing,
+        $inputs.roomType,
     );
 });
 
@@ -74,5 +76,12 @@ export function setGridSpacing(spacing: number): void {
     lightingStatsConfig.update((config) => ({
         ...config,
         gridSpacing: Math.max(0.25, Math.min(2, spacing)),
+    }));
+}
+
+export function setRoomType(roomType: RoomType): void {
+    lightingStatsConfig.update((config) => ({
+        ...config,
+        roomType,
     }));
 }

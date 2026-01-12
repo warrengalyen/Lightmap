@@ -1,4 +1,5 @@
-import type { Vector2, LightFixture, WallSegment, BoundingBox, LightingMetrics } from "../types";
+import type { Vector2, LightFixture, WallSegment, BoundingBox, LightingMetrics, RoomType } from "../types";
+import { ROOM_LIGHTING_STANDARDS } from "../types";
 import { LightCalculator } from "./LightCalculator";
 
 export class LightingStatsCalculator {
@@ -16,12 +17,13 @@ export class LightingStatsCalculator {
         bounds: BoundingBox,
         ceilingHeight: number,
         gridSpacing: number = 0.5,
+        roomType: RoomType = "living",
     ): LightingMetrics | null {
         if (lights.length === 0 || walls.length === 0) {
             return null;
         }
 
-        const key = this.generateCacheKey(lights, walls, ceilingHeight, gridSpacing);
+        const key = this.generateCacheKey(lights, walls, ceilingHeight, gridSpacing, roomType);
         if (key === this.cacheKey && this.cachedMetrics) {
             return this.cachedMetrics;
         }
@@ -45,7 +47,23 @@ export class LightingStatsCalculator {
 
         // Uniformity: ratio of 5th percentile to average (more robust than absolute min)
         const uniformityRatio = avgLux > 0 ? minLux / avgLux : 0;
-        const coverageGrade = this.calculateGrade(uniformityRatio, avgLux);
+
+        // Calculate room-based metrics
+        const roomArea = this.calculatePolygonArea(walls);
+        const totalLumens = lights.reduce((sum, l) => sum + l.properties.lumen, 0);
+        const lumensPerSqFt = roomArea > 0 ? totalLumens / roomArea : 0;
+
+        // Get standards for room type
+        const standards = ROOM_LIGHTING_STANDARDS[roomType];
+        const recommendedLumens = roomArea * standards.ideal;
+
+        // Calculate additional lights needed (assuming average lumen per light)
+        const avgLumenPerLight = totalLumens / lights.length;
+        const lumensNeeded = Math.max(0, recommendedLumens - totalLumens);
+        const additionalLightsNeeded = avgLumenPerLight > 0 ? Math.ceil(lumensNeeded / avgLumenPerLight) : 0;
+
+        // Calculate grade based on lumens per sq ft relative to room type standards
+        const coverageGrade = this.calculateGrade(uniformityRatio, lumensPerSqFt, roomType);
 
         const metrics: LightingMetrics = {
             minLux,
@@ -54,12 +72,34 @@ export class LightingStatsCalculator {
             uniformityRatio,
             coverageGrade,
             sampleCount: samples.length,
+            roomArea,
+            totalLumens,
+            lumensPerSqFt,
+            recommendedLumens,
+            additionalLightsNeeded,
+            roomType,
         };
 
         this.cachedMetrics = metrics;
         this.cacheKey = key;
 
         return metrics;
+    }
+
+    private calculatePolygonArea(walls: WallSegment[]): number {
+        if (walls.length < 3) return 0;
+
+        const vertices = walls.map((w) => w.start);
+        let area = 0;
+        const n = vertices.length;
+
+        for (let i = 0; i < n; i++) {
+            const j = (i + 1) % n;
+            area += vertices[i].x * vertices[j].y;
+            area -= vertices[j].x * vertices[i].y;
+        }
+
+        return Math.abs(area) / 2;
     }
 
     private sampleLuxValues(
@@ -139,33 +179,33 @@ export class LightingStatsCalculator {
         return inside;
     }
 
-    private calculateGrade(uniformity: number, avgLux: number): "A" | "B" | "C" | "D" | "F" {
-        // Grading based on both uniformity and average lux level
-        // With 800 lumen lights at 8ft ceiling, expect ~15 lux directly below
-        // Target: avg lux 8-25 for good coverage, uniformity > 0.3 is good
+    private calculateGrade(uniformity: number, lumensPerSqFt: number, roomType: RoomType): "A" | "B" | "C" | "D" | "F" {
+        const standards = ROOM_LIGHTING_STANDARDS[roomType];
 
-        // Lux score: peaks at 10-20 lux for residential recessed lighting
-        let luxScore: number;
-        if (avgLux < 3) {
-            luxScore = (avgLux / 3) * 0.2; // Very dim
-        } else if (avgLux < 8) {
-            luxScore = 0.2 + ((avgLux - 3) / 5) * 0.4; // Dim but usable
-        } else if (avgLux <= 25) {
-            luxScore = 0.6 + Math.min((avgLux - 8) / 12, 1) * 0.4; // Good range
+        // Brightness score based on lumens per sq ft relative to room type standards
+        let brightnessScore: number;
+        if (lumensPerSqFt < standards.min * 0.5) {
+            brightnessScore = (lumensPerSqFt / (standards.min * 0.5)) * 0.25; // Very dim
+        } else if (lumensPerSqFt < standards.min) {
+            brightnessScore = 0.25 + ((lumensPerSqFt - standards.min * 0.5) / (standards.min * 0.5)) * 0.25; // Below minimum
+        } else if (lumensPerSqFt < standards.ideal) {
+            brightnessScore = 0.5 + ((lumensPerSqFt - standards.min) / (standards.ideal - standards.min)) * 0.4; // Good range
+        } else if (lumensPerSqFt < standards.ideal * 1.5) {
+            brightnessScore = 0.9 + ((lumensPerSqFt - standards.ideal) / (standards.ideal * 0.5)) * 0.1; // Ideal to bright
         } else {
-            luxScore = Math.max(0.7, 1 - (avgLux - 25) / 50); // Very bright, slight penalty
+            brightnessScore = 1.0; // Very bright (no penalty for over-lighting)
         }
 
-        // Uniformity score: 0.3+ is considered decent for residential
-        const uniformityScore = Math.min(1, uniformity / 0.35);
+        // Uniformity score: 0.4+ is good, 0.6+ is excellent
+        const uniformityScore = Math.min(1, uniformity / 0.5);
 
-        // Weight: 50% lux level, 50% uniformity
-        const combined = luxScore * 0.5 + uniformityScore * 0.5;
+        // Weight: 70% brightness (lumens), 30% uniformity
+        const combined = brightnessScore * 0.7 + uniformityScore * 0.3;
 
-        if (combined >= 0.75) return "A";
-        if (combined >= 0.6) return "B";
-        if (combined >= 0.45) return "C";
-        if (combined >= 0.3) return "D";
+        if (combined >= 0.85) return "A";
+        if (combined >= 0.7) return "B";
+        if (combined >= 0.5) return "C";
+        if (combined >= 0.35) return "D";
         return "F";
     }
 
@@ -174,6 +214,7 @@ export class LightingStatsCalculator {
         walls: WallSegment[],
         ceilingHeight: number,
         gridSpacing: number,
+        roomType: RoomType,
     ): string {
         const lightsKey = lights
             .map(
@@ -186,7 +227,7 @@ export class LightingStatsCalculator {
             .map((w) => `${w.start.x.toFixed(2)},${w.start.y.toFixed(2)}-${w.end.x.toFixed(2)},${w.end.y.toFixed(2)}`)
             .join("|");
 
-        return `${lightsKey}::${wallsKey}::${ceilingHeight}::${gridSpacing}`;
+        return `${lightsKey}::${wallsKey}::${ceilingHeight}::${gridSpacing}::${roomType}`;
     }
 
     clearCache(): void {
