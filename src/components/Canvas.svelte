@@ -14,7 +14,7 @@
   import { SnapController } from '../controllers/SnapController';
   import { MeasurementController } from '../controllers/MeasurementController';
   import { roomStore, roomBounds, canPlaceLights, getVertices, updateVertexPosition, insertVertexOnWall, deleteVertex, moveWall } from '../stores/roomStore';
-  import { viewMode, activeTool, selectedLightId, selectedWallId, selectedVertexIndex, isDrawingEnabled, isLightPlacementEnabled } from '../stores/appStore';
+  import { viewMode, activeTool, selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, isDrawingEnabled, isLightPlacementEnabled, selectLight, clearLightSelection } from '../stores/appStore';
   import { historyStore } from '../stores/historyStore';
   import { rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
   import { deadZoneConfig } from '../stores/deadZoneStore';
@@ -66,6 +66,7 @@
   let isDrawing = false;
   let isPlacingLights = false;
   let currentSelectedLightId: string | null = null;
+  let currentSelectedLightIds: Set<string> = new Set();
   let currentSelectedWallId: string | null = null;
   let currentSelectedVertexIndex: number | null = null;
 
@@ -87,6 +88,7 @@
   $: isDrawing = $isDrawingEnabled;
   $: isPlacingLights = $isLightPlacementEnabled;
   $: currentSelectedLightId = $selectedLightId;
+  $: currentSelectedLightIds = $selectedLightIds;
   $: currentSelectedWallId = $selectedWallId;
   $: currentSelectedVertexIndex = $selectedVertexIndex;
   $: currentRafterConfig = $rafterConfig;
@@ -105,7 +107,7 @@
 
   $: if (editorRenderer && currentRoomState) {
     editorRenderer.updateWalls(currentRoomState.walls, currentSelectedWallId, currentSelectedVertexIndex);
-    editorRenderer.updateLights(currentRoomState.lights, currentRoomState.ceilingHeight, currentSelectedLightId);
+    editorRenderer.updateLights(currentRoomState.lights, currentRoomState.ceilingHeight, currentSelectedLightIds);
     lightManager?.setLights(currentRoomState.lights);
   }
 
@@ -173,7 +175,7 @@
     } else if (isPlacingLights && $canPlaceLights) {
       handleLightPlacement(event.worldPos);
     } else if ($activeTool === 'select') {
-      handleSelection(event.worldPos);
+      handleSelection(event);
     }
   }
 
@@ -186,9 +188,7 @@
 
       // Check if clicking on the source light to drag it
       if (clickedLight && clickedLight.id === measurementController.sourceLightId) {
-        selectedLightId.set(clickedLight.id);
-        selectedWallId.set(null);
-        selectedVertexIndex.set(null);
+        selectLight(clickedLight.id);
         isDraggingLight = true;
         return;
       }
@@ -220,7 +220,7 @@
       if (clickedVertexIndex !== null) {
         selectedVertexIndex.set(clickedVertexIndex);
         selectedWallId.set(null);
-        selectedLightId.set(null);
+        clearLightSelection();
         isDraggingVertex = true;
         didDragVertex = false;
       }
@@ -256,11 +256,14 @@
   function handleLightPlacement(pos: Vector2): void {
     if (!polygonValidator.isPointInside(pos, currentRoomState.walls)) return;
 
-    const newLight = lightManager.addLight(pos, currentSelectedDefinitionId);
+    const newLight = lightManager.addLight(pos, $selectedDefinitionId);
     roomStore.update(state => ({ ...state, lights: [...state.lights, newLight] }));
   }
 
-  function handleSelection(pos: Vector2): void {
+  function handleSelection(event: InputEvent): void {
+    const pos = event.worldPos;
+    const addToSelection = event.shiftKey ?? false;
+
     // Check vertices first (if room is closed)
     if (currentRoomState.isClosed) {
       const vertices = getVertices(currentRoomState);
@@ -268,7 +271,7 @@
       if (vertexIndex !== null) {
         selectedVertexIndex.set(vertexIndex);
         selectedWallId.set(null);
-        selectedLightId.set(null);
+        clearLightSelection();
         isDraggingVertex = true;
         return;
       }
@@ -277,10 +280,11 @@
     // Check lights
     const light = lightManager.getLightAt(pos, 0.5);
     if (light) {
-      selectedLightId.set(light.id);
-      selectedWallId.set(null);
-      selectedVertexIndex.set(null);
-      isDraggingLight = true;
+      selectLight(light.id, addToSelection);
+      // Only enable dragging for single selection
+      if (!addToSelection || currentSelectedLightIds.size <= 1) {
+        isDraggingLight = true;
+      }
       return;
     }
 
@@ -289,7 +293,7 @@
       const wall = editorRenderer.getWallAtPosition(pos, currentRoomState.walls, 0.3);
       if (wall) {
         selectedWallId.set(wall.id);
-        selectedLightId.set(null);
+        clearLightSelection();
         selectedVertexIndex.set(null);
         isDraggingWall = true;
         wallDragStart = { ...pos };
@@ -298,10 +302,12 @@
       }
     }
 
-    // Clear selection
-    selectedLightId.set(null);
-    selectedWallId.set(null);
-    selectedVertexIndex.set(null);
+    // Clear selection if clicking on empty space (unless shift is held)
+    if (!addToSelection) {
+      clearLightSelection();
+      selectedWallId.set(null);
+      selectedVertexIndex.set(null);
+    }
   }
 
   // ============================================
@@ -496,7 +502,7 @@
         if (newVertexIndex !== null) {
           selectedVertexIndex.set(newVertexIndex);
           selectedWallId.set(null);
-          selectedLightId.set(null);
+          clearLightSelection();
         }
       }
     }
@@ -573,19 +579,22 @@
       editorRenderer.setPhantomLine(null, null);
       editorRenderer.updateDrawingVertices([]);
     }
-    selectedLightId.set(null);
+    clearLightSelection();
     selectedWallId.set(null);
     selectedVertexIndex.set(null);
   }
 
   function handleDelete(): void {
-    if (currentSelectedLightId) {
-      lightManager.removeLight(currentSelectedLightId);
+    if (currentSelectedLightIds.size > 0) {
+      // Remove all selected lights
+      for (const id of currentSelectedLightIds) {
+        lightManager.removeLight(id);
+      }
       roomStore.update(state => ({
         ...state,
-        lights: state.lights.filter(l => l.id !== currentSelectedLightId),
+        lights: state.lights.filter(l => !currentSelectedLightIds.has(l.id)),
       }));
-      selectedLightId.set(null);
+      clearLightSelection();
     } else if (currentSelectedVertexIndex !== null && currentRoomState.walls.length > 3) {
       deleteVertex(currentSelectedVertexIndex);
       selectedVertexIndex.set(null);

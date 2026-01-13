@@ -1,15 +1,17 @@
 <script lang="ts">
   import { roomStore, canPlaceLights, updateWallLength, getVertices, updateVertexPosition, deleteVertex } from '../stores/roomStore';
-  import { selectedLightId, selectedWallId, selectedVertexIndex } from '../stores/appStore';
+  import { selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, clearLightSelection } from '../stores/appStore';
   import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById } from '../stores/lightDefinitionsStore';
   import { formatImperial, parseImperial } from '../utils/format';
   import type { LightFixture, WallSegment, RoomState, LightDefinition } from '../types';
 
   let currentRoom: RoomState;
   let currentSelectedLightId: string | null;
+  let currentSelectedLightIds: Set<string> = new Set();
   let currentSelectedWallId: string | null;
   let currentSelectedVertexIndex: number | null;
   let selectedLight: LightFixture | null = null;
+  let selectedLights: LightFixture[] = [];
   let selectedWall: WallSegment | null = null;
   let selectedVertex: import('../types').Vector2 | null = null;
   let canPlace: boolean;
@@ -21,11 +23,14 @@
 
   $: currentRoom = $roomStore;
   $: currentSelectedLightId = $selectedLightId;
+  $: currentSelectedLightIds = $selectedLightIds;
   $: currentSelectedWallId = $selectedWallId;
   $: currentSelectedVertexIndex = $selectedVertexIndex;
   $: canPlace = $canPlaceLights;
   $: definitions = $lightDefinitions;
   $: currentDefinitionId = $selectedDefinitionId;
+
+  $: selectedLights = currentRoom.lights.filter(l => currentSelectedLightIds.has(l.id));
 
   $: selectedLight = currentSelectedLightId
     ? currentRoom.lights.find(l => l.id === currentSelectedLightId) ?? null
@@ -59,8 +64,6 @@
   }
 
   function updateLightDefinition(e: Event): void {
-    if (!currentSelectedLightId) return;
-
     const newDefinitionId = (e.target as HTMLSelectElement).value;
     const definition = getDefinitionById(newDefinitionId);
     if (!definition) return;
@@ -68,7 +71,7 @@
     roomStore.update(state => ({
       ...state,
       lights: state.lights.map(light => {
-        if (light.id === currentSelectedLightId) {
+        if (currentSelectedLightIds.has(light.id)) {
           return {
             ...light,
             definitionId: newDefinitionId,
@@ -93,14 +96,14 @@
     return light.definitionId ? getDefinitionById(light.definitionId) : undefined;
   }
 
-  function deleteSelectedLight(): void {
-    if (!currentSelectedLightId) return;
+  function deleteSelectedLights(): void {
+    if (currentSelectedLightIds.size === 0) return;
 
     roomStore.update(state => ({
       ...state,
-      lights: state.lights.filter(l => l.id !== currentSelectedLightId)
+      lights: state.lights.filter(l => !currentSelectedLightIds.has(l.id))
     }));
-    selectedLightId.set(null);
+    clearLightSelection();
   }
 
   function handleWallLengthChange(e: Event): void {
@@ -279,13 +282,38 @@
         Format: 10' 6" or 10.5
       </p>
     </div>
-  {:else if selectedLight}
+  {:else if selectedLights.length > 1}
+    <div class="property-section">
+      <h4>{selectedLights.length} Lights Selected</h4>
+      <p class="multi-select-hint">Shift+click to add/remove lights from selection</p>
+      <label class="property-row definition-select">
+        <span>Change All To</span>
+        <select on:change={updateLightDefinition}>
+          <option value="" disabled selected>Select type...</option>
+          {#each definitions as def}
+            <option value={def.id}>{def.name}</option>
+          {/each}
+        </select>
+      </label>
+      <div class="light-summary">
+        <div class="summary-row">
+          <span>Total Lumens</span>
+          <span>{selectedLights.reduce((sum, l) => sum + l.properties.lumen, 0).toLocaleString()} lm</span>
+        </div>
+      </div>
+      <button class="delete-button" on:click={deleteSelectedLights}>
+        Delete {selectedLights.length} Lights
+      </button>
+    </div>
+  {:else if selectedLights.length === 1}
+    {@const light = selectedLights[0]}
     <div class="property-section">
       <h4>Light Fixture</h4>
+      <p class="multi-select-hint">Shift+click to select multiple lights</p>
       <label class="property-row definition-select">
         <span>Type</span>
         <select
-          value={selectedLight.definitionId || definitions[0]?.id}
+          value={light.definitionId || definitions[0]?.id}
           on:change={updateLightDefinition}
         >
           {#each definitions as def}
@@ -296,24 +324,24 @@
       <div class="light-specs">
         <div class="spec-row">
           <span>Lumens</span>
-          <span>{selectedLight.properties.lumen} lm</span>
+          <span>{light.properties.lumen} lm</span>
         </div>
         <div class="spec-row">
           <span>Beam Angle</span>
-          <span>{selectedLight.properties.beamAngle}°</span>
+          <span>{light.properties.beamAngle}°</span>
         </div>
         <div class="spec-row">
           <span>Color Temp</span>
-          <span>{selectedLight.properties.warmth}K</span>
+          <span>{light.properties.warmth}K</span>
         </div>
       </div>
       <div class="property-row">
         <span>Position</span>
         <span class="coords">
-          ({selectedLight.position.x.toFixed(1)}, {selectedLight.position.y.toFixed(1)})
+          ({light.position.x.toFixed(1)}, {light.position.y.toFixed(1)})
         </span>
       </div>
-      <button class="delete-button" on:click={deleteSelectedLight}>
+      <button class="delete-button" on:click={deleteSelectedLights}>
         Delete Light
       </button>
     </div>
@@ -522,6 +550,35 @@
   .spec-row span:last-child {
     font-weight: 500;
     color: #333;
+  }
+
+  .multi-select-hint {
+    font-size: 11px;
+    color: #888;
+    margin: 0 0 12px 0;
+    font-style: italic;
+  }
+
+  .light-summary {
+    background: #e8f4fc;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 8px 0;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  .summary-row span:first-child {
+    color: #666;
+  }
+
+  .summary-row span:last-child {
+    font-weight: 600;
+    color: #0066cc;
   }
 
   .wall-hint {

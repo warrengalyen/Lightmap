@@ -1,12 +1,15 @@
-import { writable, derived } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
 import type { AppMode, ViewMode, Tool } from "../types";
 
 export const appMode = writable<AppMode>("drafting");
 export const viewMode = writable<ViewMode>("editor");
 export const activeTool = writable<Tool>("select");
-export const selectedLightId = writable<string | null>(null);
+export const selectedLightIds = writable<Set<string>>(new Set());
 export const selectedWallId = writable<string | null>(null);
 export const selectedVertexIndex = writable<number | null>(null);
+
+// Derived store for backward compatibility - returns first selected light or null
+export const selectedLightId = derived(selectedLightIds, ($ids) => ($ids.size > 0 ? Array.from($ids)[0] : null));
 
 export const isDrawingEnabled = derived(
     [appMode, activeTool],
@@ -29,12 +32,47 @@ export function setViewMode(mode: ViewMode): void {
 
 export function setActiveTool(tool: Tool): void {
     activeTool.set(tool);
-    selectedLightId.set(null);
+    selectedLightIds.set(new Set());
     selectedWallId.set(null);
 }
 
 export function clearSelection(): void {
-    selectedLightId.set(null);
+    selectedLightIds.set(new Set());
     selectedWallId.set(null);
     selectedVertexIndex.set(null);
+}
+
+// Light selection helpers
+export function selectLight(id: string, addToSelection: boolean = false): void {
+    if (addToSelection) {
+        selectedLightIds.update((ids) => {
+            const newIds = new Set(ids);
+            if (newIds.has(id)) {
+                newIds.delete(id); // Toggle off if already selected
+            } else {
+                newIds.add(id);
+            }
+            return newIds;
+        });
+    } else {
+        selectedLightIds.set(new Set([id]));
+    }
+    selectedWallId.set(null);
+    selectedVertexIndex.set(null);
+}
+
+export function deselectLight(id: string): void {
+    selectedLightIds.update((ids) => {
+        const newIds = new Set(ids);
+        newIds.delete(id);
+        return newIds;
+    });
+}
+
+export function clearLightSelection(): void {
+    selectedLightIds.set(new Set());
+}
+
+export function isLightSelected(id: string): boolean {
+    return get(selectedLightIds).has(id);
 }
