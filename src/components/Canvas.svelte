@@ -20,6 +20,7 @@
   import { deadZoneConfig } from '../stores/deadZoneStore';
   import { spacingConfig, spacingWarnings } from '../stores/spacingStore';
   import { toggleLightingStats } from '../stores/lightingStatsStore';
+  import { selectedDefinitionId } from '../stores/lightDefinitionsStore';
   import { findVertexAtPosition, projectPointOntoSegment, projectPointOntoSegmentForInsertion } from '../utils/math';
   import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences, DeadZoneConfig, SpacingConfig, SpacingWarning } from '../types';
 
@@ -255,7 +256,7 @@
   function handleLightPlacement(pos: Vector2): void {
     if (!polygonValidator.isPointInside(pos, currentRoomState.walls)) return;
 
-    const newLight = lightManager.addLight(pos);
+    const newLight = lightManager.addLight(pos, currentSelectedDefinitionId);
     roomStore.update(state => ({ ...state, lights: [...state.lights, newLight] }));
   }
 

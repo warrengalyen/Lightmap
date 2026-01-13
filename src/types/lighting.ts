@@ -6,9 +6,18 @@ export interface LightProperties {
     warmth: number;
 }
 
+export interface LightDefinition {
+    id: string;
+    name: string;
+    lumen: number;
+    beamAngle: number;
+    warmth: number;
+}
+
 export interface LightFixture {
     id: string;
     position: Vector2;
+    definitionId?: string;
     properties: LightProperties;
 }
 
@@ -17,6 +26,14 @@ export const DEFAULT_LIGHT_PROPERTIES: LightProperties = {
     beamAngle: 60,
     warmth: 2700,
 };
+
+export const DEFAULT_LIGHT_DEFINITIONS: LightDefinition[] = [
+    { id: "led-standard", name: "LED Standard (800lm, 60°)", lumen: 800, beamAngle: 60, warmth: 2700 },
+    { id: "led-bright", name: "LED Bright (1100lm, 60°)", lumen: 1100, beamAngle: 60, warmth: 3000 },
+    { id: "led-flood", name: "LED Flood (925lm, 114°)", lumen: 925, beamAngle: 114, warmth: 3000 },
+    { id: "led-spot", name: "LED Spot (600lm, 40°)", lumen: 600, beamAngle: 40, warmth: 2700 },
+    { id: "led-narrow", name: "LED Narrow (750lm, 25°)", lumen: 750, beamAngle: 25, warmth: 3000 },
+];
 
 // Lighting Stats Types
 export type RoomType = "living" | "kitchen" | "bedroom" | "bathroom" | "office" | "hallway";

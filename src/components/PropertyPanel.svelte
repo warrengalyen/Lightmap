@@ -1,8 +1,9 @@
 <script lang="ts">
   import { roomStore, canPlaceLights, updateWallLength, getVertices, updateVertexPosition, deleteVertex } from '../stores/roomStore';
   import { selectedLightId, selectedWallId, selectedVertexIndex } from '../stores/appStore';
+  import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById } from '../stores/lightDefinitionsStore';
   import { formatImperial, parseImperial } from '../utils/format';
-  import type { LightFixture, WallSegment, RoomState } from '../types';
+  import type { LightFixture, WallSegment, RoomState, LightDefinition } from '../types';
 
   let currentRoom: RoomState;
   let currentSelectedLightId: string | null;
@@ -15,12 +16,16 @@
   let wallLengthInput: string = '';
   let vertexXInput: string = '';
   let vertexYInput: string = '';
+  let definitions: LightDefinition[] = [];
+  let currentDefinitionId: string;
 
   $: currentRoom = $roomStore;
   $: currentSelectedLightId = $selectedLightId;
   $: currentSelectedWallId = $selectedWallId;
   $: currentSelectedVertexIndex = $selectedVertexIndex;
   $: canPlace = $canPlaceLights;
+  $: definitions = $lightDefinitions;
+  $: currentDefinitionId = $selectedDefinitionId;
 
   $: selectedLight = currentSelectedLightId
     ? currentRoom.lights.find(l => l.id === currentSelectedLightId) ?? null
@@ -53,11 +58,12 @@
     }
   }
 
-  function updateLightProperty(prop: 'lumen' | 'beamAngle' | 'warmth', e: Event): void {
+  function updateLightDefinition(e: Event): void {
     if (!currentSelectedLightId) return;
 
-    const value = parseFloat((e.target as HTMLInputElement).value);
-    if (isNaN(value)) return;
+    const newDefinitionId = (e.target as HTMLSelectElement).value;
+    const definition = getDefinitionById(newDefinitionId);
+    if (!definition) return;
 
     roomStore.update(state => ({
       ...state,
@@ -65,12 +71,26 @@
         if (light.id === currentSelectedLightId) {
           return {
             ...light,
-            properties: { ...light.properties, [prop]: value }
+            definitionId: newDefinitionId,
+            properties: {
+              lumen: definition.lumen,
+              beamAngle: definition.beamAngle,
+              warmth: definition.warmth,
+            }
           };
         }
         return light;
       })
     }));
+  }
+
+  function handleNewLightDefinitionChange(e: Event): void {
+    const newDefinitionId = (e.target as HTMLSelectElement).value;
+    setSelectedDefinition(newDefinitionId);
+  }
+
+  function getDefinitionForLight(light: LightFixture): LightDefinition | undefined {
+    return light.definitionId ? getDefinitionById(light.definitionId) : undefined;
   }
 
   function deleteSelectedLight(): void {
@@ -262,48 +282,31 @@
   {:else if selectedLight}
     <div class="property-section">
       <h4>Light Fixture</h4>
-      <label class="property-row">
-        <span>Lumens</span>
-        <div class="input-group">
-          <input
-            type="number"
-            min="0"
-            max="10000"
-            step="100"
-            value={selectedLight.properties.lumen}
-            on:change={(e) => updateLightProperty('lumen', e)}
-          />
-          <span class="unit">lm</span>
-        </div>
+      <label class="property-row definition-select">
+        <span>Type</span>
+        <select
+          value={selectedLight.definitionId || definitions[0]?.id}
+          on:change={updateLightDefinition}
+        >
+          {#each definitions as def}
+            <option value={def.id}>{def.name}</option>
+          {/each}
+        </select>
       </label>
-      <label class="property-row">
-        <span>Beam Angle</span>
-        <div class="input-group">
-          <input
-            type="number"
-            min="10"
-            max="180"
-            step="5"
-            value={selectedLight.properties.beamAngle}
-            on:change={(e) => updateLightProperty('beamAngle', e)}
-          />
-          <span class="unit">°</span>
+      <div class="light-specs">
+        <div class="spec-row">
+          <span>Lumens</span>
+          <span>{selectedLight.properties.lumen} lm</span>
         </div>
-      </label>
-      <label class="property-row">
-        <span>Color Temp</span>
-        <div class="input-group">
-          <input
-            type="number"
-            min="2000"
-            max="6500"
-            step="100"
-            value={selectedLight.properties.warmth}
-            on:change={(e) => updateLightProperty('warmth', e)}
-          />
-          <span class="unit">K</span>
+        <div class="spec-row">
+          <span>Beam Angle</span>
+          <span>{selectedLight.properties.beamAngle}°</span>
         </div>
-      </label>
+        <div class="spec-row">
+          <span>Color Temp</span>
+          <span>{selectedLight.properties.warmth}K</span>
+        </div>
+      </div>
       <div class="property-row">
         <span>Position</span>
         <span class="coords">
@@ -315,8 +318,37 @@
       </button>
     </div>
   {:else if canPlace}
-    <div class="property-section hint">
-      <p>Click a wall to edit its length, or click inside the room to place a light.</p>
+    <div class="property-section">
+      <h4>New Light</h4>
+      <label class="property-row definition-select">
+        <span>Type</span>
+        <select
+          value={currentDefinitionId}
+          on:change={handleNewLightDefinitionChange}
+        >
+          {#each definitions as def}
+            <option value={def.id}>{def.name}</option>
+          {/each}
+        </select>
+      </label>
+      {#if definitions.find(d => d.id === currentDefinitionId)}
+        {@const def = definitions.find(d => d.id === currentDefinitionId)}
+        <div class="light-specs">
+          <div class="spec-row">
+            <span>Lumens</span>
+            <span>{def?.lumen} lm</span>
+          </div>
+          <div class="spec-row">
+            <span>Beam Angle</span>
+            <span>{def?.beamAngle}°</span>
+          </div>
+          <div class="spec-row">
+            <span>Color Temp</span>
+            <span>{def?.warmth}K</span>
+          </div>
+        </div>
+      {/if}
+      <p class="wall-hint">Click inside the room to place a light with these settings.</p>
     </div>
   {:else}
     <div class="property-section hint">
@@ -442,6 +474,54 @@
   .coords {
     font-family: monospace;
     font-size: 12px;
+  }
+
+  .definition-select {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .definition-select span:first-child {
+    margin-bottom: 2px;
+  }
+
+  .definition-select select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
+    cursor: pointer;
+  }
+
+  .definition-select select:focus {
+    outline: none;
+    border-color: #0066cc;
+  }
+
+  .light-specs {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 8px 0;
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 2px 0;
+  }
+
+  .spec-row span:first-child {
+    color: #666;
+  }
+
+  .spec-row span:last-child {
+    font-weight: 500;
+    color: #333;
   }
 
   .wall-hint {
