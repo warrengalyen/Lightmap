@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { BoundingBox, RafterConfig } from "../types";
+import { clearGroup } from "../utils/three";
 
 export class RafterOverlay {
     private scene: THREE.Scene;
@@ -20,14 +21,7 @@ export class RafterOverlay {
     }
 
     render(bounds: BoundingBox): void {
-        while (this.rafterGroup.children.length > 0) {
-            const child = this.rafterGroup.children[0];
-            this.rafterGroup.remove(child);
-            if (child instanceof THREE.Line) {
-                child.geometry.dispose();
-                (child.material as THREE.Material).dispose();
-            }
-        }
+        clearGroup(this.rafterGroup);
 
         if (!this.config.visible) return;
 
@@ -68,14 +62,7 @@ export class RafterOverlay {
     }
 
     dispose(): void {
-        while (this.rafterGroup.children.length > 0) {
-            const child = this.rafterGroup.children[0];
-            this.rafterGroup.remove(child);
-            if (child instanceof THREE.Line) {
-                child.geometry.dispose();
-                (child.material as THREE.Material).dispose();
-            }
-        }
+        clearGroup(this.rafterGroup);
         this.scene.remove(this.rafterGroup);
     }
 }

@@ -1,5 +1,6 @@
 import type { Vector2, WallSegment } from "../types";
 import { lineSegmentsIntersect, vectorCross, vectorSubtract } from "../utils/math";
+import { isPointInPolygon, calculatePolygonArea } from "../utils/geometry";
 
 export class PolygonValidator {
     isSelfIntersecting(walls: WallSegment[]): boolean {
@@ -64,41 +65,14 @@ export class PolygonValidator {
     }
 
     getArea(walls: WallSegment[]): number {
-        if (walls.length < 3) {
-            return 0;
-        }
-
+        if (walls.length < 3) return 0;
         const vertices = walls.map((w) => w.start);
-        let area = 0;
-
-        for (let i = 0; i < vertices.length; i++) {
-            const j = (i + 1) % vertices.length;
-            area += vertices[i].x * vertices[j].y;
-            area -= vertices[j].x * vertices[i].y;
-        }
-
-        return Math.abs(area) / 2;
+        return calculatePolygonArea(vertices);
     }
 
     isPointInside(point: Vector2, walls: WallSegment[]): boolean {
-        if (walls.length < 3) {
-            return false;
-        }
-
+        if (walls.length < 3) return false;
         const vertices = walls.map((w) => w.start);
-        let inside = false;
-
-        for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-            const xi = vertices[i].x;
-            const yi = vertices[i].y;
-            const xj = vertices[j].x;
-            const yj = vertices[j].y;
-
-            if (yi > point.y !== yj > point.y && point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi) {
-                inside = !inside;
-            }
-        }
-
-        return inside;
+        return isPointInPolygon(point, vertices);
     }
 }

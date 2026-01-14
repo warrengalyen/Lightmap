@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Vector2, WallSegment, LightFixture, BoundingBox } from "../types";
 import { raySegmentIntersect } from "../utils/math";
+import { disposeMeshArray } from "../utils/three";
 
 export class ShadowRenderer {
     private scene: THREE.Scene;
@@ -77,12 +78,7 @@ export class ShadowRenderer {
     }
 
     updateShadows(lights: LightFixture[], walls: WallSegment[], bounds: BoundingBox): void {
-        for (const mesh of this.shadowMeshes) {
-            this.scene.remove(mesh);
-            mesh.geometry.dispose();
-            (mesh.material as THREE.Material).dispose();
-        }
-        this.shadowMeshes = [];
+        disposeMeshArray(this.shadowMeshes, this.scene);
 
         const darkGeometry = new THREE.PlaneGeometry(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
         const darkMaterial = new THREE.MeshBasicMaterial({
@@ -131,11 +127,6 @@ export class ShadowRenderer {
     }
 
     dispose(): void {
-        for (const mesh of this.shadowMeshes) {
-            this.scene.remove(mesh);
-            mesh.geometry.dispose();
-            (mesh.material as THREE.Material).dispose();
-        }
-        this.shadowMeshes = [];
+        disposeMeshArray(this.shadowMeshes, this.scene);
     }
 }

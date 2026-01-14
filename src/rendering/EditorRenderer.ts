@@ -5,6 +5,7 @@ import { LightIcon } from "../lighting/LightIcon";
 import { getAllDimensionLabels } from "../geometry/DimensionLabel";
 import { MeasurementRenderer } from "./MeasurementRenderer";
 import { distancePointToSegment } from "../utils/math";
+import { clearGroup, disposeObject3D } from "../utils/three";
 
 /**
  * Handles rendering of the 2D editor view including walls, vertices,
@@ -50,7 +51,7 @@ export class EditorRenderer {
         selectedWallId: string | null = null,
         selectedVertexIndex: number | null = null,
     ): void {
-        this.clearGroup(this.wallsGroup);
+        clearGroup(this.wallsGroup);
         this.disposeVertexMeshes();
 
         const vertexList = this.buildVertexList(walls);
@@ -107,8 +108,7 @@ export class EditorRenderer {
 
     private disposeVertexMeshes(): void {
         for (const mesh of this.vertexMeshes) {
-            mesh.geometry.dispose();
-            (mesh.material as THREE.Material).dispose();
+            disposeObject3D(mesh);
         }
         this.vertexMeshes = [];
     }
@@ -133,7 +133,7 @@ export class EditorRenderer {
 
     private updateLabels(walls: WallSegment[]): void {
         this.currentWalls = walls;
-        this.clearGroup(this.labelsGroup, true);
+        clearGroup(this.labelsGroup);
 
         const labels = getAllDimensionLabels(walls, {
             offset: 0.5,
@@ -193,8 +193,7 @@ export class EditorRenderer {
     setPhantomLine(start: Vector2 | null, end: Vector2 | null): void {
         if (this.phantomLine) {
             this.scene.remove(this.phantomLine);
-            this.phantomLine.geometry.dispose();
-            (this.phantomLine.material as THREE.Material).dispose();
+            disposeObject3D(this.phantomLine);
             this.phantomLine = null;
         }
 
@@ -219,7 +218,7 @@ export class EditorRenderer {
     // ============================================
 
     updateDrawingVertices(vertices: Vector2[]): void {
-        this.clearGroup(this.drawingVerticesGroup);
+        clearGroup(this.drawingVerticesGroup);
 
         if (vertices.length === 0) return;
 
@@ -298,7 +297,7 @@ export class EditorRenderer {
     // ============================================
 
     setSnapGuides(guides: SnapGuide[]): void {
-        this.clearGroup(this.snapGuidesGroup);
+        clearGroup(this.snapGuidesGroup);
 
         for (const guide of guides) {
             const points = [
@@ -340,25 +339,6 @@ export class EditorRenderer {
         this.measurementRenderer.setVisible(visible);
         if (this.phantomLine) {
             this.phantomLine.visible = visible;
-        }
-    }
-
-    // ============================================
-    // Utilities
-    // ============================================
-
-    private clearGroup(group: THREE.Group, isSprites: boolean = false): void {
-        while (group.children.length > 0) {
-            const child = group.children[0];
-            group.remove(child);
-
-            if (isSprites && child instanceof THREE.Sprite) {
-                child.material.map?.dispose();
-                child.material.dispose();
-            } else if (child instanceof THREE.Line || child instanceof THREE.Mesh) {
-                child.geometry.dispose();
-                (child.material as THREE.Material).dispose();
-            }
         }
     }
 

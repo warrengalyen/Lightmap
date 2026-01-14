@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { SpacingWarning } from "../types";
+import { clearGroup } from "../utils/three";
 
 export class SpacingWarningRenderer {
     private scene: THREE.Scene;
@@ -115,19 +116,8 @@ export class SpacingWarningRenderer {
     }
 
     private clearGeometry(): void {
-        while (this.lineGroup.children.length > 0) {
-            const child = this.lineGroup.children[0] as THREE.Line;
-            child.geometry.dispose();
-            (child.material as THREE.Material).dispose();
-            this.lineGroup.remove(child);
-        }
-
-        while (this.circleGroup.children.length > 0) {
-            const child = this.circleGroup.children[0] as THREE.LineSegments;
-            child.geometry.dispose();
-            (child.material as THREE.Material).dispose();
-            this.circleGroup.remove(child);
-        }
+        clearGroup(this.lineGroup);
+        clearGroup(this.circleGroup);
     }
 
     setVisible(visible: boolean): void {

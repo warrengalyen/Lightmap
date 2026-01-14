@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Vector2, UnitFormat } from "../types";
 import { formatImperial } from "../utils/format";
+import { clearGroup } from "../utils/three";
 
 interface MeasurementColors {
     main: number;
@@ -167,18 +168,7 @@ export class MeasurementRenderer {
      * Clears all measurement visuals.
      */
     clear(): void {
-        while (this.group.children.length > 0) {
-            const child = this.group.children[0];
-            this.group.remove(child);
-
-            if (child instanceof THREE.Sprite) {
-                child.material.map?.dispose();
-                child.material.dispose();
-            } else if (child instanceof THREE.Line || child instanceof THREE.Mesh) {
-                child.geometry.dispose();
-                (child.material as THREE.Material).dispose();
-            }
-        }
+        clearGroup(this.group);
     }
 
     setVisible(visible: boolean): void {

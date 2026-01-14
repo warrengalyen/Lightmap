@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { LightFixture, BoundingBox } from "../types";
+import { createLightUniformArrays } from "../utils/three";
 
 import heatmapVertexShader from "./shaders/heatmap.vert?raw";
 import heatmapFragmentShader from "./shaders/heatmap.frag?raw";
@@ -15,15 +16,7 @@ export class HeatmapRenderer {
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
-        // Initialize arrays with individual objects (not shared references)
-        const positions = [];
-        const lumens = [];
-        const beamAngles = [];
-        for (let i = 0; i < MAX_LIGHTS; i++) {
-            positions.push(new THREE.Vector2(0, 0));
-            lumens.push(0);
-            beamAngles.push(60);
-        }
+        const { positions, lumens, beamAngles } = createLightUniformArrays(MAX_LIGHTS);
 
         this.material = new THREE.ShaderMaterial({
             vertexShader: heatmapVertexShader,

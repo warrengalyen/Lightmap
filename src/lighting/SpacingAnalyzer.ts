@@ -1,5 +1,6 @@
 import type { LightFixture, SpacingWarning, SpacingConfig, SpacingSeverity } from "../types";
 import { LightCalculator } from "./LightCalculator";
+import { MIN_SPACING_RATIO, EXTREME_DISTANCE_MULTIPLIER, SEVERITY_THRESHOLDS } from "./constants";
 
 export class SpacingAnalyzer {
     private lightCalculator: LightCalculator;
@@ -50,7 +51,7 @@ export class SpacingAnalyzer {
         const optimalDistance = 2 * avgRadius * config.overlapFactor;
 
         // Check for too close (significant overlap)
-        const minDistance = optimalDistance * 0.5;
+        const minDistance = optimalDistance * MIN_SPACING_RATIO;
         if (actualDistance < minDistance) {
             return {
                 light1Id: light1.id,
@@ -68,7 +69,7 @@ export class SpacingAnalyzer {
         const maxDistance = optimalDistance * (1 + config.gapTolerance);
         if (actualDistance > maxDistance) {
             // Only warn if lights should be working together (within reasonable range)
-            const extremeDistance = optimalDistance * 2;
+            const extremeDistance = optimalDistance * EXTREME_DISTANCE_MULTIPLIER;
             if (actualDistance < extremeDistance) {
                 return {
                     light1Id: light1.id,
@@ -89,8 +90,8 @@ export class SpacingAnalyzer {
     private calculateSeverity(actual: number, threshold: number, type: "too_close" | "too_far"): SpacingSeverity {
         const ratio = type === "too_close" ? threshold / actual : actual / threshold;
 
-        if (ratio > 1.5) return "high";
-        if (ratio > 1.2) return "medium";
+        if (ratio > SEVERITY_THRESHOLDS.high) return "high";
+        if (ratio > SEVERITY_THRESHOLDS.medium) return "medium";
         return "low";
     }
 }

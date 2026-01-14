@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { LightFixture, BoundingBox, DeadZoneConfig } from "../types";
+import { createLightUniformArrays } from "../utils/three";
 
 import heatmapVertexShader from "./shaders/heatmap.vert?raw";
 import deadzoneFragmentShader from "./shaders/deadzone.frag?raw";
@@ -15,14 +16,7 @@ export class DeadZoneRenderer {
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
-        const positions = [];
-        const lumens = [];
-        const beamAngles = [];
-        for (let i = 0; i < MAX_LIGHTS; i++) {
-            positions.push(new THREE.Vector2(0, 0));
-            lumens.push(0);
-            beamAngles.push(60);
-        }
+        const { positions, lumens, beamAngles } = createLightUniformArrays(MAX_LIGHTS);
 
         this.material = new THREE.ShaderMaterial({
             vertexShader: heatmapVertexShader,

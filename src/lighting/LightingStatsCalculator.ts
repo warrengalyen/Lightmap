@@ -1,6 +1,16 @@
-import type { Vector2, LightFixture, WallSegment, BoundingBox, LightingMetrics, RoomType } from "../types";
+import type { LightFixture, WallSegment, BoundingBox, LightingMetrics, RoomType } from "../types";
 import { ROOM_LIGHTING_STANDARDS } from "../types";
 import { LightCalculator } from "./LightCalculator";
+import { isPointInRoom, calculateRoomArea, getDistanceToNearestWall } from "../utils/geometry";
+import {
+    WALL_MARGIN_FT,
+    MIN_LUX_PERCENTILE,
+    MAX_LUX_PERCENTILE,
+    BRIGHTNESS_WEIGHT,
+    UNIFORMITY_WEIGHT,
+    UNIFORMITY_EXCELLENT_THRESHOLD,
+    GRADE_THRESHOLDS,
+} from "./constants";
 
 export class LightingStatsCalculator {
     private lightCalculator: LightCalculator;
@@ -37,19 +47,19 @@ export class LightingStatsCalculator {
         const sorted = [...samples].sort((a, b) => a - b);
         const n = sorted.length;
 
-        // Use 5th percentile for min and 95th for max to exclude outliers
-        const p5Index = Math.floor(n * 0.05);
-        const p95Index = Math.floor(n * 0.95);
+        // Use percentiles to exclude outliers
+        const minIndex = Math.floor(n * MIN_LUX_PERCENTILE);
+        const maxIndex = Math.floor(n * MAX_LUX_PERCENTILE);
 
-        const minLux = sorted[p5Index] ?? sorted[0];
-        const maxLux = sorted[p95Index] ?? sorted[n - 1];
+        const minLux = sorted[minIndex] ?? sorted[0];
+        const maxLux = sorted[maxIndex] ?? sorted[n - 1];
         const avgLux = samples.reduce((sum, v) => sum + v, 0) / n;
 
         // Uniformity: ratio of 5th percentile to average (more robust than absolute min)
         const uniformityRatio = avgLux > 0 ? minLux / avgLux : 0;
 
         // Calculate room-based metrics
-        const roomArea = this.calculatePolygonArea(walls);
+        const roomArea = calculateRoomArea(walls);
         const totalLumens = lights.reduce((sum, l) => sum + l.properties.lumen, 0);
         const lumensPerSqFt = roomArea > 0 ? totalLumens / roomArea : 0;
 
@@ -86,22 +96,6 @@ export class LightingStatsCalculator {
         return metrics;
     }
 
-    private calculatePolygonArea(walls: WallSegment[]): number {
-        if (walls.length < 3) return 0;
-
-        const vertices = walls.map((w) => w.start);
-        let area = 0;
-        const n = vertices.length;
-
-        for (let i = 0; i < n; i++) {
-            const j = (i + 1) % n;
-            area += vertices[i].x * vertices[j].y;
-            area -= vertices[j].x * vertices[i].y;
-        }
-
-        return Math.abs(area) / 2;
-    }
-
     private sampleLuxValues(
         lights: LightFixture[],
         walls: WallSegment[],
@@ -110,12 +104,11 @@ export class LightingStatsCalculator {
         gridSpacing: number,
     ): number[] {
         const samples: number[] = [];
-        const wallMargin = 1.5; // Exclude points within 1.5ft of walls (standard practice)
 
         for (let x = bounds.minX; x <= bounds.maxX; x += gridSpacing) {
             for (let y = bounds.minY; y <= bounds.maxY; y += gridSpacing) {
                 const point = { x, y };
-                if (this.isPointInPolygon(point, walls) && this.getDistanceToNearestWall(point, walls) >= wallMargin) {
+                if (isPointInRoom(point, walls) && getDistanceToNearestWall(point, walls) >= WALL_MARGIN_FT) {
                     const lux = this.lightCalculator.calculateLux(point, lights, ceilingHeight);
                     samples.push(lux);
                 }
@@ -123,60 +116,6 @@ export class LightingStatsCalculator {
         }
 
         return samples;
-    }
-
-    private getDistanceToNearestWall(point: Vector2, walls: WallSegment[]): number {
-        let minDist = Infinity;
-
-        for (const wall of walls) {
-            const dist = this.pointToSegmentDistance(point, wall.start, wall.end);
-            if (dist < minDist) {
-                minDist = dist;
-            }
-        }
-
-        return minDist;
-    }
-
-    private pointToSegmentDistance(point: Vector2, segStart: Vector2, segEnd: Vector2): number {
-        const dx = segEnd.x - segStart.x;
-        const dy = segEnd.y - segStart.y;
-        const lengthSq = dx * dx + dy * dy;
-
-        if (lengthSq === 0) {
-            // Segment is a point
-            return Math.sqrt((point.x - segStart.x) ** 2 + (point.y - segStart.y) ** 2);
-        }
-
-        // Project point onto line, clamped to segment
-        let t = ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq;
-        t = Math.max(0, Math.min(1, t));
-
-        const projX = segStart.x + t * dx;
-        const projY = segStart.y + t * dy;
-
-        return Math.sqrt((point.x - projX) ** 2 + (point.y - projY) ** 2);
-    }
-
-    private isPointInPolygon(point: Vector2, walls: WallSegment[]): boolean {
-        if (walls.length < 3) return false;
-
-        const vertices = walls.map((w) => w.start);
-        let inside = false;
-        const n = vertices.length;
-
-        for (let i = 0, j = n - 1; i < n; j = i++) {
-            const xi = vertices[i].x;
-            const yi = vertices[i].y;
-            const xj = vertices[j].x;
-            const yj = vertices[j].y;
-
-            if (yi > point.y !== yj > point.y && point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi) {
-                inside = !inside;
-            }
-        }
-
-        return inside;
     }
 
     private calculateGrade(uniformity: number, lumensPerSqFt: number, roomType: RoomType): "A" | "B" | "C" | "D" | "F" {
@@ -196,16 +135,16 @@ export class LightingStatsCalculator {
             brightnessScore = 1.0; // Very bright (no penalty for over-lighting)
         }
 
-        // Uniformity score: 0.4+ is good, 0.6+ is excellent
-        const uniformityScore = Math.min(1, uniformity / 0.5);
+        // Uniformity score normalized to excellent threshold
+        const uniformityScore = Math.min(1, uniformity / UNIFORMITY_EXCELLENT_THRESHOLD);
 
-        // Weight: 70% brightness (lumens), 30% uniformity
-        const combined = brightnessScore * 0.7 + uniformityScore * 0.3;
+        // Weighted combination of brightness and uniformity
+        const combined = brightnessScore * BRIGHTNESS_WEIGHT + uniformityScore * UNIFORMITY_WEIGHT;
 
-        if (combined >= 0.85) return "A";
-        if (combined >= 0.7) return "B";
-        if (combined >= 0.5) return "C";
-        if (combined >= 0.35) return "D";
+        if (combined >= GRADE_THRESHOLDS.A) return "A";
+        if (combined >= GRADE_THRESHOLDS.B) return "B";
+        if (combined >= GRADE_THRESHOLDS.C) return "C";
+        if (combined >= GRADE_THRESHOLDS.D) return "D";
         return "F";
     }
 

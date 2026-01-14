@@ -10,8 +10,8 @@ import {
 } from "../utils/math";
 
 export class SnapEngine {
-    private _angleThreshold = 5 * (Math.PI / 180);
-    private _closureThreshold = 0.5;
+    private angleThreshold = 5 * (Math.PI / 180);
+    private closureThreshold = 0.5;
 
     snapToConstraint(
         prevSegmentDir: Vector2 | null,
@@ -19,7 +19,7 @@ export class SnapEngine {
         startVertex: Vector2 | null,
         anchorPoint: Vector2,
     ): SnapResult {
-        if (startVertex && distancePointToPoint(mousePos, startVertex) < this._closureThreshold) {
+        if (startVertex && distancePointToPoint(mousePos, startVertex) < this.closureThreshold) {
             return { snappedPos: startVertex, snapType: "closure" };
         }
 
@@ -34,13 +34,13 @@ export class SnapEngine {
         if (prevSegmentDir) {
             const dot = Math.abs(vectorDot(prevSegmentDir, currentDir));
 
-            if (dot > Math.cos(this._angleThreshold)) {
+            if (dot > Math.cos(this.angleThreshold)) {
                 const projectedLength = vectorDot(toMouse, prevSegmentDir);
                 const snappedPos = vectorAdd(anchorPoint, vectorScale(prevSegmentDir, projectedLength));
                 return { snappedPos, snapType: "parallel" };
             }
 
-            if (dot < Math.sin(this._angleThreshold)) {
+            if (dot < Math.sin(this.angleThreshold)) {
                 const perpDir = { x: -prevSegmentDir.y, y: prevSegmentDir.x };
                 const projectedLength = vectorDot(toMouse, perpDir);
                 const snappedPos = vectorAdd(anchorPoint, vectorScale(perpDir, projectedLength));
@@ -52,11 +52,11 @@ export class SnapEngine {
     }
 
     setClosureThreshold(threshold: number): void {
-        this._closureThreshold = threshold;
+        this.closureThreshold = threshold;
     }
 
     setAngleThreshold(degrees: number): void {
-        this._angleThreshold = degrees * (Math.PI / 180);
+        this.angleThreshold = degrees * (Math.PI / 180);
     }
 
     getSnapTypeLabel(snapType: SnapType): string {
