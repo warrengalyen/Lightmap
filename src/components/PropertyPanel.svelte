@@ -1,8 +1,9 @@
 <script lang="ts">
   import { roomStore, canPlaceLights, updateWallLength, getVertices, updateVertexPosition, deleteVertex } from '../stores/roomStore';
   import { selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, clearLightSelection } from '../stores/appStore';
-  import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById } from '../stores/lightDefinitionsStore';
+  import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById, addLightDefinitionFromIES } from '../stores/lightDefinitionsStore';
   import { formatImperial, parseImperial } from '../utils/format';
+  import { readIESFile } from '../lighting/IESParser';
   import type { LightFixture, WallSegment, RoomState, LightDefinition } from '../types';
 
   let currentRoom: RoomState;
@@ -20,6 +21,9 @@
   let vertexYInput: string = '';
   let definitions: LightDefinition[] = [];
   let currentDefinitionId: string;
+  let iesFileInput: HTMLInputElement;
+  let iesImportError: string | null = null;
+  let iesImportSuccess: string | null = null;
 
   $: currentRoom = $roomStore;
   $: currentSelectedLightId = $selectedLightId;
@@ -90,6 +94,37 @@
   function handleNewLightDefinitionChange(e: Event): void {
     const newDefinitionId = (e.target as HTMLSelectElement).value;
     setSelectedDefinition(newDefinitionId);
+  }
+
+  function triggerIESImport(): void {
+    iesFileInput?.click();
+  }
+
+  async function handleIESFileSelect(e: Event): Promise<void> {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    iesImportError = null;
+    iesImportSuccess = null;
+
+    const result = await readIESFile(file);
+
+    if (result.success && result.data) {
+      const newDef = addLightDefinitionFromIES(result.data);
+      setSelectedDefinition(newDef.id);
+      iesImportSuccess = `Imported: ${result.data.lumens}lm, ${result.data.beamAngle}° beam`;
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        iesImportSuccess = null;
+      }, 3000);
+    } else {
+      iesImportError = result.error || 'Failed to parse IES file';
+    }
+
+    // Reset input so same file can be selected again
+    input.value = '';
   }
 
   function getDefinitionForLight(light: LightFixture): LightDefinition | undefined {
@@ -359,6 +394,22 @@
           {/each}
         </select>
       </label>
+      <input
+        type="file"
+        accept=".ies"
+        bind:this={iesFileInput}
+        on:change={handleIESFileSelect}
+        class="hidden-input"
+      />
+      <button class="import-button" on:click={triggerIESImport}>
+        Import from IES File
+      </button>
+      {#if iesImportError}
+        <p class="import-error">{iesImportError}</p>
+      {/if}
+      {#if iesImportSuccess}
+        <p class="import-success">{iesImportSuccess}</p>
+      {/if}
       {#if definitions.find(d => d.id === currentDefinitionId)}
         {@const def = definitions.find(d => d.id === currentDefinitionId)}
         <div class="light-specs">
@@ -613,5 +664,44 @@
 
   .hint p {
     margin: 0;
+  }
+
+  .hidden-input {
+    display: none;
+  }
+
+  .import-button {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .import-button:hover {
+    background: #e0e0e0;
+  }
+
+  .import-error {
+    margin: 8px 0 0 0;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: #dc2626;
+    background: #fef2f2;
+    border-radius: 4px;
+  }
+
+  .import-success {
+    margin: 8px 0 0 0;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: #16a34a;
+    background: #f0fdf4;
+    border-radius: 4px;
   }
 </style>
