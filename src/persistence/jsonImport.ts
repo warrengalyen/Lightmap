@@ -1,4 +1,4 @@
-import type { RoomState, WallSegment, LightFixture } from "../types";
+import type { RoomState, WallSegment, LightFixture, RafterConfig, DisplayPreferences } from "../types";
 
 export class ValidationError extends Error {
     constructor(message: string) {
@@ -38,12 +38,22 @@ export function validateRoomState(data: unknown): RoomState {
         throw new ValidationError("Invalid isClosed: must be a boolean");
     }
 
-    return {
+    const result: RoomState = {
         ceilingHeight: obj.ceilingHeight,
         walls: obj.walls as WallSegment[],
         lights: obj.lights as LightFixture[],
         isClosed: obj.isClosed,
     };
+
+    if (obj.rafterConfig !== undefined) {
+        result.rafterConfig = validateRafterConfig(obj.rafterConfig);
+    }
+
+    if (obj.displayPreferences !== undefined) {
+        result.displayPreferences = validateDisplayPreferences(obj.displayPreferences);
+    }
+
+    return result;
 }
 
 function validateWallSegment(data: unknown): void {
@@ -95,6 +105,78 @@ function validateLightFixture(data: unknown): void {
     if (typeof props.warmth !== "number" || props.warmth < 1000 || props.warmth > 10000) {
         throw new ValidationError("Invalid warmth: must be between 1000K and 10000K");
     }
+}
+
+function validateRafterConfig(data: unknown): RafterConfig {
+    if (!data || typeof data !== "object") {
+        throw new ValidationError("Invalid rafter config: expected an object");
+    }
+
+    const config = data as Record<string, unknown>;
+
+    if (config.orientation !== "horizontal" && config.orientation !== "vertical") {
+        throw new ValidationError('Invalid rafter orientation: must be "horizontal" or "vertical"');
+    }
+
+    if (typeof config.spacing !== "number" || config.spacing <= 0) {
+        throw new ValidationError("Invalid rafter spacing: must be a positive number");
+    }
+
+    if (typeof config.offsetX !== "number") {
+        throw new ValidationError("Invalid rafter offsetX: must be a number");
+    }
+
+    if (typeof config.offsetY !== "number") {
+        throw new ValidationError("Invalid rafter offsetY: must be a number");
+    }
+
+    if (typeof config.visible !== "boolean") {
+        throw new ValidationError("Invalid rafter visible: must be a boolean");
+    }
+
+    // snapToGrid is optional for backwards compatibility with older exports
+    const snapToGrid = typeof config.snapToGrid === "boolean" ? config.snapToGrid : false;
+
+    return {
+        orientation: config.orientation,
+        spacing: config.spacing,
+        offsetX: config.offsetX,
+        offsetY: config.offsetY,
+        visible: config.visible,
+        snapToGrid,
+    };
+}
+
+function validateDisplayPreferences(data: unknown): DisplayPreferences {
+    if (!data || typeof data !== "object") {
+        throw new ValidationError("Invalid display preferences: expected an object");
+    }
+
+    const prefs = data as Record<string, unknown>;
+
+    if (typeof prefs.useFractions !== "boolean") {
+        throw new ValidationError("Invalid useFractions: must be a boolean");
+    }
+
+    if (typeof prefs.snapThreshold !== "number" || prefs.snapThreshold < 0) {
+        throw new ValidationError("Invalid snapThreshold: must be a non-negative number");
+    }
+
+    if (prefs.unitFormat !== "feet-inches" && prefs.unitFormat !== "inches") {
+        throw new ValidationError('Invalid unitFormat: must be "feet-inches" or "inches"');
+    }
+
+    // gridSnapEnabled and gridSize are optional for backwards compatibility
+    const gridSnapEnabled = typeof prefs.gridSnapEnabled === "boolean" ? prefs.gridSnapEnabled : false;
+    const gridSize = typeof prefs.gridSize === "number" && prefs.gridSize > 0 ? prefs.gridSize : 0.5;
+
+    return {
+        useFractions: prefs.useFractions,
+        snapThreshold: prefs.snapThreshold,
+        unitFormat: prefs.unitFormat,
+        gridSnapEnabled,
+        gridSize,
+    };
 }
 
 function validateVector2(data: unknown, field: string): void {

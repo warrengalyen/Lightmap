@@ -18,6 +18,7 @@
   let statsVisible: boolean;
   let deadZonesEnabled: boolean;
   let spacingEnabled: boolean;
+  let gridSnapEnabled: boolean;
 
   $: currentTool = $activeTool;
   $: currentViewMode = $viewMode;
@@ -29,6 +30,7 @@
   $: statsVisible = $lightingStatsConfig.visible;
   $: deadZonesEnabled = $deadZoneConfig.enabled;
   $: spacingEnabled = $spacingConfig.enabled;
+  $: gridSnapEnabled = $displayPreferences.gridSnapEnabled;
 
   function handleToolChange(tool: Tool): void {
     setActiveTool(tool);
@@ -36,6 +38,10 @@
 
   function handleViewModeChange(mode: ViewMode): void {
     setViewMode(mode);
+  }
+
+  function toggleGridSnap(): void {
+    displayPreferences.update(p => ({ ...p, gridSnapEnabled: !p.gridSnapEnabled }));
   }
 </script>
 
@@ -91,6 +97,15 @@
       >
         <span class="icon">💡</span>
         Light
+      </button>
+      <button
+        class="toggle-button"
+        class:active={gridSnapEnabled}
+        on:click={toggleGridSnap}
+        title="Snap to Grid (S)"
+      >
+        <span class="icon">#</span>
+        Snap
       </button>
     </div>
   </div>

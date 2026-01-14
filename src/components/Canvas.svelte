@@ -228,6 +228,42 @@
   }
 
   function handleDrawingClick(pos: Vector2): void {
+    // Apply grid snap if enabled (bypasses angle snapping)
+    const gridSize = currentDisplayPrefs.gridSize || 0.5; // Default 6 inches
+    if (currentDisplayPrefs.gridSnapEnabled && gridSize > 0) {
+      const gridPos = snapController.snapToGrid(pos, gridSize);
+
+      if (!wallBuilder.drawing) {
+        wallBuilder.startDrawing(gridPos);
+        editorRenderer.updateDrawingVertices(wallBuilder.getVertices());
+      } else {
+        // Check for closure - if clicking near the start vertex
+        const startVertex = wallBuilder.startVertex;
+        const closureThreshold = gridSize; // Use grid size as threshold
+        if (startVertex && wallBuilder.vertexCount >= 3) {
+          const dist = Math.hypot(gridPos.x - startVertex.x, gridPos.y - startVertex.y);
+          if (dist < closureThreshold) {
+            const walls = wallBuilder.closeLoop();
+            if (walls && polygonValidator.isValid(walls)) {
+              editorRenderer.updateDrawingVertices([]);
+              editorRenderer.setPhantomLine(null, null);
+              roomStore.update(state => ({ ...state, walls, isClosed: true }));
+            } else {
+              wallBuilder.cancel();
+              editorRenderer.updateDrawingVertices([]);
+              editorRenderer.setPhantomLine(null, null);
+            }
+            return;
+          }
+        }
+
+        wallBuilder.placeVertex(gridPos);
+        editorRenderer.updateDrawingVertices(wallBuilder.getVertices());
+      }
+      return;
+    }
+
+    // Normal drawing with angle snapping
     if (!wallBuilder.drawing) {
       wallBuilder.startDrawing(pos);
       editorRenderer.updateDrawingVertices(wallBuilder.getVertices());
@@ -343,8 +379,14 @@
     const vertices = getVertices(currentRoomState);
     let targetPos = event.worldPos;
 
-    // Snap when holding Shift
-    if (event.shiftKey) {
+    // Grid snap has priority when enabled
+    const gridSize = currentDisplayPrefs.gridSize || 0.5;
+    if (currentDisplayPrefs.gridSnapEnabled && gridSize > 0) {
+      targetPos = snapController.snapToGrid(targetPos, gridSize);
+      editorRenderer.setSnapGuides([]);
+    }
+    // Snap to other vertices when holding Shift
+    else if (event.shiftKey) {
       const snapResult = snapController.snapToVertices(event.worldPos, vertices, currentSelectedVertexIndex!);
       targetPos = snapResult.snappedPos;
       editorRenderer.setSnapGuides(snapResult.guides);
@@ -384,15 +426,22 @@
 
   function handleLightDrag(event: InputEvent): void {
     let targetPos = event.worldPos;
+    let guides: import('../controllers/SnapController').SnapGuide[] = [];
 
-    // Snap when holding Shift
+    // Snap when holding Shift (to other lights)
     if (event.shiftKey) {
       const snapResult = snapController.snapToLights(event.worldPos, currentRoomState.lights, currentSelectedLightId!);
       targetPos = snapResult.snappedPos;
-      editorRenderer.setSnapGuides(snapResult.guides);
-    } else {
-      editorRenderer.setSnapGuides([]);
+      guides = snapResult.guides;
     }
+    // Snap to rafter grid when enabled
+    else if (currentRafterConfig.snapToGrid && currentRafterConfig.visible) {
+      const snapResult = snapController.snapToRafterGrid(event.worldPos, currentRafterConfig);
+      targetPos = snapResult.snappedPos;
+      guides = snapResult.guides;
+    }
+
+    editorRenderer.setSnapGuides(guides);
 
     // Only move if inside room
     if (!currentRoomState.isClosed || !polygonValidator.isPointInside(targetPos, currentRoomState.walls)) {
@@ -453,12 +502,20 @@
   }
 
   function handleDrawingMove(event: InputEvent): void {
-    const snappedPos = wallBuilder.continueDrawing(event.worldPos);
     const lastVertex = wallBuilder.lastVertex;
+    if (!lastVertex) return;
 
-    if (lastVertex) {
-      editorRenderer.setPhantomLine(lastVertex, snappedPos);
+    // Grid snap mode - bypass angle snapping entirely
+    const gridSize = currentDisplayPrefs.gridSize || 0.5;
+    if (currentDisplayPrefs.gridSnapEnabled && gridSize > 0) {
+      const gridPos = snapController.snapToGrid(event.worldPos, gridSize);
+      editorRenderer.setPhantomLine(lastVertex, gridPos);
+      return;
     }
+
+    // Normal mode with angle snapping
+    const snappedPos = wallBuilder.continueDrawing(event.worldPos);
+    editorRenderer.setPhantomLine(lastVertex, snappedPos);
 
     const snap = wallBuilder.currentSnap;
     if (snap) {

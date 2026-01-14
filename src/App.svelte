@@ -11,7 +11,8 @@
   import { roomStore } from './stores/roomStore';
   import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
-  import { initSettingsFromRoom } from './stores/settingsStore';
+  import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
+
   import type { Vector2 } from './types';
 
   let canvasComponent: Canvas;
@@ -60,6 +61,9 @@
         break;
       case 'd':
         setActiveTool('draw');
+        break;
+      case 's':
+        displayPreferences.update(p => ({ ...p, gridSnapEnabled: !p.gridSnapEnabled }));
         break;
     }
   }

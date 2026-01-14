@@ -30,10 +30,12 @@ export function initSettingsFromRoom(): void {
     isInitializing = true;
     const state = get(roomStore);
     if (state.rafterConfig) {
-        rafterConfig.set(state.rafterConfig);
+        // Merge with defaults to handle missing dields from old data
+        rafterConfig.set({ ...DEFAULT_RAFTER_CONFIG, ...state.rafterConfig });
     }
     if (state.displayPreferences) {
-        displayPreferences.set(state.displayPreferences);
+        // Merge with defaults to handle missing fields from old data
+        displayPreferences.set({ ...DEFAULT_DISPLAY_PREFERENCES, ...state.displayPreferences });
     }
     isInitializing = false;
 }

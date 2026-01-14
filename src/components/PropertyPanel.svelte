@@ -55,7 +55,7 @@
     wallLengthInput = formatImperial(selectedWall.length);
   }
 
-  $: if (selectedVertex) {
+  $: if (selectedVertex && selectedVertex.x != null && selectedVertex.y != null) {
     vertexXInput = selectedVertex.x.toFixed(2);
     vertexYInput = selectedVertex.y.toFixed(2);
   }

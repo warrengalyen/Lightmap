@@ -27,6 +27,7 @@ export interface RafterConfig {
     offsetX: number;
     offsetY: number;
     visible: boolean;
+    snapToGrid: boolean;
 }
 
 export type UnitFormat = "feet-inches" | "inches";
@@ -35,6 +36,8 @@ export interface DisplayPreferences {
     useFractions: boolean;
     snapThreshold: number;
     unitFormat: UnitFormat;
+    gridSnapEnabled: boolean;
+    gridSize: number; // in feet
 }
 
 export const DEFAULT_ROOM_STATE: RoomState = {
@@ -57,10 +60,13 @@ export const DEFAULT_RAFTER_CONFIG: RafterConfig = {
     offsetX: 0,
     offsetY: 0,
     visible: false,
+    snapToGrid: false,
 };
 
 export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {
     useFractions: true,
     snapThreshold: 0.5,
     unitFormat: "feet-inches",
+    gridSnapEnabled: false,
+    gridSize: 0.5, // 6 inches
 };
