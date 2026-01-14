@@ -134,16 +134,12 @@ function validateRafterConfig(data: unknown): RafterConfig {
         throw new ValidationError("Invalid rafter visible: must be a boolean");
     }
 
-    // snapToGrid is optional for backwards compatibility with older exports
-    const snapToGrid = typeof config.snapToGrid === "boolean" ? config.snapToGrid : false;
-
     return {
         orientation: config.orientation,
         spacing: config.spacing,
         offsetX: config.offsetX,
         offsetY: config.offsetY,
         visible: config.visible,
-        snapToGrid,
     };
 }
 

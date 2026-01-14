@@ -1,4 +1,4 @@
-import type { Vector2, LightFixture, RafterConfig } from "../types";
+import type { Vector2, LightFixture } from "../types";
 
 export interface SnapGuide {
     axis: "x" | "y";
@@ -234,46 +234,6 @@ export class SnapController {
             x: Math.round(pos.x / gridSize) * gridSize,
             y: Math.round(pos.y / gridSize) * gridSize,
         };
-    }
-
-    /**
-     * Snaps a position to the nearest rafter grid line.
-     * @param pos - The position to snap
-     * @param rafterConfig - The rafter configuration
-     */
-    snapToRafterGrid(pos: Vector2, rafterConfig: RafterConfig): SnapResult {
-        const guides: SnapGuide[] = [];
-        const { orientation, spacing, offsetX, offsetY } = rafterConfig;
-
-        let snappedPos: Vector2;
-
-        if (orientation === "horizontal") {
-            // Snap Y to nearest horizontal rafter line
-            const nearestLineY = Math.round((pos.y - offsetY) / spacing) * spacing + offsetY;
-            snappedPos = { x: pos.x, y: nearestLineY };
-
-            // Create horizontal guide at the snapped line
-            guides.push({
-                axis: "y",
-                value: nearestLineY,
-                from: { x: pos.x - 2, y: nearestLineY },
-                to: { x: pos.x + 2, y: nearestLineY },
-            });
-        } else {
-            // Snap X to nearest vertical rafter line
-            const nearestLineX = Math.round((pos.x - offsetX) / spacing) * spacing + offsetX;
-            snappedPos = { x: nearestLineX, y: pos.y };
-
-            // Create vertical guide at the snapped line
-            guides.push({
-                axis: "x",
-                value: nearestLineX,
-                from: { x: nearestLineX, y: pos.y - 2 },
-                to: { x: nearestLineX, y: pos.y + 2 },
-            });
-        }
-
-        return { snappedPos, guides };
     }
 
     private createVerticalGuide(x: number, y1: number, y2: number): SnapGuide {

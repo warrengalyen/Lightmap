@@ -27,7 +27,6 @@ export interface RafterConfig {
     offsetX: number;
     offsetY: number;
     visible: boolean;
-    snapToGrid: boolean;
 }
 
 export type UnitFormat = "feet-inches" | "inches";
@@ -60,7 +59,6 @@ export const DEFAULT_RAFTER_CONFIG: RafterConfig = {
     offsetX: 0,
     offsetY: 0,
     visible: false,
-    snapToGrid: false,
 };
 
 export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {

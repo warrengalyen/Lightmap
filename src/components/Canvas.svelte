@@ -426,22 +426,15 @@
 
   function handleLightDrag(event: InputEvent): void {
     let targetPos = event.worldPos;
-    let guides: import('../controllers/SnapController').SnapGuide[] = [];
 
     // Snap when holding Shift (to other lights)
     if (event.shiftKey) {
       const snapResult = snapController.snapToLights(event.worldPos, currentRoomState.lights, currentSelectedLightId!);
       targetPos = snapResult.snappedPos;
-      guides = snapResult.guides;
+      editorRenderer.setSnapGuides(snapResult.guides);
+    } else {
+      editorRenderer.setSnapGuides([]);
     }
-    // Snap to rafter grid when enabled
-    else if (currentRafterConfig.snapToGrid && currentRafterConfig.visible) {
-      const snapResult = snapController.snapToRafterGrid(event.worldPos, currentRafterConfig);
-      targetPos = snapResult.snappedPos;
-      guides = snapResult.guides;
-    }
-
-    editorRenderer.setSnapGuides(guides);
 
     // Only move if inside room
     if (!currentRoomState.isClosed || !polygonValidator.isPointInside(targetPos, currentRoomState.walls)) {

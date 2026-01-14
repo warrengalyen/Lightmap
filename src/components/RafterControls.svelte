@@ -23,24 +23,11 @@
       rafterConfig.update(c => ({ ...c, [axis]: inches / 12 }));
     }
   }
-
-  function handleSnapToggle(): void {
-    rafterConfig.update(c => ({ ...c, snapToGrid: !c.snapToGrid }));
-  }
 </script>
 
 {#if config.visible}
   <div class="rafter-controls">
     <h4>Rafter Settings</h4>
-
-    <label class="control-row checkbox-row">
-      <span>Snap to Grid</span>
-      <input
-        type="checkbox"
-        checked={config.snapToGrid}
-        on:change={handleSnapToggle}
-      />
-    </label>
 
     <label class="control-row">
       <span>Orientation</span>
@@ -155,11 +142,5 @@
     font-size: 12px;
     color: #999;
     min-width: 20px;
-  }
-
-  .checkbox-row input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
   }
 </style>
