@@ -15,14 +15,14 @@ function createHistoryStore() {
         future: [],
     });
 
-    let isUndoingOrRedoing = false;
+    let isPerformingHistoryOperation = false;
     let isRecordingPaused = false;
     let lastSavedState: RoomState | null = null;
     let stateBeforePause: RoomState | null = null;
 
     // Subscribe to room store changes to record history
     roomStore.subscribe((state) => {
-        if (isUndoingOrRedoing || isRecordingPaused) return;
+        if (isPerformingHistoryOperation || isRecordingPaused) return;
 
         // Don't record if state hasn't meaningfully changed
         if (lastSavedState && JSON.stringify(state) === JSON.stringify(lastSavedState)) {
@@ -43,7 +43,7 @@ function createHistoryStore() {
             });
         }
 
-        lastSavedState = JSON.parse(JSON.stringify(state));
+        lastSavedState = structuredClone(state);
     });
 
     return {
@@ -53,7 +53,7 @@ function createHistoryStore() {
             const history = get({ subscribe });
             if (history.past.length === 0) return false;
 
-            isUndoingOrRedoing = true;
+            isPerformingHistoryOperation = true;
 
             const currentState = get(roomStore);
             const previousState = history.past[history.past.length - 1];
@@ -64,9 +64,9 @@ function createHistoryStore() {
             }));
 
             roomStore.set(previousState);
-            lastSavedState = JSON.parse(JSON.stringify(previousState));
+            lastSavedState = structuredClone(previousState);
 
-            isUndoingOrRedoing = false;
+            isPerformingHistoryOperation = false;
             return true;
         },
 
@@ -74,7 +74,7 @@ function createHistoryStore() {
             const history = get({ subscribe });
             if (history.future.length === 0) return false;
 
-            isUndoingOrRedoing = true;
+            isPerformingHistoryOperation = true;
 
             const currentState = get(roomStore);
             const nextState = history.future[0];
@@ -85,15 +85,15 @@ function createHistoryStore() {
             }));
 
             roomStore.set(nextState);
-            lastSavedState = JSON.parse(JSON.stringify(nextState));
+            lastSavedState = structuredClone(nextState);
 
-            isUndoingOrRedoing = false;
+            isPerformingHistoryOperation = false;
             return true;
         },
 
         clear: () => {
             set({ past: [], future: [] });
-            lastSavedState = JSON.parse(JSON.stringify(get(roomStore)));
+            lastSavedState = structuredClone(get(roomStore));
         },
 
         canUndo: () => {
@@ -109,7 +109,7 @@ function createHistoryStore() {
         pauseRecording: () => {
             if (!isRecordingPaused) {
                 isRecordingPaused = true;
-                stateBeforePause = JSON.parse(JSON.stringify(get(roomStore)));
+                stateBeforePause = structuredClone(get(roomStore));
             }
         },
 
@@ -130,7 +130,7 @@ function createHistoryStore() {
                             future: [], // Clear future on new action
                         };
                     });
-                    lastSavedState = JSON.parse(JSON.stringify(currentState));
+                    lastSavedState = structuredClone(currentState);
                 }
 
                 stateBeforePause = null;

@@ -6,6 +6,17 @@ import { getAllDimensionLabels } from "../geometry/DimensionLabel";
 import { MeasurementRenderer } from "./MeasurementRenderer";
 import { distancePointToSegment } from "../utils/math";
 import { clearGroup, disposeObject3D } from "../utils/three";
+import { WALL_HIT_TOLERANCE_FT } from "../constants/editor";
+import {
+    createWallLine,
+    createVertexCircle,
+    createPhantomLine,
+    createDrawingVertex,
+    createDrawingLine,
+    createSnapGuideLine,
+    createSelectionBox,
+    createDimensionLabel,
+} from "./editorRendering";
 
 /**
  * Handles rendering of the 2D editor view including walls, vertices,
@@ -86,18 +97,7 @@ export class EditorRenderer {
     private renderWallLines(walls: WallSegment[], selectedWallId: string | null): void {
         for (const wall of walls) {
             const isSelected = wall.id === selectedWallId;
-            const points = [
-                new THREE.Vector3(wall.start.x, wall.start.y, 0),
-                new THREE.Vector3(wall.end.x, wall.end.y, 0),
-            ];
-
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({
-                color: isSelected ? 0x0066cc : 0x000000,
-                linewidth: isSelected ? 3 : 2,
-            });
-            const line = new THREE.Line(geometry, material);
-            line.userData.wallId = wall.id;
+            const line = createWallLine(wall, isSelected);
             this.wallsGroup.add(line);
         }
     }
@@ -108,13 +108,7 @@ export class EditorRenderer {
     ): void {
         for (const vertex of vertexList) {
             const isSelected = selectedVertexIndices.has(vertex.index);
-            const geometry = new THREE.CircleGeometry(isSelected ? 0.2 : 0.1, 16);
-            const material = new THREE.MeshBasicMaterial({
-                color: isSelected ? 0x00aa00 : 0x333333,
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(vertex.x, vertex.y, 0.05);
-            mesh.userData.vertexIndex = vertex.index;
+            const mesh = createVertexCircle({ x: vertex.x, y: vertex.y }, vertex.index, isSelected);
             this.wallsGroup.add(mesh);
             this.vertexMeshes.push(mesh);
         }
@@ -131,7 +125,11 @@ export class EditorRenderer {
     // Wall Hit Testing
     // ============================================
 
-    getWallAtPosition(pos: Vector2, walls: WallSegment[], tolerance: number = 0.3): WallSegment | null {
+    getWallAtPosition(
+        pos: Vector2,
+        walls: WallSegment[],
+        tolerance: number = WALL_HIT_TOLERANCE_FT,
+    ): WallSegment | null {
         for (const wall of walls) {
             const dist = distancePointToSegment(pos, wall.start, wall.end);
             if (dist <= tolerance) {
@@ -155,7 +153,7 @@ export class EditorRenderer {
         });
 
         for (const label of labels) {
-            const sprite = this.createTextSprite(label.text);
+            const sprite = createDimensionLabel(label.text);
             sprite.position.set(label.position.x, label.position.y, 0.2);
             this.labelsGroup.add(sprite);
         }
@@ -167,37 +165,6 @@ export class EditorRenderer {
             this.updateLabels(this.currentWalls);
             this.measurementRenderer.setUnitFormat(format);
         }
-    }
-
-    private createTextSprite(text: string): THREE.Sprite {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d")!;
-
-        const fontSize = 24;
-        const padding = 12;
-        context.font = `${fontSize}px Arial`;
-        const textWidth = context.measureText(text).width;
-
-        canvas.width = Math.ceil(textWidth + padding * 2);
-        canvas.height = fontSize + padding;
-
-        context.font = `${fontSize}px Arial`;
-        context.fillStyle = "white";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-
-        context.fillStyle = "black";
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-        context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        const material = new THREE.SpriteMaterial({ map: texture });
-        const sprite = new THREE.Sprite(material);
-
-        const aspectRatio = canvas.width / canvas.height;
-        sprite.scale.set(aspectRatio * 0.5, 0.5, 1);
-
-        return sprite;
     }
 
     // ============================================
@@ -212,17 +179,7 @@ export class EditorRenderer {
         }
 
         if (start && end) {
-            const points = [new THREE.Vector3(start.x, start.y, 0), new THREE.Vector3(end.x, end.y, 0)];
-
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineDashedMaterial({
-                color: 0x0066cc,
-                dashSize: 0.3,
-                gapSize: 0.15,
-            });
-
-            this.phantomLine = new THREE.Line(geometry, material);
-            this.phantomLine.computeLineDistances();
+            this.phantomLine = createPhantomLine(start, end);
             this.scene.add(this.phantomLine);
         }
     }
@@ -247,25 +204,14 @@ export class EditorRenderer {
         for (let i = 0; i < vertices.length; i++) {
             const v = vertices[i];
             const isStart = i === 0;
-            const geometry = new THREE.CircleGeometry(isStart ? 0.15 : 0.1, 16);
-            const material = new THREE.MeshBasicMaterial({
-                color: isStart ? 0x00aa00 : 0x0066cc,
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(v.x, v.y, 0.1);
+            const mesh = createDrawingVertex(v, isStart);
             this.drawingVerticesGroup.add(mesh);
         }
     }
 
     private renderDrawingVertexLines(vertices: Vector2[]): void {
         for (let i = 0; i < vertices.length - 1; i++) {
-            const points = [
-                new THREE.Vector3(vertices[i].x, vertices[i].y, 0.05),
-                new THREE.Vector3(vertices[i + 1].x, vertices[i + 1].y, 0.05),
-            ];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({ color: 0x0066cc });
-            const line = new THREE.Line(geometry, material);
+            const line = createDrawingLine(vertices[i], vertices[i + 1]);
             this.drawingVerticesGroup.add(line);
         }
     }
@@ -314,20 +260,7 @@ export class EditorRenderer {
         clearGroup(this.snapGuidesGroup);
 
         for (const guide of guides) {
-            const points = [
-                new THREE.Vector3(guide.from.x, guide.from.y, 0.15),
-                new THREE.Vector3(guide.to.x, guide.to.y, 0.15),
-            ];
-
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineDashedMaterial({
-                color: guide.axis === "x" ? 0xff6600 : 0x0066ff,
-                dashSize: 0.2,
-                gapSize: 0.1,
-            });
-
-            const line = new THREE.Line(geometry, material);
-            line.computeLineDistances();
+            const line = createSnapGuideLine(guide);
             this.snapGuidesGroup.add(line);
         }
     }
@@ -344,24 +277,7 @@ export class EditorRenderer {
         }
 
         if (start && end) {
-            // Create a rectangle from the two corners
-            const points = [
-                new THREE.Vector3(start.x, start.y, 0.2),
-                new THREE.Vector3(end.x, start.y, 0.2),
-                new THREE.Vector3(end.x, end.y, 0.2),
-                new THREE.Vector3(start.x, end.y, 0.2),
-                new THREE.Vector3(start.x, start.y, 0.2), // Close the loop
-            ];
-
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineDashedMaterial({
-                color: 0x0088ff,
-                dashSize: 0.2,
-                gapSize: 0.1,
-            });
-
-            this.selectionBoxLine = new THREE.Line(geometry, material);
-            this.selectionBoxLine.computeLineDistances();
+            this.selectionBoxLine = createSelectionBox(start, end);
             this.selectionBoxGroup.add(this.selectionBoxLine);
         }
     }

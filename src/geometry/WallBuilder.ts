@@ -2,6 +2,7 @@ import type { Vector2, WallSegment, SnapResult } from "../types";
 import { SnapEngine } from "./SnapEngine";
 import { generateId } from "../utils/id";
 import { distancePointToPoint, vectorSubtract, vectorNormalize, vectorScale, vectorAdd } from "../utils/math";
+import { MIN_WALL_LENGTH_FT, MIN_SEGMENT_LENGTH_FT } from "../constants/editor";
 
 export class WallBuilder {
     private vertices: Vector2[] = [];
@@ -73,7 +74,7 @@ export class WallBuilder {
         const start = this.vertices[this.vertices.length - 1];
         const length = distancePointToPoint(start, point);
 
-        if (length < 0.1) {
+        if (length < MIN_SEGMENT_LENGTH_FT) {
             return null;
         }
 
@@ -114,7 +115,7 @@ export class WallBuilder {
             const end = this.vertices[(i + 1) % this.vertices.length];
             const length = distancePointToPoint(start, end);
 
-            if (length > 0.01) {
+            if (length > MIN_SEGMENT_LENGTH_FT) {
                 segments.push({
                     id: generateId(),
                     start: { ...start },

@@ -1,5 +1,6 @@
 import type { Vector2 } from "../types";
 import type { Scene } from "./Scene";
+import { ZOOM_IN_FACTOR, ZOOM_OUT_FACTOR } from "../constants/editor";
 
 export type InputEventType =
     | "click"
@@ -133,7 +134,7 @@ export class InputManager {
     private handleWheel(e: WheelEvent): void {
         e.preventDefault();
 
-        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        const zoomFactor = e.deltaY > 0 ? ZOOM_OUT_FACTOR : ZOOM_IN_FACTOR;
         const currentZoom = this.scene.getZoom();
         this.scene.setZoom(currentZoom * zoomFactor);
 

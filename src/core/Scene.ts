@@ -1,5 +1,13 @@
 import * as THREE from "three";
 import type { BoundingBox } from "../types";
+import {
+    DEFAULT_FRUSTUM_SIZE,
+    GRID_SIZE,
+    MIN_ZOOM,
+    MAX_ZOOM,
+    FIT_BOUNDS_PADDING,
+    PAN_SCALE_FACTOR,
+} from "../constants/editor";
 
 export class Scene {
     readonly scene: THREE.Scene;
@@ -17,7 +25,7 @@ export class Scene {
         this.scene.background = new THREE.Color(0xf5f5f5);
 
         const aspect = container.clientWidth / container.clientHeight;
-        const frustumSize = 20;
+        const frustumSize = DEFAULT_FRUSTUM_SIZE;
         this.camera = new THREE.OrthographicCamera(
             (-frustumSize * aspect) / 2,
             (frustumSize * aspect) / 2,
@@ -48,7 +56,7 @@ export class Scene {
         const width = this.container.clientWidth;
         const height = this.container.clientHeight;
         const aspect = width / height;
-        const frustumSize = 20 / this.zoom;
+        const frustumSize = DEFAULT_FRUSTUM_SIZE / this.zoom;
 
         this.camera.left = (-frustumSize * aspect) / 2 + this.panOffset.x;
         this.camera.right = (frustumSize * aspect) / 2 + this.panOffset.x;
@@ -60,14 +68,14 @@ export class Scene {
     }
 
     private addGrid(): void {
-        const gridHelper = new THREE.GridHelper(100, 100, 0xcccccc, 0xe0e0e0);
+        const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0xcccccc, 0xe0e0e0);
         gridHelper.rotation.x = Math.PI / 2;
         gridHelper.position.z = -0.1;
         this.scene.add(gridHelper);
     }
 
     setZoom(zoom: number): void {
-        this.zoom = Math.max(0.1, Math.min(10, zoom));
+        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
         this.handleResize();
     }
 
@@ -76,9 +84,9 @@ export class Scene {
     }
 
     pan(dx: number, dy: number): void {
-        const scale = 20 / this.zoom;
-        this.panOffset.x += dx * scale * 0.002;
-        this.panOffset.y += dy * scale * 0.002;
+        const scale = DEFAULT_FRUSTUM_SIZE / this.zoom;
+        this.panOffset.x += dx * scale * PAN_SCALE_FACTOR;
+        this.panOffset.y += dy * scale * PAN_SCALE_FACTOR;
         this.handleResize();
     }
 
@@ -88,7 +96,7 @@ export class Scene {
         this.handleResize();
     }
 
-    fitToBounds(bounds: BoundingBox, padding: number = 1.2): void {
+    fitToBounds(bounds: BoundingBox, padding: number = FIT_BOUNDS_PADDING): void {
         const width = bounds.maxX - bounds.minX;
         const height = bounds.maxY - bounds.minY;
         const centerX = (bounds.minX + bounds.maxX) / 2;
@@ -97,7 +105,7 @@ export class Scene {
         const aspect = this.container.clientWidth / this.container.clientHeight;
         const frustumWidth = Math.max(width, height * aspect) * padding;
 
-        this.zoom = 20 / frustumWidth;
+        this.zoom = DEFAULT_FRUSTUM_SIZE / frustumWidth;
         this.panOffset.set(centerX, centerY);
         this.handleResize();
     }
