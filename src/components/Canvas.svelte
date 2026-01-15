@@ -76,6 +76,8 @@
   let isDraggingVertex = false;
   let multiDragStartPositions: Map<number, Vector2> = new Map();
   let isDraggingLight = false;
+  let multiLightDragStartPositions: Map<string, Vector2> = new Map();
+  let anchorLightId: string | null = null;
   let isDraggingWall = false;
   let didDragVertex = false;
   let wallDragStart: Vector2 | null = null;
@@ -397,12 +399,63 @@
     // Check lights
     const light = lightManager.getLightAt(pos, 0.5);
     if (light) {
-      selectLight(light.id, addToSelection);
-      // Only enable dragging for single selection
-      if (!addToSelection || currentSelectedLightIds.size <= 1) {
+      const isAlreadySelected = currentSelectedLightIds.has(light.id);
+
+      // Shift+click toggles light in/out of selection
+      if (addToSelection) {
+        selectLight(light.id, true);
+
+        // Read the updated selection state
+        const updatedSelection = get(selectedLightIds);
+        const isStillSelected = updatedSelection.has(light.id);
+
+        // If light was toggled off, don't start dragging
+        if (!isStillSelected) {
+          selectedWallId.set(null);
+          clearVertexSelection();
+          return;
+        }
+
+        // Light was added to selection, set up for potential multi-drag
         isDraggingLight = true;
         historyStore.pauseRecording();
+        anchorLightId = light.id;
+        dragStartPos = { ...pos };
+        multiLightDragStartPositions.clear();
+        for (const id of updatedSelection) {
+          const l = currentRoomState.lights.find(l => l.id === id);
+          if (l) {
+            multiLightDragStartPositions.set(id, { ...l.position });
+          }
+        }
       }
+      // Click on already-selected light with multiple selected: start multi-drag
+      else if (isAlreadySelected && currentSelectedLightIds.size > 1) {
+        isDraggingLight = true;
+        historyStore.pauseRecording();
+        anchorLightId = light.id;
+        dragStartPos = { ...pos };
+        multiLightDragStartPositions.clear();
+        for (const id of currentSelectedLightIds) {
+          const l = currentRoomState.lights.find(l => l.id === id);
+          if (l) {
+            multiLightDragStartPositions.set(id, { ...l.position });
+          }
+        }
+      }
+      // Normal single light selection
+      else {
+        selectLight(light.id, false);
+        isDraggingLight = true;
+        historyStore.pauseRecording();
+        anchorLightId = light.id;
+        dragStartPos = { ...pos };
+        multiLightDragStartPositions.clear();
+        multiLightDragStartPositions.set(light.id, { ...light.position });
+      }
+
+      selectedWallId.set(null);
+      clearVertexSelection();
       return;
     }
 
@@ -463,7 +516,7 @@
       return;
     }
 
-    if (isDraggingLight && currentSelectedLightId) {
+    if (isDraggingLight && currentSelectedLightIds.size > 0) {
       handleLightDrag(event);
       return;
     }
@@ -574,8 +627,8 @@
     // Apply axis lock first
     targetPos = applyAxisConstraint(targetPos);
 
-    // Snap when holding Shift (to other lights)
-    if (event.shiftKey) {
+    // Snap when holding Shift (to other lights) - only for single light
+    if (event.shiftKey && currentSelectedLightIds.size === 1) {
       const snapResult = snapController.snapToLights(event.worldPos, currentRoomState.lights, currentSelectedLightId!);
       targetPos = snapResult.snappedPos;
       // Apply axis constraint after snapping
@@ -587,26 +640,59 @@
       editorRenderer.setSnapGuides([]);
     }
 
-    // Only move if inside room
-    if (!currentRoomState.isClosed || !polygonValidator.isPointInside(targetPos, currentRoomState.walls)) {
-      return;
-    }
+    // Multi-light dragging
+    if (currentSelectedLightIds.size > 1 && dragStartPos && anchorLightId) {
+      const anchorOriginalPos = multiLightDragStartPositions.get(anchorLightId);
+      if (!anchorOriginalPos) return;
 
-    roomStore.update(state => ({
-      ...state,
-      lights: state.lights.map(light =>
-        light.id === currentSelectedLightId ? { ...light, position: { ...targetPos } } : light
-      ),
-    }));
+      const delta = {
+        x: targetPos.x - anchorOriginalPos.x,
+        y: targetPos.y - anchorOriginalPos.y,
+      };
 
-    // Update measurement if this light is part of it
-    if (measurementController.isActive) {
-      if (measurementController.sourceLightId === currentSelectedLightId) {
-        measurementController.updateSourcePosition(targetPos, currentRoomState.walls);
-        updateMeasurementDisplay();
-      } else if (measurementController.targetLightId === currentSelectedLightId) {
-        measurementController.updateTargetPosition(targetPos);
-        updateMeasurementDisplay();
+      // Move all selected lights by the same delta
+      roomStore.update(state => {
+        const updatedLights = state.lights.map(light => {
+          if (currentSelectedLightIds.has(light.id)) {
+            const originalPos = multiLightDragStartPositions.get(light.id);
+            if (originalPos) {
+              const newPos = {
+                x: originalPos.x + delta.x,
+                y: originalPos.y + delta.y,
+              };
+              // Only move if inside room
+              if (state.isClosed && polygonValidator.isPointInside(newPos, state.walls)) {
+                return { ...light, position: newPos };
+              }
+            }
+          }
+          return light;
+        });
+        return { ...state, lights: updatedLights };
+      });
+    } else {
+      // Single light drag
+      // Only move if inside room
+      if (!currentRoomState.isClosed || !polygonValidator.isPointInside(targetPos, currentRoomState.walls)) {
+        return;
+      }
+
+      roomStore.update(state => ({
+        ...state,
+        lights: state.lights.map(light =>
+          light.id === currentSelectedLightId ? { ...light, position: { ...targetPos } } : light
+        ),
+      }));
+
+      // Update measurement if this light is part of it
+      if (measurementController.isActive) {
+        if (measurementController.sourceLightId === currentSelectedLightId) {
+          measurementController.updateSourcePosition(targetPos, currentRoomState.walls);
+          updateMeasurementDisplay();
+        } else if (measurementController.targetLightId === currentSelectedLightId) {
+          measurementController.updateTargetPosition(targetPos);
+          updateMeasurementDisplay();
+        }
       }
     }
   }
@@ -749,8 +835,10 @@
     wallDragStart = null;
     wallDragOriginalVertices = null;
     anchorVertexIndex = null;
+    anchorLightId = null;
     dragStartPos = null;
     multiDragStartPositions.clear();
+    multiLightDragStartPositions.clear();
     axisLock = 'none';
     editorRenderer?.setSnapGuides([]);
   }
