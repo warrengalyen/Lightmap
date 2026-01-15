@@ -192,3 +192,30 @@ export function findVerticesInBox(
   }
   return result;
 }
+
+/**
+ * Finds all light IDs that fall within a rectangular box.
+ * @param lights - Array of light fixtures to test
+ * @param boxStart - One corner of the selection box
+ * @param boxEnd - Opposite corner of the selection box
+ * @returns Array of light IDs within the box
+ */
+export function findLightsInBox(
+  lights: Array<{ id: string; position: Vector2 }>,
+  boxStart: Vector2,
+  boxEnd: Vector2
+): string[] {
+  const minX = Math.min(boxStart.x, boxEnd.x);
+  const maxX = Math.max(boxStart.x, boxEnd.x);
+  const minY = Math.min(boxStart.y, boxEnd.y);
+  const maxY = Math.max(boxStart.y, boxEnd.y);
+
+  const result: string[] = [];
+  for (const light of lights) {
+    const pos = light.position;
+    if (pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) {
+      result.push(light.id);
+    }
+  }
+  return result;
+}

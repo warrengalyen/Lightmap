@@ -22,7 +22,7 @@
   import { spacingConfig, spacingWarnings } from '../stores/spacingStore';
   import { toggleLightingStats } from '../stores/lightingStatsStore';
   import { selectedDefinitionId } from '../stores/lightDefinitionsStore';
-  import { findVertexAtPosition, projectPointOntoSegmentForInsertion, findVerticesInBox } from '../utils/math';
+  import { findVertexAtPosition, projectPointOntoSegmentForInsertion, findVerticesInBox, findLightsInBox } from '../utils/math';
   import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences, DeadZoneConfig, SpacingConfig, SpacingWarning } from '../types';
 
   // ============================================
@@ -428,8 +428,8 @@
       boxCurrent = { ...pos };
       if (!addToSelection) {
         clearVertexSelection();
+        clearLightSelection();
       }
-      clearLightSelection();
       selectedWallId.set(null);
       return;
     }
@@ -685,8 +685,10 @@
     if (isBoxSelecting && boxStart && boxCurrent) {
       const vertices = getVertices(currentRoomState);
       const indicesInBox = findVerticesInBox(vertices, boxStart, boxCurrent);
+      const lightIdsInBox = findLightsInBox(currentRoomState.lights, boxStart, boxCurrent);
       const addToSelection = event?.shiftKey ?? false;
 
+      // Select vertices in box
       if (indicesInBox.length > 0) {
         if (addToSelection) {
           // Add to existing selection
@@ -700,6 +702,23 @@
         } else {
           // Replace selection
           selectedVertexIndices.set(new Set(indicesInBox));
+        }
+      }
+
+      // Select lights in box
+      if (lightIdsInBox.length > 0) {
+        if (addToSelection) {
+          // Add to existing selection
+          selectedLightIds.update(existing => {
+            const newSet = new Set(existing);
+            for (const id of lightIdsInBox) {
+              newSet.add(id);
+            }
+            return newSet;
+          });
+        } else {
+          // Replace selection
+          selectedLightIds.set(new Set(lightIdsInBox));
         }
       }
 
