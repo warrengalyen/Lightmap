@@ -16,11 +16,13 @@ function createHistoryStore() {
     });
 
     let isUndoingOrRedoing = false;
+    let isRecordingPaused = false;
     let lastSavedState: RoomState | null = null;
+    let stateBeforePause: RoomState | null = null;
 
     // Subscribe to room store changes to record history
     roomStore.subscribe((state) => {
-        if (isUndoingOrRedoing) return;
+        if (isUndoingOrRedoing || isRecordingPaused) return;
 
         // Don't record if state hasn't meaningfully changed
         if (lastSavedState && JSON.stringify(state) === JSON.stringify(lastSavedState)) {
@@ -102,6 +104,37 @@ function createHistoryStore() {
         canRedo: () => {
             const history = get({ subscribe });
             return history.future.length > 0;
+        },
+
+        pauseRecording: () => {
+            if (!isRecordingPaused) {
+                isRecordingPaused = true;
+                stateBeforePause = JSON.parse(JSON.stringify(get(roomStore)));
+            }
+        },
+
+        resumeRecording: () => {
+            if (isRecordingPaused) {
+                isRecordingPaused = false;
+                const currentState = get(roomStore);
+
+                // Only record if the state actually changed during the pause
+                if (stateBeforePause && JSON.stringify(currentState) !== JSON.stringify(stateBeforePause)) {
+                    update((history) => {
+                        const newPast = [...history.past, stateBeforePause!];
+                        if (newPast.length > MAX_HISTORY) {
+                            newPast.shift();
+                        }
+                        return {
+                            past: newPast,
+                            future: [], // Clear future on new action
+                        };
+                    });
+                    lastSavedState = JSON.parse(JSON.stringify(currentState));
+                }
+
+                stateBeforePause = null;
+            }
         },
     };
 }

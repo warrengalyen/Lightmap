@@ -201,6 +201,7 @@
       if (clickedLight && clickedLight.id === measurementController.sourceLightId) {
         selectLight(clickedLight.id);
         isDraggingLight = true;
+        historyStore.pauseRecording();
         return;
       }
 
@@ -233,6 +234,7 @@
         selectedWallId.set(null);
         clearLightSelection();
         isDraggingVertex = true;
+        historyStore.pauseRecording();
         didDragVertex = false;
         anchorVertexIndex = clickedVertexIndex;
         dragStartPos = { ...event.worldPos };
@@ -353,6 +355,7 @@
           console.log('[SHIFT+CLICK] Vertex was added, setting up multi-drag');
           // Vertex was added to selection, set up for potential multi-drag
           isDraggingVertex = true;
+          historyStore.pauseRecording();
           anchorVertexIndex = vertexIndex;
           dragStartPos = { ...pos };
           multiDragStartPositions.clear();
@@ -364,6 +367,7 @@
         // Click on already-selected vertex with multiple selected: start multi-drag
         else if (isAlreadySelected && currentSelectedVertexIndices.size > 1) {
           isDraggingVertex = true;
+          historyStore.pauseRecording();
           anchorVertexIndex = vertexIndex;
           dragStartPos = { ...pos };
           multiDragStartPositions.clear();
@@ -375,6 +379,7 @@
         else {
           selectVertex(vertexIndex, false);
           isDraggingVertex = true;
+          historyStore.pauseRecording();
           anchorVertexIndex = vertexIndex;
           dragStartPos = { ...pos };
           multiDragStartPositions.clear();
@@ -393,6 +398,7 @@
       // Only enable dragging for single selection
       if (!addToSelection || currentSelectedLightIds.size <= 1) {
         isDraggingLight = true;
+        historyStore.pauseRecording();
       }
       return;
     }
@@ -405,6 +411,7 @@
         clearLightSelection();
         clearVertexSelection();
         isDraggingWall = true;
+        historyStore.pauseRecording();
         wallDragStart = { ...pos };
         wallDragOriginalVertices = { start: { ...wall.start }, end: { ...wall.end } };
         return;
@@ -671,7 +678,11 @@
       updateMeasurementDisplay();
     }
 
-    // Reset drag state
+    // Resume history recording and reset drag state
+    if (isDraggingVertex || isDraggingLight || isDraggingWall) {
+      historyStore.resumeRecording();
+    }
+
     isDraggingVertex = false;
     isDraggingLight = false;
     isDraggingWall = false;
