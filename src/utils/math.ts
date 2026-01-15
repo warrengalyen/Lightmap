@@ -165,3 +165,30 @@ export function findVertexAtPosition(pos: Vector2, vertices: Vector2[], toleranc
     }
     return null;
 }
+
+/**
+ * Finds all vertex indices that fall within a rectangular box.
+ * @param vertices - Array of vertices to test
+ * @param boxStart - One corner of the selection box
+ * @param boxEnd - Opposite corner of the selection box
+ * @returns Array of indices of vertices within the box
+ */
+export function findVerticesInBox(
+  vertices: Vector2[],
+  boxStart: Vector2,
+  boxEnd: Vector2
+): number[] {
+  const minX = Math.min(boxStart.x, boxEnd.x);
+  const maxX = Math.max(boxStart.x, boxEnd.x);
+  const minY = Math.min(boxStart.y, boxEnd.y);
+  const maxY = Math.max(boxStart.y, boxEnd.y);
+
+  const result: number[] = [];
+  for (let i = 0; i < vertices.length; i++) {
+    const v = vertices[i];
+    if (v.x >= minX && v.x <= maxX && v.y >= minY && v.y <= maxY) {
+      result.push(i);
+    }
+  }
+  return result;
+}

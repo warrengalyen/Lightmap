@@ -1,6 +1,6 @@
 <script lang="ts">
   import { roomStore, canPlaceLights, updateWallLength, getVertices, updateVertexPosition, deleteVertex } from '../stores/roomStore';
-  import { selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, clearLightSelection } from '../stores/appStore';
+  import { selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, clearLightSelection, clearVertexSelection } from '../stores/appStore';
   import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById, addLightDefinitionFromIES } from '../stores/lightDefinitionsStore';
   import { formatImperial, parseImperial } from '../utils/format';
   import { readIESFile } from '../lighting/IESParser';
@@ -201,7 +201,7 @@
     if (currentRoom.walls.length <= 3) return; // Need at least 3 vertices
 
     deleteVertex(currentSelectedVertexIndex);
-    selectedVertexIndex.set(null);
+    clearVertexSelection();
   }
 </script>
 

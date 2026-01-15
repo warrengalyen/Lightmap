@@ -19,11 +19,13 @@ export class EditorRenderer {
     private phantomLine: THREE.Line | null = null;
     private drawingVerticesGroup: THREE.Group;
     private snapGuidesGroup: THREE.Group;
+    private selectionBoxGroup: THREE.Group;
     private measurementRenderer: MeasurementRenderer;
     private lightIcons: Map<string, LightIcon> = new Map();
     private vertexMeshes: THREE.Mesh[] = [];
     private currentUnitFormat: UnitFormat = "feet-inches";
     private currentWalls: WallSegment[] = [];
+    private selectionBoxLine: THREE.Line | null = null;
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -33,6 +35,7 @@ export class EditorRenderer {
         this.lightsGroup = new THREE.Group();
         this.drawingVerticesGroup = new THREE.Group();
         this.snapGuidesGroup = new THREE.Group();
+        this.selectionBoxGroup = new THREE.Group();
         this.measurementRenderer = new MeasurementRenderer(scene);
 
         this.scene.add(this.wallsGroup);
@@ -40,6 +43,7 @@ export class EditorRenderer {
         this.scene.add(this.lightsGroup);
         this.scene.add(this.drawingVerticesGroup);
         this.scene.add(this.snapGuidesGroup);
+        this.scene.add(this.selectionBoxGroup);
     }
 
     // ============================================
@@ -49,15 +53,25 @@ export class EditorRenderer {
     updateWalls(
         walls: WallSegment[],
         selectedWallId: string | null = null,
-        selectedVertexIndex: number | null = null,
+        selectedVertexIndices: Set<number> | number | null = null,
     ): void {
         clearGroup(this.wallsGroup);
         this.disposeVertexMeshes();
 
         const vertexList = this.buildVertexList(walls);
 
+        // Convert single index to Set for backwards compatibility
+        let selectedSet: Set<number>;
+        if (selectedVertexIndices === null) {
+            selectedSet = new Set();
+        } else if (typeof selectedVertexIndices === "number") {
+            selectedSet = new Set([selectedVertexIndices]);
+        } else {
+            selectedSet = selectedVertexIndices;
+        }
+
         this.renderWallLines(walls, selectedWallId);
-        this.renderVertices(vertexList, selectedVertexIndex);
+        this.renderVertices(vertexList, selectedSet);
         this.updateLabels(walls);
     }
 
@@ -90,10 +104,10 @@ export class EditorRenderer {
 
     private renderVertices(
         vertexList: Array<{ x: number; y: number; index: number }>,
-        selectedVertexIndex: number | null,
+        selectedVertexIndices: Set<number>,
     ): void {
         for (const vertex of vertexList) {
-            const isSelected = vertex.index === selectedVertexIndex;
+            const isSelected = selectedVertexIndices.has(vertex.index);
             const geometry = new THREE.CircleGeometry(isSelected ? 0.2 : 0.1, 16);
             const material = new THREE.MeshBasicMaterial({
                 color: isSelected ? 0x00aa00 : 0x333333,
@@ -319,6 +333,40 @@ export class EditorRenderer {
     }
 
     // ============================================
+    // Selection Box
+    // ============================================
+
+    setSelectionBox(start: Vector2 | null, end: Vector2 | null): void {
+        if (this.selectionBoxLine) {
+            this.selectionBoxGroup.remove(this.selectionBoxLine);
+            disposeObject3D(this.selectionBoxLine);
+            this.selectionBoxLine = null;
+        }
+
+        if (start && end) {
+            // Create a rectangle from the two corners
+            const points = [
+                new THREE.Vector3(start.x, start.y, 0.2),
+                new THREE.Vector3(end.x, start.y, 0.2),
+                new THREE.Vector3(end.x, end.y, 0.2),
+                new THREE.Vector3(start.x, end.y, 0.2),
+                new THREE.Vector3(start.x, start.y, 0.2), // Close the loop
+            ];
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineDashedMaterial({
+                color: 0x0088ff,
+                dashSize: 0.2,
+                gapSize: 0.1,
+            });
+
+            this.selectionBoxLine = new THREE.Line(geometry, material);
+            this.selectionBoxLine.computeLineDistances();
+            this.selectionBoxGroup.add(this.selectionBoxLine);
+        }
+    }
+
+    // ============================================
     // Measurement
     // ============================================
 
@@ -336,6 +384,7 @@ export class EditorRenderer {
         this.lightsGroup.visible = visible;
         this.drawingVerticesGroup.visible = visible;
         this.snapGuidesGroup.visible = visible;
+        this.selectionBoxGroup.visible = visible;
         this.measurementRenderer.setVisible(visible);
         if (this.phantomLine) {
             this.phantomLine.visible = visible;

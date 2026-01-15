@@ -1,6 +1,6 @@
 <script lang="ts">
   import { roomStore, resetRoom } from '../stores/roomStore';
-  import { selectedLightId } from '../stores/appStore';
+  import { clearSelection } from '../stores/appStore';
   import { exportToJSON } from '../persistence/jsonExport';
   import { importFromJSON } from '../persistence/jsonImport';
   import { saveNow, clearLocalStorage } from '../persistence/localStorage';
@@ -19,7 +19,7 @@
     }
     clearLocalStorage();
     resetRoom();
-    selectedLightId.set(null);
+    clearSelection();
   }
 
   function handleSave(): void {
@@ -43,7 +43,7 @@
     try {
       const imported = await importFromJSON(file);
       roomStore.set(imported);
-      selectedLightId.set(null);
+      clearSelection();
       alert('Project imported successfully.');
     } catch (err) {
       alert(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`);

@@ -14,14 +14,14 @@
   import { SnapController } from '../controllers/SnapController';
   import { MeasurementController } from '../controllers/MeasurementController';
   import { roomStore, roomBounds, canPlaceLights, getVertices, updateVertexPosition, insertVertexOnWall, deleteVertex, moveWall } from '../stores/roomStore';
-  import { viewMode, activeTool, selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, isDrawingEnabled, isLightPlacementEnabled, selectLight, clearLightSelection } from '../stores/appStore';
+  import { viewMode, activeTool, selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, selectedVertexIndices, isDrawingEnabled, isLightPlacementEnabled, selectLight, clearLightSelection, selectVertex, clearVertexSelection } from '../stores/appStore';
   import { historyStore } from '../stores/historyStore';
   import { rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
   import { deadZoneConfig } from '../stores/deadZoneStore';
   import { spacingConfig, spacingWarnings } from '../stores/spacingStore';
   import { toggleLightingStats } from '../stores/lightingStatsStore';
   import { selectedDefinitionId } from '../stores/lightDefinitionsStore';
-  import { findVertexAtPosition, projectPointOntoSegment, projectPointOntoSegmentForInsertion } from '../utils/math';
+  import { findVertexAtPosition, projectPointOntoSegmentForInsertion, findVerticesInBox } from '../utils/math';
   import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences, DeadZoneConfig, SpacingConfig, SpacingWarning } from '../types';
 
   // ============================================
@@ -69,14 +69,23 @@
   let currentSelectedLightIds: Set<string> = new Set();
   let currentSelectedWallId: string | null = null;
   let currentSelectedVertexIndex: number | null = null;
+  let currentSelectedVertexIndices: Set<number> = new Set();
 
   // Drag state
   let isDraggingVertex = false;
+  let multiDragStartPositions: Map<number, Vector2> = new Map();
   let isDraggingLight = false;
   let isDraggingWall = false;
   let didDragVertex = false;
   let wallDragStart: Vector2 | null = null;
   let wallDragOriginalVertices: { start: Vector2; end: Vector2 } | null = null;
+
+  // Box selection state
+  let isBoxSelecting = false;
+  let boxStart: Vector2 | null = null;
+  let boxCurrent: Vector2 | null = null;
+  let anchorVertexIndex: number | null = null; // The vertex used as anchor for multi-drag
+  let dragStartPos: Vector2 | null = null; // Mouse position when drag started
 
   // ============================================
   // Store Subscriptions
@@ -91,6 +100,7 @@
   $: currentSelectedLightIds = $selectedLightIds;
   $: currentSelectedWallId = $selectedWallId;
   $: currentSelectedVertexIndex = $selectedVertexIndex;
+  $: currentSelectedVertexIndices = $selectedVertexIndices;
   $: currentRafterConfig = $rafterConfig;
   $: currentDisplayPrefs = $displayPreferences;
   $: currentDeadZoneConfig = $deadZoneConfig;
@@ -106,7 +116,7 @@
   }
 
   $: if (editorRenderer && currentRoomState) {
-    editorRenderer.updateWalls(currentRoomState.walls, currentSelectedWallId, currentSelectedVertexIndex);
+    editorRenderer.updateWalls(currentRoomState.walls, currentSelectedWallId, currentSelectedVertexIndices);
     editorRenderer.updateLights(currentRoomState.lights, currentRoomState.ceilingHeight, currentSelectedLightIds);
     lightManager?.setLights(currentRoomState.lights);
   }
@@ -218,11 +228,15 @@
       // Measuring from vertex - allow vertex selection for dragging
       const clickedVertexIndex = findVertexAtPosition(event.worldPos, vertices, 0.4);
       if (clickedVertexIndex !== null) {
-        selectedVertexIndex.set(clickedVertexIndex);
+        selectVertex(clickedVertexIndex, false);
         selectedWallId.set(null);
         clearLightSelection();
         isDraggingVertex = true;
         didDragVertex = false;
+        anchorVertexIndex = clickedVertexIndex;
+        dragStartPos = { ...event.worldPos };
+        multiDragStartPositions.clear();
+        multiDragStartPositions.set(clickedVertexIndex, { ...vertices[clickedVertexIndex] });
       }
     }
   }
@@ -305,10 +319,50 @@
       const vertices = getVertices(currentRoomState);
       const vertexIndex = findVertexAtPosition(pos, vertices, 0.3);
       if (vertexIndex !== null) {
-        selectedVertexIndex.set(vertexIndex);
+        const isAlreadySelected = currentSelectedVertexIndices.has(vertexIndex);
+
+        // Shift+click toggles vertex in/out of selection
+        if (addToSelection) {
+          selectVertex(vertexIndex, true);
+          // If toggling off, don't start dragging
+          if (isAlreadySelected) {
+            // Vertex was deselected, don't drag
+            selectedWallId.set(null);
+            clearLightSelection();
+            return;
+          }
+          // Vertex was added to selection, set up for potential multi-drag
+          isDraggingVertex = true;
+          anchorVertexIndex = vertexIndex;
+          dragStartPos = { ...pos };
+          multiDragStartPositions.clear();
+          // Include all previously selected vertices plus the new one
+          for (const idx of currentSelectedVertexIndices) {
+            multiDragStartPositions.set(idx, { ...vertices[idx] });
+          }
+          multiDragStartPositions.set(vertexIndex, { ...vertices[vertexIndex] });
+        }
+        // Click on already-selected vertex with multiple selected: start multi-drag
+        else if (isAlreadySelected && currentSelectedVertexIndices.size > 1) {
+          isDraggingVertex = true;
+          anchorVertexIndex = vertexIndex;
+          dragStartPos = { ...pos };
+          multiDragStartPositions.clear();
+          for (const idx of currentSelectedVertexIndices) {
+            multiDragStartPositions.set(idx, { ...vertices[idx] });
+          }
+        }
+        // Normal single vertex selection
+        else {
+          selectVertex(vertexIndex, false);
+          isDraggingVertex = true;
+          anchorVertexIndex = vertexIndex;
+          dragStartPos = { ...pos };
+          multiDragStartPositions.clear();
+          multiDragStartPositions.set(vertexIndex, { ...vertices[vertexIndex] });
+        }
         selectedWallId.set(null);
         clearLightSelection();
-        isDraggingVertex = true;
         return;
       }
     }
@@ -330,7 +384,7 @@
       if (wall) {
         selectedWallId.set(wall.id);
         clearLightSelection();
-        selectedVertexIndex.set(null);
+        clearVertexSelection();
         isDraggingWall = true;
         wallDragStart = { ...pos };
         wallDragOriginalVertices = { start: { ...wall.start }, end: { ...wall.end } };
@@ -338,11 +392,24 @@
       }
     }
 
+    // Start box selection in empty space
+    if (currentRoomState.isClosed) {
+      isBoxSelecting = true;
+      boxStart = { ...pos };
+      boxCurrent = { ...pos };
+      if (!addToSelection) {
+        clearVertexSelection();
+      }
+      clearLightSelection();
+      selectedWallId.set(null);
+      return;
+    }
+
     // Clear selection if clicking on empty space (unless shift is held)
     if (!addToSelection) {
       clearLightSelection();
       selectedWallId.set(null);
-      selectedVertexIndex.set(null);
+      clearVertexSelection();
     }
   }
 
@@ -353,6 +420,12 @@
   function handleMouseMove(event: InputEvent): void {
     currentMousePos = event.worldPos;
     dispatch('mouseMove', { worldPos: event.worldPos });
+
+    if (isBoxSelecting && boxStart) {
+      boxCurrent = event.worldPos;
+      editorRenderer.setSelectionBox(boxStart, boxCurrent);
+      return;
+    }
 
     if (isDraggingVertex && currentSelectedVertexIndex !== null) {
       handleVertexDrag(event);
@@ -385,8 +458,8 @@
       targetPos = snapController.snapToGrid(targetPos, gridSize);
       editorRenderer.setSnapGuides([]);
     }
-    // Snap to other vertices when holding Shift
-    else if (event.shiftKey) {
+    // Snap to other vertices when holding Shift (only for single vertex)
+    else if (event.shiftKey && currentSelectedVertexIndices.size === 1) {
       const snapResult = snapController.snapToVertices(event.worldPos, vertices, currentSelectedVertexIndex!);
       targetPos = snapResult.snappedPos;
       editorRenderer.setSnapGuides(snapResult.guides);
@@ -394,7 +467,28 @@
       editorRenderer.setSnapGuides([]);
     }
 
-    updateVertexPosition(currentSelectedVertexIndex!, targetPos);
+    // Multi-vertex dragging
+    if (currentSelectedVertexIndices.size > 1 && dragStartPos && anchorVertexIndex !== null) {
+      const delta = {
+        x: targetPos.x - (multiDragStartPositions.get(anchorVertexIndex)?.x ?? 0),
+        y: targetPos.y - (multiDragStartPositions.get(anchorVertexIndex)?.y ?? 0),
+      };
+
+      // Move all selected vertices by the same delta
+      for (const idx of currentSelectedVertexIndices) {
+        const originalPos = multiDragStartPositions.get(idx);
+        if (originalPos) {
+          const newPos = {
+            x: originalPos.x + delta.x,
+            y: originalPos.y + delta.y,
+          };
+          updateVertexPosition(idx, newPos);
+        }
+      }
+    } else {
+      // Single vertex drag
+      updateVertexPosition(currentSelectedVertexIndex!, targetPos);
+    }
 
     // Update measurement if vertex is part of it
     if (measurementController.isActive && measurementController.toPosition) {
@@ -520,7 +614,36 @@
   // Mouse Up Handling
   // ============================================
 
-  function handleMouseUp(): void {
+  function handleMouseUp(event: InputEvent): void {
+    // Handle box selection completion
+    if (isBoxSelecting && boxStart && boxCurrent) {
+      const vertices = getVertices(currentRoomState);
+      const indicesInBox = findVerticesInBox(vertices, boxStart, boxCurrent);
+      const addToSelection = event?.shiftKey ?? false;
+
+      if (indicesInBox.length > 0) {
+        if (addToSelection) {
+          // Add to existing selection
+          selectedVertexIndices.update(existing => {
+            const newSet = new Set(existing);
+            for (const idx of indicesInBox) {
+              newSet.add(idx);
+            }
+            return newSet;
+          });
+        } else {
+          // Replace selection
+          selectedVertexIndices.set(new Set(indicesInBox));
+        }
+      }
+
+      isBoxSelecting = false;
+      boxStart = null;
+      boxCurrent = null;
+      editorRenderer?.setSelectionBox(null, null);
+      return;
+    }
+
     // Set measurement endpoint if vertex was clicked but not dragged
     if (measurementController.isActive && !measurementController.isFromLight &&
         currentSelectedVertexIndex !== null && isDraggingVertex && !didDragVertex) {
@@ -536,6 +659,9 @@
     didDragVertex = false;
     wallDragStart = null;
     wallDragOriginalVertices = null;
+    anchorVertexIndex = null;
+    dragStartPos = null;
+    multiDragStartPositions.clear();
     editorRenderer?.setSnapGuides([]);
   }
 
@@ -550,7 +676,7 @@
         const insertPos = projectPointOntoSegmentForInsertion(event.worldPos, wall.start, wall.end);
         const newVertexIndex = insertVertexOnWall(wall.id, insertPos);
         if (newVertexIndex !== null) {
-          selectedVertexIndex.set(newVertexIndex);
+          selectVertex(newVertexIndex, false);
           selectedWallId.set(null);
           clearLightSelection();
         }
@@ -621,6 +747,12 @@
   }
 
   function handleEscape(): void {
+    if (isBoxSelecting) {
+      isBoxSelecting = false;
+      boxStart = null;
+      boxCurrent = null;
+      editorRenderer?.setSelectionBox(null, null);
+    }
     if (measurementController.isActive) {
       clearMeasurement();
     }
@@ -631,7 +763,7 @@
     }
     clearLightSelection();
     selectedWallId.set(null);
-    selectedVertexIndex.set(null);
+    clearVertexSelection();
   }
 
   function handleDelete(): void {
@@ -645,9 +777,15 @@
         lights: state.lights.filter(l => !currentSelectedLightIds.has(l.id)),
       }));
       clearLightSelection();
-    } else if (currentSelectedVertexIndex !== null && currentRoomState.walls.length > 3) {
-      deleteVertex(currentSelectedVertexIndex);
-      selectedVertexIndex.set(null);
+    } else if (currentSelectedVertexIndices.size > 0 && currentRoomState.walls.length > 3) {
+      // Delete selected vertices (in reverse order to preserve indices)
+      const sortedIndices = Array.from(currentSelectedVertexIndices).sort((a, b) => b - a);
+      for (const idx of sortedIndices) {
+        if (currentRoomState.walls.length > 3) {
+          deleteVertex(idx);
+        }
+      }
+      clearVertexSelection();
     }
   }
 
