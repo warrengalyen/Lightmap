@@ -73,15 +73,18 @@
   let currentSelectedVertexIndices: Set<number> = new Set();
 
   // Drag state
-  let isDraggingVertex = false;
+  let isDraggingSelection = false; // Unified drag for vertices and/or lights
   let multiDragStartPositions: Map<number, Vector2> = new Map();
-  let isDraggingLight = false;
   let multiLightDragStartPositions: Map<string, Vector2> = new Map();
   let anchorLightId: string | null = null;
   let isDraggingWall = false;
   let didDragVertex = false;
   let wallDragStart: Vector2 | null = null;
   let wallDragOriginalVertices: { start: Vector2; end: Vector2 } | null = null;
+
+  // Legacy flags for backward compatibility
+  let isDraggingVertex = false;
+  let isDraggingLight = false;
 
   // Box selection state
   let isBoxSelecting = false;
@@ -205,8 +208,8 @@
       // Check if clicking on the source light to drag it
       if (clickedLight && clickedLight.id === measurementController.sourceLightId) {
         selectLight(clickedLight.id);
-        isDraggingLight = true;
-        historyStore.pauseRecording();
+        const vertices = getVertices(currentRoomState);
+        startUnifiedDrag(null, clickedLight.id, event.worldPos, vertices);
         return;
       }
 
@@ -238,13 +241,7 @@
         selectVertex(clickedVertexIndex, false);
         selectedWallId.set(null);
         clearLightSelection();
-        isDraggingVertex = true;
-        historyStore.pauseRecording();
-        didDragVertex = false;
-        anchorVertexIndex = clickedVertexIndex;
-        dragStartPos = { ...event.worldPos };
-        multiDragStartPositions.clear();
-        multiDragStartPositions.set(clickedVertexIndex, { ...vertices[clickedVertexIndex] });
+        startUnifiedDrag(clickedVertexIndex, null, event.worldPos, vertices);
       }
     }
   }
@@ -353,45 +350,24 @@
             console.log('[SHIFT+CLICK] Vertex was deselected, returning early');
             // Vertex was deselected, don't drag
             selectedWallId.set(null);
-            clearLightSelection();
             return;
           }
 
           console.log('[SHIFT+CLICK] Vertex was added, setting up multi-drag');
           // Vertex was added to selection, set up for potential multi-drag
-          isDraggingVertex = true;
-          historyStore.pauseRecording();
-          anchorVertexIndex = vertexIndex;
-          dragStartPos = { ...pos };
-          multiDragStartPositions.clear();
-          // Use the updated selection from the store
-          for (const idx of updatedSelection) {
-            multiDragStartPositions.set(idx, { ...vertices[idx] });
-          }
+          startUnifiedDrag(vertexIndex, null, pos, vertices);
         }
-        // Click on already-selected vertex with multiple selected: start multi-drag
-        else if (isAlreadySelected && currentSelectedVertexIndices.size > 1) {
-          isDraggingVertex = true;
-          historyStore.pauseRecording();
-          anchorVertexIndex = vertexIndex;
-          dragStartPos = { ...pos };
-          multiDragStartPositions.clear();
-          for (const idx of currentSelectedVertexIndices) {
-            multiDragStartPositions.set(idx, { ...vertices[idx] });
-          }
+        // Click on already-selected vertex with multiple items selected: start multi-drag
+        else if (isAlreadySelected && (currentSelectedVertexIndices.size > 1 || currentSelectedLightIds.size > 0)) {
+          startUnifiedDrag(vertexIndex, null, pos, vertices);
         }
         // Normal single vertex selection
         else {
           selectVertex(vertexIndex, false);
-          isDraggingVertex = true;
-          historyStore.pauseRecording();
-          anchorVertexIndex = vertexIndex;
-          dragStartPos = { ...pos };
-          multiDragStartPositions.clear();
-          multiDragStartPositions.set(vertexIndex, { ...vertices[vertexIndex] });
+          clearLightSelection();
+          startUnifiedDrag(vertexIndex, null, pos, vertices);
         }
         selectedWallId.set(null);
-        clearLightSelection();
         return;
       }
     }
@@ -399,6 +375,7 @@
     // Check lights
     const light = lightManager.getLightAt(pos, 0.5);
     if (light) {
+      const vertices = getVertices(currentRoomState);
       const isAlreadySelected = currentSelectedLightIds.has(light.id);
 
       // Shift+click toggles light in/out of selection
@@ -412,50 +389,24 @@
         // If light was toggled off, don't start dragging
         if (!isStillSelected) {
           selectedWallId.set(null);
-          clearVertexSelection();
           return;
         }
 
         // Light was added to selection, set up for potential multi-drag
-        isDraggingLight = true;
-        historyStore.pauseRecording();
-        anchorLightId = light.id;
-        dragStartPos = { ...pos };
-        multiLightDragStartPositions.clear();
-        for (const id of updatedSelection) {
-          const l = currentRoomState.lights.find(l => l.id === id);
-          if (l) {
-            multiLightDragStartPositions.set(id, { ...l.position });
-          }
-        }
+        startUnifiedDrag(null, light.id, pos, vertices);
       }
-      // Click on already-selected light with multiple selected: start multi-drag
-      else if (isAlreadySelected && currentSelectedLightIds.size > 1) {
-        isDraggingLight = true;
-        historyStore.pauseRecording();
-        anchorLightId = light.id;
-        dragStartPos = { ...pos };
-        multiLightDragStartPositions.clear();
-        for (const id of currentSelectedLightIds) {
-          const l = currentRoomState.lights.find(l => l.id === id);
-          if (l) {
-            multiLightDragStartPositions.set(id, { ...l.position });
-          }
-        }
+      // Click on already-selected light with multiple items selected: start multi-drag
+      else if (isAlreadySelected && (currentSelectedLightIds.size > 1 || currentSelectedVertexIndices.size > 0)) {
+        startUnifiedDrag(null, light.id, pos, vertices);
       }
       // Normal single light selection
       else {
         selectLight(light.id, false);
-        isDraggingLight = true;
-        historyStore.pauseRecording();
-        anchorLightId = light.id;
-        dragStartPos = { ...pos };
-        multiLightDragStartPositions.clear();
-        multiLightDragStartPositions.set(light.id, { ...light.position });
+        clearVertexSelection();
+        startUnifiedDrag(null, light.id, pos, vertices);
       }
 
       selectedWallId.set(null);
-      clearVertexSelection();
       return;
     }
 
@@ -511,13 +462,8 @@
       return;
     }
 
-    if (isDraggingVertex && currentSelectedVertexIndex !== null) {
-      handleVertexDrag(event);
-      return;
-    }
-
-    if (isDraggingLight && currentSelectedLightIds.size > 0) {
-      handleLightDrag(event);
+    if (isDraggingSelection) {
+      handleUnifiedDrag(event);
       return;
     }
 
@@ -528,6 +474,106 @@
 
     if (wallBuilder.drawing) {
       handleDrawingMove(event);
+    }
+  }
+
+  function handleUnifiedDrag(event: InputEvent): void {
+    didDragVertex = true;
+    const vertices = getVertices(currentRoomState);
+    let targetPos = event.worldPos;
+
+    // Update axis lock guides if active
+    if (axisLock !== 'none') {
+      updateAxisLockGuidesForSelection();
+    }
+
+    // Apply axis lock first
+    targetPos = applyAxisConstraint(targetPos);
+
+    // Grid snap has priority when enabled (but after axis lock)
+    const gridSize = currentDisplayPrefs.gridSize || 0.5;
+    if (currentDisplayPrefs.gridSnapEnabled && gridSize > 0) {
+      targetPos = snapController.snapToGrid(targetPos, gridSize);
+      if (axisLock === 'none') {
+        editorRenderer.setSnapGuides([]);
+      }
+    }
+    // Snap to other vertices/lights when holding Shift (only for single item)
+    else if (event.shiftKey && currentSelectedVertexIndices.size === 1 && currentSelectedLightIds.size === 0) {
+      const snapResult = snapController.snapToVertices(event.worldPos, vertices, anchorVertexIndex!);
+      targetPos = snapResult.snappedPos;
+      targetPos = applyAxisConstraint(targetPos);
+      if (axisLock === 'none') {
+        editorRenderer.setSnapGuides(snapResult.guides);
+      }
+    } else if (event.shiftKey && currentSelectedLightIds.size === 1 && currentSelectedVertexIndices.size === 0) {
+      const snapResult = snapController.snapToLights(event.worldPos, currentRoomState.lights, anchorLightId!);
+      targetPos = snapResult.snappedPos;
+      targetPos = applyAxisConstraint(targetPos);
+      if (axisLock === 'none') {
+        editorRenderer.setSnapGuides(snapResult.guides);
+      }
+    } else if (axisLock === 'none') {
+      editorRenderer.setSnapGuides([]);
+    }
+
+    // Calculate delta from anchor point
+    let delta = { x: 0, y: 0 };
+    if (anchorVertexIndex !== null && multiDragStartPositions.has(anchorVertexIndex)) {
+      const anchorOriginal = multiDragStartPositions.get(anchorVertexIndex)!;
+      delta = {
+        x: targetPos.x - anchorOriginal.x,
+        y: targetPos.y - anchorOriginal.y,
+      };
+    } else if (anchorLightId !== null && multiLightDragStartPositions.has(anchorLightId)) {
+      const anchorOriginal = multiLightDragStartPositions.get(anchorLightId)!;
+      delta = {
+        x: targetPos.x - anchorOriginal.x,
+        y: targetPos.y - anchorOriginal.y,
+      };
+    }
+
+    // Move all selected vertices
+    if (currentSelectedVertexIndices.size > 0) {
+      for (const idx of currentSelectedVertexIndices) {
+        const originalPos = multiDragStartPositions.get(idx);
+        if (originalPos) {
+          const newPos = {
+            x: originalPos.x + delta.x,
+            y: originalPos.y + delta.y,
+          };
+          updateVertexPosition(idx, newPos);
+        }
+      }
+    }
+
+    // Move all selected lights
+    if (currentSelectedLightIds.size > 0) {
+      roomStore.update(state => {
+        const updatedLights = state.lights.map(light => {
+          if (currentSelectedLightIds.has(light.id)) {
+            const originalPos = multiLightDragStartPositions.get(light.id);
+            if (originalPos) {
+              const newPos = {
+                x: originalPos.x + delta.x,
+                y: originalPos.y + delta.y,
+              };
+              // Only move if inside room
+              if (state.isClosed && polygonValidator.isPointInside(newPos, state.walls)) {
+                return { ...light, position: newPos };
+              }
+            }
+          }
+          return light;
+        });
+        return { ...state, lights: updatedLights };
+      });
+    }
+
+    // Update measurement if applicable
+    if (measurementController.isActive && measurementController.toPosition) {
+      const currentVertices = getVertices(currentRoomState);
+      updateMeasurementForVertexDrag(targetPos, currentVertices);
     }
   }
 
@@ -817,17 +863,18 @@
 
     // Set measurement endpoint if vertex was clicked but not dragged
     if (measurementController.isActive && !measurementController.isFromLight &&
-        currentSelectedVertexIndex !== null && isDraggingVertex && !didDragVertex) {
+        currentSelectedVertexIndex !== null && isDraggingSelection && !didDragVertex) {
       const vertices = getVertices(currentRoomState);
       measurementController.setTargetVertex(currentSelectedVertexIndex, vertices[currentSelectedVertexIndex]);
       updateMeasurementDisplay();
     }
 
     // Resume history recording and reset drag state
-    if (isDraggingVertex || isDraggingLight || isDraggingWall) {
+    if (isDraggingSelection || isDraggingWall) {
       historyStore.resumeRecording();
     }
 
+    isDraggingSelection = false;
     isDraggingVertex = false;
     isDraggingLight = false;
     isDraggingWall = false;
@@ -858,6 +905,48 @@
           selectedWallId.set(null);
           clearLightSelection();
         }
+      }
+    }
+  }
+
+  // ============================================
+  // Unified Drag Helper
+  // ============================================
+
+  function startUnifiedDrag(
+    clickedVertexIndex: number | null,
+    clickedLightId: string | null,
+    pos: Vector2,
+    vertices: Vector2[]
+  ): void {
+    isDraggingSelection = true;
+    isDraggingVertex = currentSelectedVertexIndices.size > 0;
+    isDraggingLight = currentSelectedLightIds.size > 0;
+    historyStore.pauseRecording();
+    didDragVertex = false;
+
+    dragStartPos = { ...pos };
+
+    // Set anchor (prefer vertex if both are available)
+    if (clickedVertexIndex !== null) {
+      anchorVertexIndex = clickedVertexIndex;
+    }
+    if (clickedLightId !== null) {
+      anchorLightId = clickedLightId;
+    }
+
+    // Store original positions of all selected vertices
+    multiDragStartPositions.clear();
+    for (const idx of currentSelectedVertexIndices) {
+      multiDragStartPositions.set(idx, { ...vertices[idx] });
+    }
+
+    // Store original positions of all selected lights
+    multiLightDragStartPositions.clear();
+    for (const id of currentSelectedLightIds) {
+      const light = currentRoomState.lights.find(l => l.id === id);
+      if (light) {
+        multiLightDragStartPositions.set(id, { ...light.position });
       }
     }
   }
