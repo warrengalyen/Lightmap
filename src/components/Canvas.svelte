@@ -88,6 +88,9 @@
   let anchorVertexIndex: number | null = null; // The vertex used as anchor for multi-drag
   let dragStartPos: Vector2 | null = null; // Mouse position when drag started
 
+  // Axis lock state
+  let axisLock: 'none' | 'x' | 'y' = 'none';
+
   // ============================================
   // Store Subscriptions
   // ============================================
@@ -436,6 +439,8 @@
       clearLightSelection();
       selectedWallId.set(null);
       clearVertexSelection();
+      axisLock = 'none';
+      editorRenderer?.setSnapGuides([]);
     }
   }
 
@@ -478,18 +483,32 @@
     const vertices = getVertices(currentRoomState);
     let targetPos = event.worldPos;
 
-    // Grid snap has priority when enabled
+    // Update axis lock guides if active (uses dragStartPos once drag begins)
+    if (axisLock !== 'none') {
+      updateAxisLockGuidesForSelection();
+    }
+
+    // Apply axis lock first
+    targetPos = applyAxisConstraint(targetPos);
+
+    // Grid snap has priority when enabled (but after axis lock)
     const gridSize = currentDisplayPrefs.gridSize || 0.5;
     if (currentDisplayPrefs.gridSnapEnabled && gridSize > 0) {
       targetPos = snapController.snapToGrid(targetPos, gridSize);
-      editorRenderer.setSnapGuides([]);
+      if (axisLock === 'none') {
+        editorRenderer.setSnapGuides([]);
+      }
     }
     // Snap to other vertices when holding Shift (only for single vertex)
     else if (event.shiftKey && currentSelectedVertexIndices.size === 1) {
       const snapResult = snapController.snapToVertices(event.worldPos, vertices, currentSelectedVertexIndex!);
       targetPos = snapResult.snappedPos;
-      editorRenderer.setSnapGuides(snapResult.guides);
-    } else {
+      // Apply axis constraint after snapping
+      targetPos = applyAxisConstraint(targetPos);
+      if (axisLock === 'none') {
+        editorRenderer.setSnapGuides(snapResult.guides);
+      }
+    } else if (axisLock === 'none') {
       editorRenderer.setSnapGuides([]);
     }
 
@@ -547,12 +566,24 @@
   function handleLightDrag(event: InputEvent): void {
     let targetPos = event.worldPos;
 
+    // Update axis lock guides if active
+    if (axisLock !== 'none') {
+      updateAxisLockGuidesForSelection();
+    }
+
+    // Apply axis lock first
+    targetPos = applyAxisConstraint(targetPos);
+
     // Snap when holding Shift (to other lights)
     if (event.shiftKey) {
       const snapResult = snapController.snapToLights(event.worldPos, currentRoomState.lights, currentSelectedLightId!);
       targetPos = snapResult.snappedPos;
-      editorRenderer.setSnapGuides(snapResult.guides);
-    } else {
+      // Apply axis constraint after snapping
+      targetPos = applyAxisConstraint(targetPos);
+      if (axisLock === 'none') {
+        editorRenderer.setSnapGuides(snapResult.guides);
+      }
+    } else if (axisLock === 'none') {
       editorRenderer.setSnapGuides([]);
     }
 
@@ -581,9 +612,16 @@
   }
 
   function handleWallDrag(event: InputEvent): void {
+    // Update axis lock guides if active
+    if (axisLock !== 'none') {
+      updateAxisLockGuidesForSelection();
+    }
+
+    let constrainedPos = applyAxisConstraint(event.worldPos);
+
     const delta = {
-      x: event.worldPos.x - wallDragStart!.x,
-      y: event.worldPos.y - wallDragStart!.y,
+      x: constrainedPos.x - wallDragStart!.x,
+      y: constrainedPos.y - wallDragStart!.y,
     };
 
     let newStart = {
@@ -605,9 +643,11 @@
         const snapResult = snapController.snapWallToVertices(newStart, newEnd, vertices, excludeIndices);
         newStart = snapResult.snappedStart;
         newEnd = snapResult.snappedEnd;
-        editorRenderer.setSnapGuides(snapResult.guides);
+        if (axisLock === 'none') {
+          editorRenderer.setSnapGuides(snapResult.guides);
+        }
       }
-    } else {
+    } else if (axisLock === 'none') {
       editorRenderer.setSnapGuides([]);
     }
 
@@ -692,6 +732,7 @@
     anchorVertexIndex = null;
     dragStartPos = null;
     multiDragStartPositions.clear();
+    axisLock = 'none';
     editorRenderer?.setSnapGuides([]);
   }
 
@@ -715,11 +756,98 @@
   }
 
   // ============================================
+  // Axis Lock Helpers
+  // ============================================
+
+  function updateAxisLockGuidesForSelection(): void {
+    if (axisLock === 'none') {
+      editorRenderer?.setSnapGuides([]);
+      return;
+    }
+
+    // Determine the position to show the guide from
+    let guideOrigin: Vector2 | null = null;
+
+    // If dragging, use the drag start position
+    if (dragStartPos) {
+      guideOrigin = dragStartPos;
+    }
+    // Otherwise, use the position of the selected object
+    else if (currentSelectedVertexIndices.size > 0) {
+      const vertices = getVertices(currentRoomState);
+      const firstVertexIndex = Array.from(currentSelectedVertexIndices)[0];
+      guideOrigin = vertices[firstVertexIndex];
+    } else if (currentSelectedLightIds.size > 0) {
+      const lightId = Array.from(currentSelectedLightIds)[0];
+      const light = currentRoomState.lights.find(l => l.id === lightId);
+      if (light) guideOrigin = light.position;
+    } else if (currentSelectedWallId) {
+      const wall = currentRoomState.walls.find(w => w.id === currentSelectedWallId);
+      if (wall) {
+        // Use the midpoint of the wall
+        guideOrigin = {
+          x: (wall.start.x + wall.end.x) / 2,
+          y: (wall.start.y + wall.end.y) / 2,
+        };
+      }
+    }
+
+    if (!guideOrigin) return;
+
+    // Create a long guide line along the locked axis
+    const guideLength = 100; // Long enough to span the viewport
+    const guides: SnapGuide[] = [];
+
+    if (axisLock === 'x') {
+      guides.push({
+        axis: 'x',
+        from: { x: guideOrigin.x - guideLength, y: guideOrigin.y },
+        to: { x: guideOrigin.x + guideLength, y: guideOrigin.y },
+      });
+    } else if (axisLock === 'y') {
+      guides.push({
+        axis: 'y',
+        from: { x: guideOrigin.x, y: guideOrigin.y - guideLength },
+        to: { x: guideOrigin.x, y: guideOrigin.y + guideLength },
+      });
+    }
+
+    editorRenderer?.setSnapGuides(guides);
+  }
+
+  function applyAxisConstraint(pos: Vector2): Vector2 {
+    if (axisLock === 'none' || !dragStartPos) return pos;
+
+    if (axisLock === 'x') {
+      return { x: pos.x, y: dragStartPos.y };
+    } else if (axisLock === 'y') {
+      return { x: dragStartPos.x, y: pos.y };
+    }
+
+    return pos;
+  }
+
+  // ============================================
   // Keyboard Handling
   // ============================================
 
   function handleKeyDown(event: InputEvent): void {
     if (!event.key) return;
+
+    // Axis lock for selected objects (can be set before or during drag)
+    const hasSelection = currentSelectedVertexIndices.size > 0 || currentSelectedLightIds.size > 0 || currentSelectedWallId !== null;
+    if (hasSelection && !event.ctrlKey && !event.altKey) {
+      if (event.key.toLowerCase() === 'x') {
+        axisLock = axisLock === 'x' ? 'none' : 'x';
+        updateAxisLockGuidesForSelection();
+        return;
+      }
+      if (event.key.toLowerCase() === 'y') {
+        axisLock = axisLock === 'y' ? 'none' : 'y';
+        updateAxisLockGuidesForSelection();
+        return;
+      }
+    }
 
     // Undo/Redo
     if (event.ctrlKey && event.key.toLowerCase() === 'z') {
@@ -782,6 +910,11 @@
       boxStart = null;
       boxCurrent = null;
       editorRenderer?.setSelectionBox(null, null);
+    }
+    if (axisLock !== 'none') {
+      axisLock = 'none';
+      editorRenderer?.setSnapGuides([]);
+      return;
     }
     if (measurementController.isActive) {
       clearMeasurement();
