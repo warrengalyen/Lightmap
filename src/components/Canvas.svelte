@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
+  import { get } from 'svelte/store';
   import { Scene } from '../core/Scene';
   import { InputManager, type InputEvent } from '../core/InputManager';
   import { EditorRenderer } from '../rendering/EditorRenderer';
@@ -319,28 +320,46 @@
       const vertices = getVertices(currentRoomState);
       const vertexIndex = findVertexAtPosition(pos, vertices, 0.3);
       if (vertexIndex !== null) {
+        console.log('[VERTEX CLICK]', {
+          vertexIndex,
+          shiftHeld: addToSelection,
+          currentSelection: Array.from(currentSelectedVertexIndices),
+        });
+
         const isAlreadySelected = currentSelectedVertexIndices.has(vertexIndex);
+        console.log('[VERTEX CLICK] isAlreadySelected:', isAlreadySelected);
 
         // Shift+click toggles vertex in/out of selection
         if (addToSelection) {
+          console.log('[SHIFT+CLICK] Calling selectVertex to toggle');
           selectVertex(vertexIndex, true);
-          // If toggling off, don't start dragging
-          if (isAlreadySelected) {
+
+          // Read the updated selection state directly from the store
+          const updatedSelection = get(selectedVertexIndices);
+          console.log('[SHIFT+CLICK] After toggle, selection is:', Array.from(updatedSelection));
+
+          const isStillSelected = updatedSelection.has(vertexIndex);
+          console.log('[SHIFT+CLICK] isStillSelected:', isStillSelected);
+
+          // If vertex was toggled off, don't start dragging
+          if (!isStillSelected) {
+            console.log('[SHIFT+CLICK] Vertex was deselected, returning early');
             // Vertex was deselected, don't drag
             selectedWallId.set(null);
             clearLightSelection();
             return;
           }
+
+          console.log('[SHIFT+CLICK] Vertex was added, setting up multi-drag');
           // Vertex was added to selection, set up for potential multi-drag
           isDraggingVertex = true;
           anchorVertexIndex = vertexIndex;
           dragStartPos = { ...pos };
           multiDragStartPositions.clear();
-          // Include all previously selected vertices plus the new one
-          for (const idx of currentSelectedVertexIndices) {
+          // Use the updated selection from the store
+          for (const idx of updatedSelection) {
             multiDragStartPositions.set(idx, { ...vertices[idx] });
           }
-          multiDragStartPositions.set(vertexIndex, { ...vertices[vertexIndex] });
         }
         // Click on already-selected vertex with multiple selected: start multi-drag
         else if (isAlreadySelected && currentSelectedVertexIndices.size > 1) {
