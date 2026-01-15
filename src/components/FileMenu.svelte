@@ -44,7 +44,6 @@
       const imported = await importFromJSON(file);
       roomStore.set(imported);
       clearSelection();
-      alert('Project imported successfully.');
     } catch (err) {
       alert(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
