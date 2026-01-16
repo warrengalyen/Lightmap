@@ -439,8 +439,8 @@
 <style>
   .property-panel {
     width: 250px;
-    background: #fff;
-    border-left: 1px solid #ddd;
+    background: #252526;
+    border-left: 1px solid #3e3e42;
     padding: 16px;
     overflow-y: auto;
   }
@@ -449,14 +449,14 @@
     margin: 0 0 16px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #333;
+    color: #ffffff;
   }
 
   h4 {
     margin: 0 0 12px 0;
     font-size: 12px;
     font-weight: 600;
-    color: #666;
+    color: #999999;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -464,7 +464,7 @@
   .property-section {
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #3e3e42;
   }
 
   .property-section:last-child {
@@ -480,7 +480,7 @@
   }
 
   .property-row span:first-child {
-    color: #666;
+    color: #999999;
   }
 
   .input-group {
@@ -492,8 +492,10 @@
   input[type="number"] {
     width: 70px;
     padding: 4px 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
+    background: #1e1e1e;
+    color: #cccccc;
     font-size: 13px;
     text-align: right;
   }
@@ -506,8 +508,10 @@
   .length-input {
     width: 90px;
     padding: 4px 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
+    background: #1e1e1e;
+    color: #cccccc;
     font-size: 13px;
     text-align: right;
   }
@@ -520,8 +524,10 @@
   .coord-input {
     width: 70px;
     padding: 4px 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
+    background: #1e1e1e;
+    color: #cccccc;
     font-size: 13px;
     text-align: right;
   }
@@ -533,13 +539,13 @@
 
   .unit {
     font-size: 12px;
-    color: #999;
+    color: #999999;
     min-width: 20px;
   }
 
   .info span:last-child {
     font-weight: 500;
-    color: #333;
+    color: #ffffff;
   }
 
   .closed {
@@ -568,10 +574,11 @@
   .definition-select select {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     font-size: 13px;
-    background: white;
+    background: #1e1e1e;
+    color: #cccccc;
     cursor: pointer;
   }
 
@@ -581,7 +588,8 @@
   }
 
   .light-specs {
-    background: #f8f9fa;
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     padding: 8px 12px;
     margin: 8px 0;
@@ -595,23 +603,24 @@
   }
 
   .spec-row span:first-child {
-    color: #666;
+    color: #999999;
   }
 
   .spec-row span:last-child {
     font-weight: 500;
-    color: #333;
+    color: #ffffff;
   }
 
   .multi-select-hint {
     font-size: 11px;
-    color: #888;
+    color: #999999;
     margin: 0 0 12px 0;
     font-style: italic;
   }
 
   .light-summary {
-    background: #e8f4fc;
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     padding: 8px 12px;
     margin: 8px 0;
@@ -624,7 +633,7 @@
   }
 
   .summary-row span:first-child {
-    color: #666;
+    color: #999999;
   }
 
   .summary-row span:last-child {
@@ -635,7 +644,7 @@
   .wall-hint {
     margin: 12px 0 0 0;
     font-size: 11px;
-    color: #888;
+    color: #999999;
     line-height: 1.4;
   }
 
@@ -657,7 +666,7 @@
   }
 
   .hint {
-    color: #666;
+    color: #999999;
     font-size: 13px;
     font-style: italic;
   }
@@ -674,9 +683,9 @@
     width: 100%;
     padding: 8px;
     margin-top: 8px;
-    background: #f0f0f0;
-    color: #333;
-    border: 1px solid #ddd;
+    background: #333337;
+    color: #cccccc;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
@@ -684,15 +693,16 @@
   }
 
   .import-button:hover {
-    background: #e0e0e0;
+    background: #3e3e42;
   }
 
   .import-error {
     margin: 8px 0 0 0;
     padding: 6px 8px;
     font-size: 11px;
-    color: #dc2626;
-    background: #fef2f2;
+    color: #ff6b6b;
+    background: #2d1f1f;
+    border: 1px solid #3e2828;
     border-radius: 4px;
   }
 
@@ -700,8 +710,9 @@
     margin: 8px 0 0 0;
     padding: 6px 8px;
     font-size: 11px;
-    color: #16a34a;
-    background: #f0fdf4;
+    color: #6bff6b;
+    background: #1f2d1f;
+    border: 1px solid #28382e;
     border-radius: 4px;
   }
 </style>

@@ -88,10 +88,11 @@
   }
 
   .modal {
-    background: white;
+    background: #2d2d30;
     padding: 24px;
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid #3e3e42;
     min-width: 300px;
   }
 
@@ -99,20 +100,23 @@
     margin: 0 0 8px 0;
     font-size: 16px;
     font-weight: 600;
+    color: #ffffff;
   }
 
   .help {
     margin: 0 0 16px 0;
     font-size: 13px;
-    color: #666;
+    color: #999999;
   }
 
   input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     font-size: 14px;
+    background: #1e1e1e;
+    color: #cccccc;
     box-sizing: border-box;
   }
 
@@ -147,13 +151,13 @@
   }
 
   .cancel {
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    color: #666;
+    background: #333337;
+    border: 1px solid #3e3e42;
+    color: #cccccc;
   }
 
   .cancel:hover {
-    background: #eee;
+    background: #3e3e42;
   }
 
   .submit {

@@ -12,7 +12,6 @@
   import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
   import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
-
   import type { Vector2 } from './types';
 
   let canvasComponent: Canvas;
@@ -78,6 +77,7 @@
     const savedState = loadFromLocalStorage();
     if (savedState) {
       roomStore.set(savedState);
+      // Initialize settings from saved room state
       initSettingsFromRoom();
     }
 
@@ -155,13 +155,15 @@
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow: hidden;
+    background: #1e1e1e;
+    color: #cccccc;
   }
 
   .app {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: #f5f5f5;
+    background: #1e1e1e;
   }
 
   .header {
@@ -169,8 +171,8 @@
     align-items: center;
     gap: 24px;
     padding: 0 16px;
-    background: #fff;
-    border-bottom: 1px solid #ddd;
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
     height: 52px;
     flex-shrink: 0;
   }
@@ -185,12 +187,12 @@
     margin: 0;
     font-size: 18px;
     font-weight: 700;
-    color: #333;
+    color: #ffffff;
   }
 
   .tagline {
     font-size: 12px;
-    color: #888;
+    color: #999999;
   }
 
   .main {
@@ -209,21 +211,21 @@
     position: absolute;
     top: 16px;
     left: 16px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #ddd;
+    background: rgba(45, 45, 48, 0.95);
+    border: 1px solid #3e3e42;
     border-radius: 8px;
     padding: 12px 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     font-size: 13px;
     min-width: 160px;
   }
 
   .measurement-title {
     font-weight: 600;
-    color: #333;
+    color: #ffffff;
     margin-bottom: 8px;
     padding-bottom: 6px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #3e3e42;
   }
 
   .measurement-row {
@@ -234,17 +236,18 @@
 
   .measurement-label {
     font-weight: 500;
+    color: #cccccc;
   }
 
   .measurement-value {
     font-family: monospace;
-    color: #333;
+    color: #ffffff;
   }
 
   .measurement-hint {
     margin-top: 8px;
     font-size: 11px;
-    color: #888;
+    color: #999999;
     text-align: center;
   }
 </style>

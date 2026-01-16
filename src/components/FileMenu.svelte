@@ -83,16 +83,17 @@
 
   button {
     padding: 6px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
-    background: #fff;
+    background: #333337;
+    color: #cccccc;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   button:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
+    background: #3e3e42;
+    border-color: #454545;
   }
 </style>

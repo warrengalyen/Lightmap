@@ -18,8 +18,8 @@ export function createWallLine(wall: WallSegment, isSelected: boolean): THREE.Li
 
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = new THREE.LineBasicMaterial({
-        color: isSelected ? 0x0066cc : 0x000000,
-        linewidth: isSelected ? 3 : 2,
+        color: isSelected ? 0xffff00 : 0xffffff,
+        linewidth: isSelected ? 5 : 4,
     });
     const line = new THREE.Line(geometry, material);
     line.userData.wallId = wall.id;
@@ -29,7 +29,7 @@ export function createWallLine(wall: WallSegment, isSelected: boolean): THREE.Li
 export function createVertexCircle(pos: Vector2, index: number, isSelected: boolean): THREE.Mesh {
     const geometry = new THREE.CircleGeometry(isSelected ? VERTEX_RADIUS_SELECTED : VERTEX_RADIUS_DEFAULT, 16);
     const material = new THREE.MeshBasicMaterial({
-        color: isSelected ? 0x00aa00 : 0x333333,
+        color: isSelected ? 0xffff00 : 0xffffff,
     });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(pos.x, pos.y, 0.05);

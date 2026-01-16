@@ -123,28 +123,28 @@
     position: absolute;
     top: 16px;
     right: 280px;
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(45, 45, 48, 0.95);
     padding: 16px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     z-index: 100;
     min-width: 220px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
   }
 
   h4 {
     margin: 0 0 12px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #333;
+    color: #ffffff;
     padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #3e3e42;
   }
 
   .room-type-selector {
     margin-bottom: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #3e3e42;
   }
 
   .room-type-selector label {
@@ -155,15 +155,16 @@
   }
 
   .room-type-selector span {
-    color: #666;
+    color: #999999;
   }
 
   .room-type-selector select {
     padding: 4px 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     font-size: 13px;
-    background: white;
+    background: #1e1e1e;
+    color: #cccccc;
   }
 
   .grade-section {
@@ -172,12 +173,12 @@
     align-items: center;
     margin-bottom: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #3e3e42;
   }
 
   .grade-label {
     font-size: 13px;
-    color: #666;
+    color: #999999;
   }
 
   .grade-value {
@@ -198,13 +199,13 @@
   .metrics-section.secondary {
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid #3e3e42;
   }
 
   .section-title {
     font-size: 11px;
     font-weight: 600;
-    color: #999;
+    color: #999999;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 4px;
@@ -222,34 +223,34 @@
   }
 
   .metric-row.recommended {
-    color: #666;
+    color: #999999;
     font-style: italic;
   }
 
   .metric-label {
-    color: #666;
+    color: #999999;
   }
 
   .metric-value {
     font-family: monospace;
-    color: #333;
+    color: #ffffff;
     font-weight: 500;
   }
 
   .recommendation {
-    background: #fff3cd;
-    border: 1px solid #ffc107;
+    background: #3e3320;
+    border: 1px solid #5c4d1f;
     border-radius: 4px;
     padding: 8px 10px;
     font-size: 12px;
-    color: #856404;
+    color: #ffcc66;
     text-align: center;
   }
 
   .recommendation.good {
-    background: #d4edda;
+    background: #1f3e2d;
     border-color: #28a745;
-    color: #155724;
+    color: #66ff88;
   }
 
   .recommendation strong {
@@ -258,7 +259,7 @@
 
   .no-data {
     font-size: 12px;
-    color: #888;
+    color: #999999;
     text-align: center;
     padding: 8px 0;
   }

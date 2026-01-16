@@ -90,8 +90,8 @@
     align-items: center;
     gap: 16px;
     padding: 6px 16px;
-    background: #f8f8f8;
-    border-top: 1px solid #ddd;
+    background: #2d2d30;
+    border-top: 1px solid #3e3e42;
     font-size: 12px;
   }
 
@@ -102,11 +102,11 @@
   }
 
   .label {
-    color: #666;
+    color: #999999;
   }
 
   .value {
-    color: #333;
+    color: #cccccc;
     font-weight: 500;
   }
 
@@ -142,7 +142,7 @@
   }
 
   .hints {
-    color: #888;
+    color: #999999;
     font-style: italic;
   }
 </style>

@@ -89,10 +89,11 @@
     position: absolute;
     top: 60px;
     left: 16px;
-    background: white;
+    background: rgba(45, 45, 48, 0.95);
     padding: 16px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    border: 1px solid #3e3e42;
     z-index: 100;
     min-width: 200px;
   }
@@ -101,7 +102,7 @@
     margin: 0 0 12px 0;
     font-size: 13px;
     font-weight: 600;
-    color: #333;
+    color: #ffffff;
   }
 
   .control-row {
@@ -113,14 +114,16 @@
   }
 
   .control-row span:first-child {
-    color: #666;
+    color: #999999;
   }
 
   select {
     padding: 4px 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     font-size: 13px;
+    background: #1e1e1e;
+    color: #cccccc;
   }
 
   .input-group {
@@ -132,15 +135,17 @@
   input[type="number"] {
     width: 60px;
     padding: 4px 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
     font-size: 13px;
+    background: #1e1e1e;
+    color: #cccccc;
     text-align: right;
   }
 
   .unit {
     font-size: 12px;
-    color: #999;
+    color: #999999;
     min-width: 20px;
   }
 </style>

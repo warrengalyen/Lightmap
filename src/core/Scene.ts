@@ -22,7 +22,7 @@ export class Scene {
         this.container = container;
 
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0xf5f5f5);
+        this.scene.background = new THREE.Color(0x0a3d62);
 
         const aspect = container.clientWidth / container.clientHeight;
         const frustumSize = DEFAULT_FRUSTUM_SIZE;
@@ -68,7 +68,7 @@ export class Scene {
     }
 
     private addGrid(): void {
-        const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0xcccccc, 0xe0e0e0);
+        const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0x2a5d82, 0x1a4d72);
         gridHelper.rotation.x = Math.PI / 2;
         gridHelper.position.z = -0.1;
         this.scene.add(gridHelper);

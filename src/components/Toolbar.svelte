@@ -226,9 +226,9 @@
     align-items: center;
     gap: 24px;
     padding: 8px 16px;
-    background: #fff;
-    border-bottom: 1px solid #ddd;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   .toolbar-section {
@@ -239,7 +239,7 @@
 
   .section-label {
     font-size: 12px;
-    color: #666;
+    color: #999999;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -256,9 +256,10 @@
     align-items: center;
     gap: 4px;
     padding: 6px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
-    background: #fff;
+    background: #333337;
+    color: #cccccc;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -267,8 +268,8 @@
   .tool-button:hover:not(:disabled),
   .view-button:hover,
   .toggle-button:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
+    background: #3e3e42;
+    border-color: #454545;
   }
 
   .tool-button.active,
@@ -276,7 +277,7 @@
   .toggle-button.active {
     background: #0066cc;
     border-color: #0066cc;
-    color: #fff;
+    color: #ffffff;
   }
 
   .tool-button:disabled {
@@ -295,17 +296,18 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    border: 1px solid #ddd;
+    border: 1px solid #3e3e42;
     border-radius: 4px;
-    background: #fff;
+    background: #333337;
+    color: #cccccc;
     font-size: 18px;
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   .icon-button:hover:not(:disabled) {
-    background: #f5f5f5;
-    border-color: #ccc;
+    background: #3e3e42;
+    border-color: #454545;
   }
 
   .icon-button:disabled {
@@ -316,7 +318,7 @@
   .toggle-button.measuring.active {
     background: #ff9500;
     border-color: #ff9500;
-    color: #fff;
+    color: #ffffff;
     animation: pulse 2s infinite;
   }
 
@@ -335,13 +337,13 @@
   }
 
   .toggle-button.measuring:not(.active):not(:disabled) {
-    background: #fff;
-    border-color: #ddd;
-    color: #333;
+    background: #333337;
+    border-color: #3e3e42;
+    color: #cccccc;
   }
 
   .toggle-button.measuring:not(.active):not(:disabled):hover {
-    background: #f5f5f5;
-    border-color: #ccc;
+    background: #3e3e42;
+    border-color: #454545;
   }
 </style>
