@@ -25,33 +25,37 @@ export class RafterOverlay {
 
         if (!this.config.visible) return;
 
-        const material = new THREE.LineBasicMaterial({
-            color: 0x8b4513,
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xdeb887, // Lighter brown (burlywood)
             transparent: true,
-            opacity: 0.4,
+            opacity: 0.6,
         });
+
+        const rafterWidth = 1.5 / 12; // 1.5 inches in feet
 
         if (this.config.orientation === "horizontal") {
             const startY =
                 Math.ceil((bounds.minY - this.config.offsetY) / this.config.spacing) * this.config.spacing +
                 this.config.offsetY;
+            const length = bounds.maxX - bounds.minX;
 
             for (let y = startY; y <= bounds.maxY; y += this.config.spacing) {
-                const points = [new THREE.Vector3(bounds.minX, y, 0.01), new THREE.Vector3(bounds.maxX, y, 0.01)];
-                const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                const line = new THREE.Line(geometry, material.clone());
-                this.rafterGroup.add(line);
+                const geometry = new THREE.PlaneGeometry(length, rafterWidth);
+                const mesh = new THREE.Mesh(geometry, material.clone());
+                mesh.position.set((bounds.minX + bounds.maxX) / 2, y, 0.01);
+                this.rafterGroup.add(mesh);
             }
         } else {
             const startX =
                 Math.ceil((bounds.minX - this.config.offsetX) / this.config.spacing) * this.config.spacing +
                 this.config.offsetX;
+            const length = bounds.maxY - bounds.minY;
 
             for (let x = startX; x <= bounds.maxX; x += this.config.spacing) {
-                const points = [new THREE.Vector3(x, bounds.minY, 0.01), new THREE.Vector3(x, bounds.maxY, 0.01)];
-                const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                const line = new THREE.Line(geometry, material.clone());
-                this.rafterGroup.add(line);
+                const geometry = new THREE.PlaneGeometry(rafterWidth, length);
+                const mesh = new THREE.Mesh(geometry, material.clone());
+                mesh.position.set(x, (bounds.minY + bounds.maxY) / 2, 0.01);
+                this.rafterGroup.add(mesh);
             }
         }
     }
