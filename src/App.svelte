@@ -34,6 +34,12 @@
     measurement = e.detail;
   }
 
+  function handleToggleMeasurement(): void {
+    // Simulate pressing 'M' key to toggle measurement
+    const event = new KeyboardEvent('keydown', { key: 'm' });
+    window.dispatchEvent(event);
+  }
+
   function handleLengthSubmit(e: CustomEvent<{ length: number }>): void {
     canvasComponent?.setManualLength(e.detail.length);
     showLengthInput = false;
@@ -94,7 +100,7 @@
       <h1>Lightmap</h1>
       <span class="tagline">Recessed Lighting Planner</span>
     </div>
-    <Toolbar />
+    <Toolbar on:toggleMeasurement={handleToggleMeasurement} />
     <FileMenu />
   </header>
 

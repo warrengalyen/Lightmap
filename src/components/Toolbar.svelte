@@ -1,12 +1,16 @@
 <script lang="ts">
-  import { activeTool, viewMode, setActiveTool, setViewMode } from '../stores/appStore';
+  import { createEventDispatcher } from 'svelte';
+  import { activeTool, viewMode, setActiveTool, setViewMode, selectedVertexIndex, selectedLightId } from '../stores/appStore';
   import { canPlaceLights } from '../stores/roomStore';
   import { toggleRafters, rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
   import { toggleLightingStats, lightingStatsConfig } from '../stores/lightingStatsStore';
   import { toggleDeadZones, deadZoneConfig } from '../stores/deadZoneStore';
   import { toggleSpacingWarnings, spacingConfig } from '../stores/spacingStore';
   import { historyStore, canUndo, canRedo } from '../stores/historyStore';
+  import { isMeasuring } from '../stores/measurementStore';
   import type { Tool, ViewMode } from '../types';
+
+  const dispatch = createEventDispatcher<{ toggleMeasurement: void }>();
 
   let currentTool: Tool;
   let currentViewMode: ViewMode;
@@ -19,6 +23,8 @@
   let deadZonesEnabled: boolean;
   let spacingEnabled: boolean;
   let gridSnapEnabled: boolean;
+  let measuringActive: boolean;
+  let canMeasure: boolean;
 
   $: currentTool = $activeTool;
   $: currentViewMode = $viewMode;
@@ -31,6 +37,8 @@
   $: deadZonesEnabled = $deadZoneConfig.enabled;
   $: spacingEnabled = $spacingConfig.enabled;
   $: gridSnapEnabled = $displayPreferences.gridSnapEnabled;
+  $: measuringActive = $isMeasuring;
+  $: canMeasure = $selectedVertexIndex !== null || $selectedLightId !== null;
 
   function handleToolChange(tool: Tool): void {
     setActiveTool(tool);
@@ -42,6 +50,10 @@
 
   function toggleGridSnap(): void {
     displayPreferences.update(p => ({ ...p, gridSnapEnabled: !p.gridSnapEnabled }));
+  }
+
+  function toggleMeasurement(): void {
+    dispatch('toggleMeasurement');
   }
 </script>
 
@@ -106,6 +118,16 @@
       >
         <span class="icon">#</span>
         Snap
+      </button>
+      <button
+        class="toggle-button measuring"
+        class:active={measuringActive}
+        disabled={!canMeasure}
+        on:click={toggleMeasurement}
+        title={measuringActive ? "Measuring Active (Press M or ESC to exit)" : canMeasure ? "Start Measuring (M)" : "Select a vertex or light first"}
+      >
+        <span class="icon">📏</span>
+        Measure
       </button>
     </div>
   </div>
@@ -289,5 +311,37 @@
   .icon-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  .toggle-button.measuring.active {
+    background: #ff9500;
+    border-color: #ff9500;
+    color: #fff;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .toggle-button.measuring:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .toggle-button.measuring:not(.active):not(:disabled) {
+    background: #fff;
+    border-color: #ddd;
+    color: #333;
+  }
+
+  .toggle-button.measuring:not(.active):not(:disabled):hover {
+    background: #f5f5f5;
+    border-color: #ccc;
   }
 </style>

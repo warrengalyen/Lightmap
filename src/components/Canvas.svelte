@@ -22,6 +22,7 @@
   import { spacingConfig, spacingWarnings } from '../stores/spacingStore';
   import { toggleLightingStats } from '../stores/lightingStatsStore';
   import { selectedDefinitionId } from '../stores/lightDefinitionsStore';
+  import { isMeasuring } from '../stores/measurementStore';
   import { findVertexAtPosition, projectPointOntoSegmentForInsertion, findVerticesInBox, findLightsInBox } from '../utils/math';
   import type { Vector2, ViewMode, RoomState, BoundingBox, RafterConfig, DisplayPreferences, DeadZoneConfig, SpacingConfig, SpacingWarning } from '../types';
 
@@ -1074,6 +1075,7 @@
     if (currentSelectedVertexIndex !== null) {
       const vertices = getVertices(currentRoomState);
       measurementController.startFromVertex(currentSelectedVertexIndex, vertices[currentSelectedVertexIndex]);
+      isMeasuring.set(true);
       dispatch('measurement', null);
       return;
     }
@@ -1083,6 +1085,7 @@
       const light = currentRoomState.lights.find(l => l.id === currentSelectedLightId);
       if (light) {
         measurementController.startFromLight(currentSelectedLightId, light.position);
+        isMeasuring.set(true);
         dispatch('measurement', null);
       }
     }
@@ -1103,6 +1106,7 @@
 
   function clearMeasurement(): void {
     measurementController.clear();
+    isMeasuring.set(false);
     editorRenderer?.setMeasurementLine(null, null);
     dispatch('measurement', null);
   }
