@@ -163,6 +163,11 @@
     spacingWarningRenderer.updateWarnings(currentSpacingWarnings);
   }
 
+  // Fit camera to room bounds when they change
+  $: if (scene && currentBounds && currentRoomState.walls.length > 0) {
+    scene.fitToBounds(currentBounds);
+  }
+
   // Update measurement when room state changes (e.g., undo/redo)
   $: if (measurementController && currentRoomState && measurementController.isActive) {
     const vertices = getVertices(currentRoomState);
