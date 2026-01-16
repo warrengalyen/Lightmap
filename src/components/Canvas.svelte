@@ -553,31 +553,73 @@
     }
 
     // Update measurement if applicable
-    if (measurementController.isActive && measurementController.toPosition) {
-      const currentVertices = getVertices(currentRoomState);
-      updateMeasurementForVertexDrag(targetPos, currentVertices);
+    if (measurementController.isActive) {
+      updateMeasurementForUnifiedDrag(delta);
     }
   }
 
-  function updateMeasurementForVertexDrag(targetPos: Vector2, vertices: Vector2[]): void {
+  function updateMeasurementForUnifiedDrag(delta: Vector2): void {
     const fromPos = measurementController.fromPosition;
     const toPos = measurementController.toPosition;
     if (!fromPos || !toPos) return;
 
-    // Check if dragged vertex matches from position
-    const fromMatch = Math.abs(vertices[currentSelectedVertexIndex!]?.x - fromPos.x) < 0.01 &&
-                      Math.abs(vertices[currentSelectedVertexIndex!]?.y - fromPos.y) < 0.01;
+    // Check if any selected vertex is part of the measurement
+    if (currentSelectedVertexIndices.size > 0) {
+      const vertices = getVertices(currentRoomState);
+      for (const idx of currentSelectedVertexIndices) {
+        const originalPos = multiDragStartPositions.get(idx);
+        if (!originalPos) continue;
 
-    // Check if dragged vertex matches to position
-    const toMatch = Math.abs(vertices[currentSelectedVertexIndex!]?.x - toPos.x) < 0.01 &&
-                    Math.abs(vertices[currentSelectedVertexIndex!]?.y - toPos.y) < 0.01;
+        const newPos = {
+          x: originalPos.x + delta.x,
+          y: originalPos.y + delta.y,
+        };
 
-    if (fromMatch) {
-      measurementController.updateSourcePosition(targetPos);
-      updateMeasurementDisplay();
-    } else if (toMatch) {
-      measurementController.updateTargetPosition(targetPos);
-      updateMeasurementDisplay();
+        // Check if this vertex matches from position
+        const fromMatch = Math.abs(originalPos.x - fromPos.x) < 0.01 &&
+                          Math.abs(originalPos.y - fromPos.y) < 0.01;
+
+        // Check if this vertex matches to position
+        const toMatch = Math.abs(originalPos.x - toPos.x) < 0.01 &&
+                        Math.abs(originalPos.y - toPos.y) < 0.01;
+
+        if (fromMatch) {
+          measurementController.updateSourcePosition(newPos);
+          updateMeasurementDisplay();
+          return;
+        } else if (toMatch) {
+          measurementController.updateTargetPosition(newPos);
+          updateMeasurementDisplay();
+          return;
+        }
+      }
+    }
+
+    // Check if any selected light is part of the measurement
+    if (currentSelectedLightIds.size > 0) {
+      for (const id of currentSelectedLightIds) {
+        const originalPos = multiLightDragStartPositions.get(id);
+        if (!originalPos) continue;
+
+        const newPos = {
+          x: originalPos.x + delta.x,
+          y: originalPos.y + delta.y,
+        };
+
+        // Check if this is the source light
+        if (measurementController.sourceLightId === id) {
+          measurementController.updateSourcePosition(newPos, currentRoomState.walls);
+          updateMeasurementDisplay();
+          return;
+        }
+
+        // Check if this is the target light
+        if (measurementController.targetLightId === id) {
+          measurementController.updateTargetPosition(newPos);
+          updateMeasurementDisplay();
+          return;
+        }
+      }
     }
   }
 
