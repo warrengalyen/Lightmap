@@ -143,6 +143,7 @@
 
   $: if (editorRenderer && currentDisplayPrefs) {
     editorRenderer.setUnitFormat(currentDisplayPrefs.unitFormat);
+    editorRenderer.setLightRadiusVisibility(currentDisplayPrefs.lightRadiusVisibility);
   }
 
   $: if (deadZoneRenderer && currentRoomState && currentBounds) {
@@ -163,9 +164,18 @@
     spacingWarningRenderer.updateWarnings(currentSpacingWarnings);
   }
 
-  // Fit camera to room bounds when they change
-  $: if (scene && currentBounds && currentRoomState.walls.length > 0) {
-    scene.fitToBounds(currentBounds);
+  // Fit camera to room bounds only when walls change
+  let previousWallsLength = 0;
+  let previousWallsJson = '';
+  $: {
+    const wallsJson = JSON.stringify(currentRoomState.walls.map(w => ({ start: w.start, end: w.end })));
+    const wallsChanged = wallsJson !== previousWallsJson || currentRoomState.walls.length !== previousWallsLength;
+
+    if (scene && currentBounds && currentRoomState.walls.length > 0 && wallsChanged) {
+      scene.fitToBounds(currentBounds);
+      previousWallsLength = currentRoomState.walls.length;
+      previousWallsJson = wallsJson;
+    }
   }
 
   // Update measurement when room state changes (e.g., undo/redo)

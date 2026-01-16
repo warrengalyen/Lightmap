@@ -30,6 +30,7 @@ export interface RafterConfig {
 }
 
 export type UnitFormat = "feet-inches" | "inches";
+export type LightRadiusVisibility = "selected" | "always" | "never";
 
 export interface DisplayPreferences {
     useFractions: boolean;
@@ -37,6 +38,7 @@ export interface DisplayPreferences {
     unitFormat: UnitFormat;
     gridSnapEnabled: boolean;
     gridSize: number; // in feet
+    lightRadiusVisibility: LightRadiusVisibility;
 }
 
 export const DEFAULT_ROOM_STATE: RoomState = {
@@ -67,4 +69,5 @@ export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {
     unitFormat: "feet-inches",
     gridSnapEnabled: false,
     gridSize: 0.5, // 6 inches
+    lightRadiusVisibility: "selected",
 };

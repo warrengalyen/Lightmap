@@ -8,7 +8,7 @@
   import { toggleSpacingWarnings, spacingConfig } from '../stores/spacingStore';
   import { historyStore, canUndo, canRedo } from '../stores/historyStore';
   import { isMeasuring } from '../stores/measurementStore';
-  import type { Tool, ViewMode } from '../types';
+  import type { Tool, ViewMode, LightRadiusVisibility } from '../types';
 
   const dispatch = createEventDispatcher<{ toggleMeasurement: void }>();
 
@@ -25,6 +25,7 @@
   let gridSnapEnabled: boolean;
   let measuringActive: boolean;
   let canMeasure: boolean;
+  let lightRadiusVisibility: LightRadiusVisibility;
 
   $: currentTool = $activeTool;
   $: currentViewMode = $viewMode;
@@ -39,6 +40,7 @@
   $: gridSnapEnabled = $displayPreferences.gridSnapEnabled;
   $: measuringActive = $isMeasuring;
   $: canMeasure = $selectedVertexIndex !== null || $selectedLightId !== null;
+  $: lightRadiusVisibility = $displayPreferences.lightRadiusVisibility;
 
   function handleToolChange(tool: Tool): void {
     setActiveTool(tool);
@@ -54,6 +56,29 @@
 
   function toggleMeasurement(): void {
     dispatch('toggleMeasurement');
+  }
+
+  function cycleLightRadiusVisibility(): void {
+    displayPreferences.update(p => {
+      let newVisibility: LightRadiusVisibility;
+      if (p.lightRadiusVisibility === 'selected') {
+        newVisibility = 'always';
+      } else if (p.lightRadiusVisibility === 'always') {
+        newVisibility = 'never';
+      } else {
+        newVisibility = 'selected';
+      }
+      return { ...p, lightRadiusVisibility: newVisibility };
+    });
+  }
+
+  function getRadiusVisibilityLabel(visibility: LightRadiusVisibility): string {
+    switch (visibility) {
+      case 'selected': return 'Radius: Selected';
+      case 'always': return 'Radius: Always';
+      case 'never': return 'Radius: Hidden';
+      default: return 'Radius';
+    }
   }
 </script>
 
@@ -191,6 +216,15 @@
       >
         <span class="icon">↔</span>
         Spacing
+      </button>
+      <button
+        class="toggle-button"
+        class:active={lightRadiusVisibility === 'always'}
+        on:click={cycleLightRadiusVisibility}
+        title="Cycle Light Radius Visibility"
+      >
+        <span class="icon">◎</span>
+        {getRadiusVisibilityLabel(lightRadiusVisibility)}
       </button>
     </div>
   </div>

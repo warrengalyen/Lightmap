@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { LightFixture } from "../types";
+import type { LightFixture, LightRadiusVisibility } from "../types";
 import { kelvinToRGB } from "../utils/format";
 import { degToRad } from "../utils/math";
 
@@ -11,6 +11,7 @@ export class LightIcon {
     private selected: boolean = false;
     private light: LightFixture;
     private ceilingHeight: number;
+    private radiusVisibility: LightRadiusVisibility = "selected";
     private static textureLoader = new THREE.TextureLoader();
     private static lightBulbTexture: THREE.Texture | null = null;
 
@@ -138,7 +139,8 @@ export class LightIcon {
         // Show/hide selection ring
         this.selectionRing.visible = selected;
 
-        // Update beam preview appearance
+        // Update beam preview appearance and visibility
+        this.updateBeamPreviewVisibility();
         const lineMaterial = this.beamPreview.material as THREE.LineBasicMaterial;
         if (selected) {
             lineMaterial.color.setHex(0x00aaff);
@@ -146,6 +148,26 @@ export class LightIcon {
         } else {
             lineMaterial.color.setHex(0x888888);
             lineMaterial.opacity = 0.5;
+        }
+    }
+
+    setRadiusVisibility(visibility: LightRadiusVisibility): void {
+        this.radiusVisibility = visibility;
+        this.updateBeamPreviewVisibility();
+    }
+
+    private updateBeamPreviewVisibility(): void {
+        switch (this.radiusVisibility) {
+            case "always":
+                this.beamPreview.visible = true;
+                break;
+            case "never":
+                this.beamPreview.visible = false;
+                break;
+            case "selected":
+            default:
+                this.beamPreview.visible = this.selected;
+                break;
         }
     }
 

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { Vector2, WallSegment, LightFixture, UnitFormat } from "../types";
+import type { Vector2, WallSegment, LightFixture, UnitFormat, LightRadiusVisibility } from "../types";
 import type { SnapGuide } from "../controllers/SnapController";
 import { LightIcon } from "../lighting/LightIcon";
 import { getAllDimensionLabels } from "../geometry/DimensionLabel";
@@ -37,6 +37,7 @@ export class EditorRenderer {
     private currentUnitFormat: UnitFormat = "feet-inches";
     private currentWalls: WallSegment[] = [];
     private selectionBoxLine: THREE.Line | null = null;
+    private lightRadiusVisibility: LightRadiusVisibility = "selected";
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -245,11 +246,19 @@ export class EditorRenderer {
             }
 
             icon.setSelected(selectedIds.has(light.id));
+            icon.setRadiusVisibility(this.lightRadiusVisibility);
         }
     }
 
     setLightsVisible(visible: boolean): void {
         this.lightsGroup.visible = visible;
+    }
+
+    setLightRadiusVisibility(visibility: LightRadiusVisibility): void {
+        this.lightRadiusVisibility = visibility;
+        for (const icon of this.lightIcons.values()) {
+            icon.setRadiusVisibility(visibility);
+        }
     }
 
     // ============================================
