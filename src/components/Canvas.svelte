@@ -162,6 +162,11 @@
     spacingWarningRenderer.updateWarnings(currentSpacingWarnings);
   }
 
+  // Update measurement when room state changes (e.g., undo/redo)
+  $: if (measurementController && currentRoomState) {
+    updateMeasurementPositionsFromState();
+  }
+
   // ============================================
   // View Mode
   // ============================================
@@ -1065,6 +1070,49 @@
     measurementController.clear();
     editorRenderer?.setMeasurementLine(null, null);
     dispatch('measurement', null);
+  }
+
+  function updateMeasurementPositionsFromState(): void {
+    if (!measurementController.isActive) return;
+
+    // Update source position if it's a vertex
+    if (measurementController.sourceVertexIndex !== null) {
+      const vertices = getVertices(currentRoomState);
+      const vertex = vertices[measurementController.sourceVertexIndex];
+      if (vertex) {
+        measurementController.updateSourcePosition(vertex);
+      }
+    }
+
+    // Update source position if it's a light
+    if (measurementController.sourceLightId !== null) {
+      const light = currentRoomState.lights.find(l => l.id === measurementController.sourceLightId);
+      if (light) {
+        measurementController.updateSourcePosition(light.position, currentRoomState.walls);
+      }
+    }
+
+    // Update target position if it's a vertex
+    if (measurementController.targetVertexIndex !== null) {
+      const vertices = getVertices(currentRoomState);
+      const vertex = vertices[measurementController.targetVertexIndex];
+      if (vertex) {
+        measurementController.updateTargetPosition(vertex);
+      }
+    }
+
+    // Update target position if it's a light
+    if (measurementController.targetLightId !== null) {
+      const light = currentRoomState.lights.find(l => l.id === measurementController.targetLightId);
+      if (light) {
+        measurementController.updateTargetPosition(light.position);
+      }
+    }
+
+    // Refresh the display
+    if (measurementController.fromPosition && measurementController.toPosition) {
+      updateMeasurementDisplay();
+    }
   }
 
   // ============================================
