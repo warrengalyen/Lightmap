@@ -12,6 +12,7 @@
   import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
   import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
+  import './stores/themeStore'; // Initialize theme CSS variables
   import type { Vector2 } from './types';
 
   let canvasComponent: Canvas;
@@ -155,15 +156,15 @@
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow: hidden;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
   }
 
   .app {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: #1e1e1e;
+    background: var(--input-bg);
   }
 
   .header {
@@ -171,8 +172,8 @@
     align-items: center;
     gap: 24px;
     padding: 0 16px;
-    background: #2d2d30;
-    border-bottom: 1px solid #3e3e42;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
     height: 52px;
     flex-shrink: 0;
   }
@@ -187,12 +188,12 @@
     margin: 0;
     font-size: 18px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
   }
 
   .tagline {
     font-size: 12px;
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .main {
@@ -212,7 +213,7 @@
     top: 16px;
     left: 16px;
     background: rgba(45, 45, 48, 0.95);
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 12px 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -222,10 +223,10 @@
 
   .measurement-title {
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
     margin-bottom: 8px;
     padding-bottom: 6px;
-    border-bottom: 1px solid #3e3e42;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .measurement-row {
@@ -236,18 +237,18 @@
 
   .measurement-label {
     font-weight: 500;
-    color: #cccccc;
+    color: var(--text-secondary);
   }
 
   .measurement-value {
     font-family: monospace;
-    color: #ffffff;
+    color: var(--text-primary);
   }
 
   .measurement-hint {
     margin-top: 8px;
     font-size: 11px;
-    color: #999999;
+    color: var(--text-muted);
     text-align: center;
   }
 </style>

@@ -83,17 +83,17 @@
 
   button {
     padding: 6px 12px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    background: #333337;
-    color: #cccccc;
+    background: var(--button-bg);
+    color: var(--text-secondary);
     font-size: 13px;
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   button:hover {
-    background: #3e3e42;
-    border-color: #454545;
+    background: var(--button-bg-hover);
+    border-color: var(--button-bg-hover);
   }
 </style>

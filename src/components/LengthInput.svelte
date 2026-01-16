@@ -88,11 +88,11 @@
   }
 
   .modal {
-    background: #2d2d30;
+    background: var(--panel-bg);
     padding: 24px;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border-color);
     min-width: 300px;
   }
 
@@ -100,29 +100,29 @@
     margin: 0 0 8px 0;
     font-size: 16px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
   }
 
   .help {
     margin: 0 0 16px 0;
     font-size: 13px;
-    color: #999999;
+    color: var(--text-muted);
   }
 
   input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 14px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
     box-sizing: border-box;
   }
 
   input:focus {
     outline: none;
-    border-color: #0066cc;
+    border-color: var(--button-active);
   }
 
   input.error {
@@ -151,19 +151,19 @@
   }
 
   .cancel {
-    background: #333337;
-    border: 1px solid #3e3e42;
-    color: #cccccc;
+    background: var(--button-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
   }
 
   .cancel:hover {
-    background: #3e3e42;
+    background: var(--button-bg-hover);
   }
 
   .submit {
-    background: #0066cc;
-    border: 1px solid #0066cc;
-    color: white;
+    background: var(--button-active);
+    border: 1px solid var(--button-active);
+    color: var(--text-primary);
   }
 
   .submit:hover {

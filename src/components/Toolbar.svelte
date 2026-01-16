@@ -226,8 +226,8 @@
     align-items: center;
     gap: 24px;
     padding: 8px 16px;
-    background: #2d2d30;
-    border-bottom: 1px solid #3e3e42;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
@@ -239,7 +239,7 @@
 
   .section-label {
     font-size: 12px;
-    color: #999999;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -256,10 +256,10 @@
     align-items: center;
     gap: 4px;
     padding: 6px 12px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    background: #333337;
-    color: #cccccc;
+    background: var(--button-bg);
+    color: var(--text-secondary);
     font-size: 13px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -268,16 +268,16 @@
   .tool-button:hover:not(:disabled),
   .view-button:hover,
   .toggle-button:hover {
-    background: #3e3e42;
-    border-color: #454545;
+    background: var(--button-bg-hover);
+    border-color: var(--button-bg-hover);
   }
 
   .tool-button.active,
   .view-button.active,
   .toggle-button.active {
-    background: #0066cc;
-    border-color: #0066cc;
-    color: #ffffff;
+    background: var(--button-active);
+    border-color: var(--button-active);
+    color: var(--text-primary);
   }
 
   .tool-button:disabled {
@@ -296,18 +296,18 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    background: #333337;
-    color: #cccccc;
+    background: var(--button-bg);
+    color: var(--text-secondary);
     font-size: 18px;
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   .icon-button:hover:not(:disabled) {
-    background: #3e3e42;
-    border-color: #454545;
+    background: var(--button-bg-hover);
+    border-color: var(--button-bg-hover);
   }
 
   .icon-button:disabled {
@@ -318,7 +318,7 @@
   .toggle-button.measuring.active {
     background: #ff9500;
     border-color: #ff9500;
-    color: #ffffff;
+    color: var(--text-primary);
     animation: pulse 2s infinite;
   }
 
@@ -337,13 +337,13 @@
   }
 
   .toggle-button.measuring:not(.active):not(:disabled) {
-    background: #333337;
-    border-color: #3e3e42;
-    color: #cccccc;
+    background: var(--button-bg);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
   }
 
   .toggle-button.measuring:not(.active):not(:disabled):hover {
-    background: #3e3e42;
-    border-color: #454545;
+    background: var(--button-bg-hover);
+    border-color: var(--button-bg-hover);
   }
 </style>

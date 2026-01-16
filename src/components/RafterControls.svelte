@@ -93,7 +93,7 @@
     padding: 16px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border-color);
     z-index: 100;
     min-width: 200px;
   }
@@ -102,7 +102,7 @@
     margin: 0 0 12px 0;
     font-size: 13px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
   }
 
   .control-row {
@@ -114,16 +114,16 @@
   }
 
   .control-row span:first-child {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   select {
     padding: 4px 8px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 13px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
   }
 
   .input-group {
@@ -135,17 +135,17 @@
   input[type="number"] {
     width: 60px;
     padding: 4px 8px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 13px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
     text-align: right;
   }
 
   .unit {
     font-size: 12px;
-    color: #999999;
+    color: var(--text-muted);
     min-width: 20px;
   }
 </style>

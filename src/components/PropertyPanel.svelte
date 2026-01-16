@@ -439,8 +439,8 @@
 <style>
   .property-panel {
     width: 250px;
-    background: #252526;
-    border-left: 1px solid #3e3e42;
+    background: var(--panel-bg-alt);
+    border-left: 1px solid var(--border-color);
     padding: 16px;
     overflow-y: auto;
   }
@@ -449,14 +449,14 @@
     margin: 0 0 16px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
   }
 
   h4 {
     margin: 0 0 12px 0;
     font-size: 12px;
     font-weight: 600;
-    color: #999999;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -464,7 +464,7 @@
   .property-section {
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid #3e3e42;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .property-section:last-child {
@@ -480,7 +480,7 @@
   }
 
   .property-row span:first-child {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .input-group {
@@ -492,60 +492,60 @@
   input[type="number"] {
     width: 70px;
     padding: 4px 8px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
     font-size: 13px;
     text-align: right;
   }
 
   input[type="number"]:focus {
     outline: none;
-    border-color: #0066cc;
+    border-color: var(--button-active);
   }
 
   .length-input {
     width: 90px;
     padding: 4px 8px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
     font-size: 13px;
     text-align: right;
   }
 
   .length-input:focus {
     outline: none;
-    border-color: #0066cc;
+    border-color: var(--button-active);
   }
 
   .coord-input {
     width: 70px;
     padding: 4px 8px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
     font-size: 13px;
     text-align: right;
   }
 
   .coord-input:focus {
     outline: none;
-    border-color: #0066cc;
+    border-color: var(--button-active);
   }
 
   .unit {
     font-size: 12px;
-    color: #999999;
+    color: var(--text-muted);
     min-width: 20px;
   }
 
   .info span:last-child {
     font-weight: 500;
-    color: #ffffff;
+    color: var(--text-primary);
   }
 
   .closed {
@@ -574,22 +574,22 @@
   .definition-select select {
     width: 100%;
     padding: 8px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 13px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
     cursor: pointer;
   }
 
   .definition-select select:focus {
     outline: none;
-    border-color: #0066cc;
+    border-color: var(--button-active);
   }
 
   .light-specs {
-    background: #1e1e1e;
-    border: 1px solid #3e3e42;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 8px 12px;
     margin: 8px 0;
@@ -603,24 +603,24 @@
   }
 
   .spec-row span:first-child {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .spec-row span:last-child {
     font-weight: 500;
-    color: #ffffff;
+    color: var(--text-primary);
   }
 
   .multi-select-hint {
     font-size: 11px;
-    color: #999999;
+    color: var(--text-muted);
     margin: 0 0 12px 0;
     font-style: italic;
   }
 
   .light-summary {
-    background: #1e1e1e;
-    border: 1px solid #3e3e42;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 8px 12px;
     margin: 8px 0;
@@ -633,18 +633,18 @@
   }
 
   .summary-row span:first-child {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .summary-row span:last-child {
     font-weight: 600;
-    color: #0066cc;
+    color: var(--button-active);
   }
 
   .wall-hint {
     margin: 12px 0 0 0;
     font-size: 11px;
-    color: #999999;
+    color: var(--text-muted);
     line-height: 1.4;
   }
 
@@ -666,7 +666,7 @@
   }
 
   .hint {
-    color: #999999;
+    color: var(--text-muted);
     font-size: 13px;
     font-style: italic;
   }
@@ -683,9 +683,9 @@
     width: 100%;
     padding: 8px;
     margin-top: 8px;
-    background: #333337;
-    color: #cccccc;
-    border: 1px solid #3e3e42;
+    background: var(--button-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
@@ -693,7 +693,7 @@
   }
 
   .import-button:hover {
-    background: #3e3e42;
+    background: var(--button-bg-hover);
   }
 
   .import-error {

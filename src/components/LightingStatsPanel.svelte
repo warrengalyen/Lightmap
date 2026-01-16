@@ -129,22 +129,22 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     z-index: 100;
     min-width: 220px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border-color);
   }
 
   h4 {
     margin: 0 0 12px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
     padding-bottom: 8px;
-    border-bottom: 1px solid #3e3e42;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .room-type-selector {
     margin-bottom: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #3e3e42;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .room-type-selector label {
@@ -155,16 +155,16 @@
   }
 
   .room-type-selector span {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .room-type-selector select {
     padding: 4px 8px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 13px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: var(--input-bg);
+    color: var(--text-secondary);
   }
 
   .grade-section {
@@ -173,12 +173,12 @@
     align-items: center;
     margin-bottom: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #3e3e42;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .grade-label {
     font-size: 13px;
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .grade-value {
@@ -199,13 +199,13 @@
   .metrics-section.secondary {
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #3e3e42;
+    border-top: 1px solid var(--border-color);
   }
 
   .section-title {
     font-size: 11px;
     font-weight: 600;
-    color: #999999;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 4px;
@@ -223,17 +223,17 @@
   }
 
   .metric-row.recommended {
-    color: #999999;
+    color: var(--text-muted);
     font-style: italic;
   }
 
   .metric-label {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .metric-value {
     font-family: monospace;
-    color: #ffffff;
+    color: var(--text-primary);
     font-weight: 500;
   }
 
@@ -259,7 +259,7 @@
 
   .no-data {
     font-size: 12px;
-    color: #999999;
+    color: var(--text-muted);
     text-align: center;
     padding: 8px 0;
   }

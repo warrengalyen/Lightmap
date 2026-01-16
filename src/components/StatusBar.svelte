@@ -90,8 +90,8 @@
     align-items: center;
     gap: 16px;
     padding: 6px 16px;
-    background: #2d2d30;
-    border-top: 1px solid #3e3e42;
+    background: var(--status-bar-bg);
+    border-top: 1px solid var(--border-color);
     font-size: 12px;
   }
 
@@ -102,11 +102,11 @@
   }
 
   .label {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .value {
-    color: #cccccc;
+    color: var(--text-secondary);
     font-weight: 500;
   }
 
@@ -142,7 +142,7 @@
   }
 
   .hints {
-    color: #999999;
+    color: var(--text-muted);
     font-style: italic;
   }
 </style>
