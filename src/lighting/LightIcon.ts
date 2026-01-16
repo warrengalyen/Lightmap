@@ -11,6 +11,8 @@ export class LightIcon {
     private selected: boolean = false;
     private light: LightFixture;
     private ceilingHeight: number;
+    private static textureLoader = new THREE.TextureLoader();
+    private static lightBulbTexture: THREE.Texture | null = null;
 
     constructor(light: LightFixture, ceilingHeight: number) {
         this.light = light;
@@ -24,17 +26,36 @@ export class LightIcon {
         this.mesh.add(this.beamPreview);
         this.mesh.add(this.selectionRing);
         this.updatePosition();
+
+        // Load texture if not already loaded
+        if (!LightIcon.lightBulbTexture) {
+            LightIcon.textureLoader.load("/icons/light_bulb.png", (texture) => {
+                LightIcon.lightBulbTexture = texture;
+                this.updateIconTexture();
+            });
+        } else {
+            this.updateIconTexture();
+        }
     }
 
     private createIconMesh(): THREE.Mesh {
-        const geometry = new THREE.CircleGeometry(0.3, 16);
+        const geometry = new THREE.PlaneGeometry(0.6, 0.6);
         const rgb = kelvinToRGB(this.light.properties.warmth);
         const material = new THREE.MeshBasicMaterial({
             color: new THREE.Color(rgb.r, rgb.g, rgb.b),
+            transparent: true,
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.userData.lightId = this.light.id;
         return mesh;
+    }
+
+    private updateIconTexture(): void {
+        if (LightIcon.lightBulbTexture) {
+            const material = this.iconMesh.material as THREE.MeshBasicMaterial;
+            material.map = LightIcon.lightBulbTexture;
+            material.needsUpdate = true;
+        }
     }
 
     private createBeamPreview(): THREE.Line {
