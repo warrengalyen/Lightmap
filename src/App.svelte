@@ -98,8 +98,8 @@
 <div class="app">
   <header class="header">
     <div class="header-left">
+      <img src="/icons/lightmap_icon.png" alt="Lightmap" class="app-icon" />
       <h1>Lightmap</h1>
-      <span class="tagline">Recessed Lighting Planner</span>
     </div>
     <Toolbar on:toggleMeasurement={handleToggleMeasurement} />
     <FileMenu />
@@ -180,8 +180,13 @@
 
   .header-left {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
+  }
+
+  .app-icon {
+    width: 48px;
+    height: 48px;
   }
 
   h1 {
