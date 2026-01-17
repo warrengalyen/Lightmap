@@ -83,6 +83,9 @@
   let wallDragStart: Vector2 | null = null;
   let wallDragOriginalVertices: { start: Vector2; end: Vector2 } | null = null;
 
+  // Grab mode state (G key to move)
+  let isGrabMode = false;
+
   // Box selection state
   let isBoxSelecting = false;
   let boxStart: Vector2 | null = null;
@@ -236,6 +239,12 @@
   // ============================================
 
   function handleClick(event: InputEvent): void {
+    // Confirm grab mode placement
+    if (isGrabMode) {
+      confirmGrabMode();
+      return;
+    }
+
     if (measurementController.isActive) {
       handleMeasurementClick(event);
       return;
@@ -500,6 +509,11 @@
       return;
     }
 
+    if (isGrabMode) {
+      handleGrabModeMove(event);
+      return;
+    }
+
     if (isDraggingSelection) {
       handleUnifiedDrag(event);
       return;
@@ -749,6 +763,11 @@
   // ============================================
 
   function handleMouseUp(event: InputEvent): void {
+    // Don't handle mouse up in grab mode - only click or ESC ends grab mode
+    if (isGrabMode) {
+      return;
+    }
+
     // Handle box selection completion
     if (isBoxSelecting && boxStart && boxCurrent) {
       const vertices = getVertices(currentRoomState);
@@ -884,6 +903,167 @@
   }
 
   // ============================================
+  // Grab Mode (G key)
+  // ============================================
+
+  // Offset from mouse position to anchor object position when G was pressed
+  let grabModeOffset: Vector2 | null = null;
+
+  function startGrabMode(): void {
+    const vertices = getVertices(currentRoomState);
+
+    // Set up initial state - reuse the same drag system
+    isGrabMode = true;
+    isDraggingSelection = true;
+    historyStore.pauseRecording();
+    didDragVertex = false;
+
+    // Store original positions first
+    multiDragStartPositions.clear();
+    for (const idx of currentSelectedVertexIndices) {
+      multiDragStartPositions.set(idx, { ...vertices[idx] });
+    }
+
+    multiLightDragStartPositions.clear();
+    for (const id of currentSelectedLightIds) {
+      const light = currentRoomState.lights.find(l => l.id === id);
+      if (light) {
+        multiLightDragStartPositions.set(id, { ...light.position });
+      }
+    }
+
+    // Determine anchor and calculate offset from mouse to anchor
+    let anchorPos: Vector2 | null = null;
+
+    if (currentSelectedVertexIndices.size > 0) {
+      anchorVertexIndex = Array.from(currentSelectedVertexIndices)[0];
+      anchorPos = multiDragStartPositions.get(anchorVertexIndex)!;
+    } else if (currentSelectedLightIds.size > 0) {
+      anchorLightId = Array.from(currentSelectedLightIds)[0];
+      anchorPos = multiLightDragStartPositions.get(anchorLightId)!;
+    } else if (currentSelectedWallId) {
+      const wall = currentRoomState.walls.find(w => w.id === currentSelectedWallId);
+      if (wall) {
+        wallDragStart = { ...currentMousePos };
+        wallDragOriginalVertices = { start: { ...wall.start }, end: { ...wall.end } };
+        anchorPos = wall.start;
+      }
+    }
+
+    if (anchorPos) {
+      // Offset = anchor position - mouse position
+      // Adding this to mouse position gives us the "virtual" position as if we clicked on the anchor
+      grabModeOffset = {
+        x: anchorPos.x - currentMousePos.x,
+        y: anchorPos.y - currentMousePos.y,
+      };
+      dragStartPos = { ...anchorPos };
+    }
+  }
+
+  function handleGrabModeMove(event: InputEvent): void {
+    if (!grabModeOffset) return;
+
+    // Create adjusted event with virtual mouse position (as if we clicked on the object)
+    const adjustedEvent: InputEvent = {
+      ...event,
+      worldPos: {
+        x: event.worldPos.x + grabModeOffset.x,
+        y: event.worldPos.y + grabModeOffset.y,
+      },
+    };
+
+    // Handle wall separately if only wall is selected
+    if (currentSelectedWallId && wallDragStart && wallDragOriginalVertices &&
+        currentSelectedVertexIndices.size === 0 && currentSelectedLightIds.size === 0) {
+      // Adjust wallDragStart for the offset too
+      const adjustedWallEvent: InputEvent = {
+        ...event,
+        worldPos: {
+          x: event.worldPos.x + grabModeOffset.x,
+          y: event.worldPos.y + grabModeOffset.y,
+        },
+      };
+      handleWallDrag(adjustedWallEvent);
+    } else {
+      // Reuse the exact same drag logic
+      handleUnifiedDrag(adjustedEvent);
+    }
+  }
+
+  function confirmGrabMode(): void {
+    isGrabMode = false;
+    isDraggingSelection = false;
+    historyStore.resumeRecording();
+
+    // Clean up state
+    grabModeOffset = null;
+    anchorVertexIndex = null;
+    anchorLightId = null;
+    dragStartPos = null;
+    wallDragStart = null;
+    wallDragOriginalVertices = null;
+    multiDragStartPositions.clear();
+    multiLightDragStartPositions.clear();
+    axisLock = 'none';
+    editorRenderer?.setSnapGuides([]);
+  }
+
+  function cancelGrabMode(): void {
+    // Disable grab mode FIRST to prevent any mouse events from interfering
+    isGrabMode = false;
+    isDraggingSelection = false;
+    grabModeOffset = null;
+
+    // Capture original positions before clearing maps
+    const vertexOriginals = new Map(multiDragStartPositions);
+    const lightOriginals = new Map(multiLightDragStartPositions);
+    const wallOriginals = wallDragOriginalVertices ? { ...wallDragOriginalVertices } : null;
+
+    // Clean up state
+    anchorVertexIndex = null;
+    anchorLightId = null;
+    dragStartPos = null;
+    wallDragStart = null;
+    wallDragOriginalVertices = null;
+    multiDragStartPositions.clear();
+    multiLightDragStartPositions.clear();
+    axisLock = 'none';
+    editorRenderer?.setSnapGuides([]);
+
+    // Now restore original positions
+    if (currentSelectedVertexIndices.size > 0) {
+      for (const idx of currentSelectedVertexIndices) {
+        const originalPos = vertexOriginals.get(idx);
+        if (originalPos) {
+          updateVertexPosition(idx, originalPos);
+        }
+      }
+    }
+
+    if (currentSelectedLightIds.size > 0) {
+      roomStore.update(state => {
+        const updatedLights = state.lights.map(light => {
+          if (currentSelectedLightIds.has(light.id)) {
+            const originalPos = lightOriginals.get(light.id);
+            if (originalPos) {
+              return { ...light, position: originalPos };
+            }
+          }
+          return light;
+        });
+        return { ...state, lights: updatedLights };
+      });
+    }
+
+    if (currentSelectedWallId && wallOriginals) {
+      moveWall(currentSelectedWallId, wallOriginals.start, wallOriginals.end);
+    }
+
+    historyStore.resumeRecording();
+  }
+
+  // ============================================
   // Axis Lock Helpers
   // ============================================
 
@@ -896,8 +1076,12 @@
     // Determine the position to show the guide from
     let guideOrigin: Vector2 | null = null;
 
+    // In grab mode, use the anchor position (dragStartPos was set to anchor position)
+    if (isGrabMode && dragStartPos) {
+      guideOrigin = dragStartPos;
+    }
     // If dragging, use the drag start position
-    if (dragStartPos) {
+    else if (dragStartPos) {
       guideOrigin = dragStartPos;
     }
     // Otherwise, use the position of the selected object
@@ -962,9 +1146,15 @@
   function handleKeyDown(event: InputEvent): void {
     if (!event.key) return;
 
-    // Axis lock for selected objects (can be set before or during drag)
+    // Grab mode (G key)
     const hasSelection = currentSelectedVertexIndices.size > 0 || currentSelectedLightIds.size > 0 || currentSelectedWallId !== null;
-    if (hasSelection && !event.ctrlKey && !event.altKey) {
+    if (event.key.toLowerCase() === 'g' && hasSelection && !isGrabMode && !event.ctrlKey && !event.altKey) {
+      startGrabMode();
+      return;
+    }
+
+    // Axis lock for selected objects (can be set before or during drag)
+    if ((hasSelection || isGrabMode) && !event.ctrlKey && !event.altKey) {
       if (event.key.toLowerCase() === 'x') {
         axisLock = axisLock === 'x' ? 'none' : 'x';
         updateAxisLockGuidesForSelection();
@@ -1033,11 +1223,16 @@
   }
 
   function handleEscape(): void {
+    if (isGrabMode) {
+      cancelGrabMode();
+      return;
+    }
     if (isBoxSelecting) {
       isBoxSelecting = false;
       boxStart = null;
       boxCurrent = null;
       editorRenderer?.setSelectionBox(null, null);
+      return;
     }
     if (axisLock !== 'none') {
       axisLock = 'none';
@@ -1046,11 +1241,13 @@
     }
     if (measurementController.isActive) {
       clearMeasurement();
+      return;
     }
     if (wallBuilder.drawing) {
       wallBuilder.cancel();
       editorRenderer.setPhantomLine(null, null);
       editorRenderer.updateDrawingVertices([]);
+      return;
     }
     clearLightSelection();
     selectedWallId.set(null);
