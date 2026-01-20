@@ -3,6 +3,8 @@ import type { LightFixture, LightRadiusVisibility } from "../types";
 import { kelvinToRGB } from "../utils/format";
 import { degToRad } from "../utils/math";
 
+const lightBulbIconPath = `${import.meta.env.BASE_URL}icons/light_bulb.png`;
+
 export class LightIcon {
     readonly mesh: THREE.Group;
     private iconMesh: THREE.Mesh;
@@ -30,7 +32,7 @@ export class LightIcon {
 
         // Load texture if not already loaded
         if (!LightIcon.lightBulbTexture) {
-            LightIcon.textureLoader.load("/icons/light_bulb.png", (texture) => {
+            LightIcon.textureLoader.load(lightBulbIconPath, (texture) => {
                 LightIcon.lightBulbTexture = texture;
                 this.updateIconTexture();
             });
