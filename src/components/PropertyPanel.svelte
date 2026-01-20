@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import { roomStore, canPlaceLights, updateWallLength, getVertices, updateVertexPosition, deleteVertex } from '../stores/roomStore';
-  import { selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, clearLightSelection, clearVertexSelection } from '../stores/appStore';
-  import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById, addLightDefinitionFromIES } from '../stores/lightDefinitionsStore';
+  import { selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, clearLightSelection, clearVertexSelection, activeTool } from '../stores/appStore';
+  import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById } from '../stores/lightDefinitionsStore';
   import { formatImperial, parseImperial } from '../utils/format';
-  import { readIESFile } from '../lighting/IESParser';
   import type { LightFixture, WallSegment, RoomState, LightDefinition } from '../types';
+
+  const dispatch = createEventDispatcher<{ openLightManager: void }>();
 
   let currentRoom: RoomState;
   let currentSelectedLightId: string | null;
@@ -21,9 +23,6 @@
   let vertexYInput: string = '';
   let definitions: LightDefinition[] = [];
   let currentDefinitionId: string;
-  let iesFileInput: HTMLInputElement;
-  let iesImportError: string | null = null;
-  let iesImportSuccess: string | null = null;
 
   $: currentRoom = $roomStore;
   $: currentSelectedLightId = $selectedLightId;
@@ -33,8 +32,17 @@
   $: canPlace = $canPlaceLights;
   $: definitions = $lightDefinitions;
   $: currentDefinitionId = $selectedDefinitionId;
+  $: currentTool = $activeTool;
 
   $: selectedLights = currentRoom.lights.filter(l => currentSelectedLightIds.has(l.id));
+
+  // Check if all selected lights share the same definition
+  $: commonDefinitionId = (() => {
+    if (selectedLights.length === 0) return null;
+    const firstDefId = selectedLights[0].definitionId;
+    const allSame = selectedLights.every(l => l.definitionId === firstDefId);
+    return allSame ? firstDefId : null;
+  })();
 
   $: selectedLight = currentSelectedLightId
     ? currentRoom.lights.find(l => l.id === currentSelectedLightId) ?? null
@@ -96,35 +104,8 @@
     setSelectedDefinition(newDefinitionId);
   }
 
-  function triggerIESImport(): void {
-    iesFileInput?.click();
-  }
-
-  async function handleIESFileSelect(e: Event): Promise<void> {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    iesImportError = null;
-    iesImportSuccess = null;
-
-    const result = await readIESFile(file);
-
-    if (result.success && result.data) {
-      const newDef = addLightDefinitionFromIES(result.data);
-      setSelectedDefinition(newDef.id);
-      iesImportSuccess = `Imported: ${result.data.lumens}lm, ${result.data.beamAngle}° beam`;
-
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        iesImportSuccess = null;
-      }, 3000);
-    } else {
-      iesImportError = result.error || 'Failed to parse IES file';
-    }
-
-    // Reset input so same file can be selected again
-    input.value = '';
+  function openLightManager(): void {
+    dispatch('openLightManager');
   }
 
   function getDefinitionForLight(light: LightFixture): LightDefinition | undefined {
@@ -322,14 +303,35 @@
       <h4>{selectedLights.length} Lights Selected</h4>
       <p class="multi-select-hint">Shift+click to add/remove lights from selection</p>
       <label class="property-row definition-select">
-        <span>Change All To</span>
-        <select on:change={updateLightDefinition}>
-          <option value="" disabled selected>Select type...</option>
+        <span>{commonDefinitionId ? 'Type' : 'Change All To'}</span>
+        <select value={commonDefinitionId || ''} on:change={updateLightDefinition}>
+          {#if !commonDefinitionId}
+            <option value="" disabled>Mixed types...</option>
+          {/if}
           {#each definitions as def}
             <option value={def.id}>{def.name}</option>
           {/each}
         </select>
       </label>
+      {#if commonDefinitionId}
+        {@const def = getDefinitionById(commonDefinitionId)}
+        {#if def}
+          <div class="light-specs">
+            <div class="spec-row">
+              <span>Lumens (each)</span>
+              <span>{def.lumen} lm</span>
+            </div>
+            <div class="spec-row">
+              <span>Beam Angle</span>
+              <span>{def.beamAngle}°</span>
+            </div>
+            <div class="spec-row">
+              <span>Color Temp</span>
+              <span>{def.warmth}K</span>
+            </div>
+          </div>
+        {/if}
+      {/if}
       <div class="light-summary">
         <div class="summary-row">
           <span>Total Lumens</span>
@@ -380,7 +382,7 @@
         Delete Light
       </button>
     </div>
-  {:else if canPlace}
+  {:else if canPlace && currentTool === 'light'}
     <div class="property-section">
       <h4>New Light</h4>
       <label class="property-row definition-select">
@@ -394,22 +396,9 @@
           {/each}
         </select>
       </label>
-      <input
-        type="file"
-        accept=".ies"
-        bind:this={iesFileInput}
-        on:change={handleIESFileSelect}
-        class="hidden-input"
-      />
-      <button class="import-button" on:click={triggerIESImport}>
-        Import from IES File
+      <button class="manage-button" on:click={openLightManager}>
+        Manage Light Types...
       </button>
-      {#if iesImportError}
-        <p class="import-error">{iesImportError}</p>
-      {/if}
-      {#if iesImportSuccess}
-        <p class="import-success">{iesImportSuccess}</p>
-      {/if}
       {#if definitions.find(d => d.id === currentDefinitionId)}
         {@const def = definitions.find(d => d.id === currentDefinitionId)}
         <div class="light-specs">
@@ -675,11 +664,7 @@
     margin: 0;
   }
 
-  .hidden-input {
-    display: none;
-  }
-
-  .import-button {
+  .manage-button {
     width: 100%;
     padding: 8px;
     margin-top: 8px;
@@ -692,27 +677,7 @@
     transition: background 0.15s ease;
   }
 
-  .import-button:hover {
+  .manage-button:hover {
     background: var(--button-bg-hover);
-  }
-
-  .import-error {
-    margin: 8px 0 0 0;
-    padding: 6px 8px;
-    font-size: 11px;
-    color: #ff6b6b;
-    background: #2d1f1f;
-    border: 1px solid #3e2828;
-    border-radius: 4px;
-  }
-
-  .import-success {
-    margin: 8px 0 0 0;
-    padding: 6px 8px;
-    font-size: 11px;
-    color: #6bff6b;
-    background: #1f2d1f;
-    border: 1px solid #28382e;
-    border-radius: 4px;
   }
 </style>

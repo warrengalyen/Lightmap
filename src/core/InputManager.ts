@@ -47,6 +47,8 @@ export class InputManager {
         canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
         canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
         canvas.addEventListener("wheel", this.handleWheel.bind(this));
+        // Use false as we we call preventDefault to handle zoom
+        canvas.addEventListener("wheel", this.handleWheel.bind(this), { passive: false });
         canvas.addEventListener("contextmenu", this.handleContextMenu.bind(this));
 
         window.addEventListener("keydown", this.handleKeyDown.bind(this));

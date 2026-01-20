@@ -6,8 +6,8 @@
   import StatusBar from './components/StatusBar.svelte';
   import LengthInput from './components/LengthInput.svelte';
   import RafterControls from './components/RafterControls.svelte';
-  import FileMenu from './components/FileMenu.svelte';
   import LightingStatsPanel from './components/LightingStatsPanel.svelte';
+  import LightDefinitionManager from './components/LightDefinitionManager.svelte';
   import { roomStore } from './stores/roomStore';
   import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
@@ -19,6 +19,7 @@
   let mousePos: Vector2 = { x: 0, y: 0 };
   let snapType: string = '';
   let showLengthInput: boolean = false;
+  let showLightManager: boolean = false;
   let cleanupAutoSave: (() => void) | null = null;
   let measurement: { deltaX: number; deltaY: number; distance: number } | null = null;
 
@@ -47,6 +48,12 @@
 
   function handleLengthCancel(): void {
     showLengthInput = false;
+  }
+  function handleOpenLightManager(): void {
+    showLightManager = true;
+  }
+  function handleCloseLightManager(): void {
+    showLightManager = false;
   }
 
   function handleGlobalKeydown(e: KeyboardEvent): void {
@@ -102,7 +109,6 @@
       <h1>Lightmap</h1>
     </div>
     <Toolbar on:toggleMeasurement={handleToggleMeasurement} />
-    <FileMenu />
   </header>
 
   <main class="main">
@@ -134,7 +140,7 @@
       <RafterControls />
       <LightingStatsPanel />
     </div>
-    <PropertyPanel />
+    <PropertyPanel on:openLightManager={handleOpenLightManager} />
   </main>
 
   <StatusBar {mousePos} {snapType} />
@@ -143,6 +149,10 @@
     visible={showLengthInput}
     on:submit={handleLengthSubmit}
     on:cancel={handleLengthCancel}
+  />
+  <LightDefinitionManager
+    visible={showLightManager}
+    on:close={handleCloseLightManager}
   />
 </div>
 
@@ -174,7 +184,7 @@
     padding: 0 16px;
     background: var(--panel-bg);
     border-bottom: 1px solid var(--border-color);
-    height: 52px;
+    min-height: 80px;
     flex-shrink: 0;
   }
 

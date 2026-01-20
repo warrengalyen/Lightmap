@@ -8,8 +8,7 @@ bool isPointInPolygon(vec2 point) {
   bool inside = false;
 
   for (int i = 0, j = 63; i < 64; i++) {
-    if (i >= uVertexCount)
-      break;
+    if (i >= uVertexCount) break;
 
     int prevIndex = i == 0 ? uVertexCount - 1 : i - 1;
 

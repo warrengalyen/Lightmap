@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { lightingStatsConfig, lightingMetrics, setRoomType } from '../stores/lightingStatsStore';
+  import { onMount } from 'svelte';
+  import { lightingStatsConfig, lightingMetrics, setRoomType, toggleLightingStats } from '../stores/lightingStatsStore';
   import type { LightingMetrics, LightingStatsConfig, RoomType } from '../types';
   import { ROOM_LIGHTING_STANDARDS } from '../types';
 
@@ -8,6 +9,56 @@
 
   $: config = $lightingStatsConfig;
   $: metrics = $lightingMetrics;
+
+  // Drag state
+  let panelElement: HTMLDivElement;
+  let isDragging = false;
+  let dragOffset = { x: 0, y: 0 };
+  let position = { x: -1, y: -1 }; // -1 means use default CSS position
+
+  function handleMouseDown(e: MouseEvent): void {
+    // Only drag from the header area
+    const target = e.target as HTMLElement;
+    if (target.closest('select') || target.closest('button')) return;
+
+    isDragging = true;
+    const rect = panelElement.getBoundingClientRect();
+    const parentRect = panelElement.parentElement?.getBoundingClientRect() || { left: 0, top: 0 };
+
+    // Initialize position if first drag
+    if (position.x === -1) {
+      position.x = rect.left - parentRect.left;
+      position.y = rect.top - parentRect.top;
+    }
+
+    dragOffset.x = e.clientX - rect.left;
+    dragOffset.y = e.clientY - rect.top;
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }
+
+  function handleMouseMove(e: MouseEvent): void {
+    if (!isDragging || !panelElement.parentElement) return;
+
+    const parentRect = panelElement.parentElement.getBoundingClientRect();
+    const panelRect = panelElement.getBoundingClientRect();
+
+    let newX = e.clientX - parentRect.left - dragOffset.x;
+    let newY = e.clientY - parentRect.top - dragOffset.y;
+
+    // Constrain to parent bounds
+    newX = Math.max(0, Math.min(newX, parentRect.width - panelRect.width));
+    newY = Math.max(0, Math.min(newY, parentRect.height - panelRect.height));
+
+    position = { x: newX, y: newY };
+  }
+
+  function handleMouseUp(): void {
+    isDragging = false;
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+  }
 
   function getGradeColor(grade: string): string {
     switch (grade) {
@@ -48,8 +99,21 @@
 </script>
 
 {#if config.visible}
-  <div class="stats-panel">
-    <h4>Lighting Analysis</h4>
+  <div
+    class="stats-panel"
+    class:dragging={isDragging}
+    bind:this={panelElement}
+    style={position.x >= 0 ? `left: ${position.x}px; top: ${position.y}px; right: auto;` : ''}
+  >
+    <div class="panel-header" on:mousedown={handleMouseDown}>
+      <h4>Lighting Analysis</h4>
+      <button class="close-button" on:click={toggleLightingStats} title="Close (Q)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
 
     <div class="room-type-selector">
       <label>
@@ -130,15 +194,61 @@
     z-index: 100;
     min-width: 220px;
     border: 1px solid var(--border-color);
+    user-select: none;
+  }
+
+  .stats-panel.dragging {
+    opacity: 0.9;
+    cursor: grabbing;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: -16px -16px 12px -16px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px 8px 0 0;
+    cursor: grab;
+  }
+
+  .panel-header:active {
+    cursor: grabbing;
+  }
+
+  .close-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .close-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+  }
+
+  .close-button svg {
+    width: 14px;
+    height: 14px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   h4 {
-    margin: 0 0 12px 0;
+    margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
   }
 
   .room-type-selector {

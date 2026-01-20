@@ -1,5 +1,6 @@
 import { writable, derived, get } from "svelte/store";
 import type { AppMode, ViewMode, Tool } from "../types";
+import { selectionService } from "../services/SelectionService";
 
 export const appMode = writable<AppMode>("drafting");
 export const viewMode = writable<ViewMode>("editor");
@@ -49,19 +50,7 @@ export function clearSelection(): void {
 
 // Light selection helpers
 export function selectLight(id: string, addToSelection: boolean = false): void {
-    if (addToSelection) {
-        selectedLightIds.update((ids) => {
-            const newIds = new Set(ids);
-            if (newIds.has(id)) {
-                newIds.delete(id); // Toggle off if already selected
-            } else {
-                newIds.add(id);
-            }
-            return newIds;
-        });
-    } else {
-        selectedLightIds.set(new Set([id]));
-    }
+    selectedLightIds.update((ids) => selectionService.selectItem(ids, id, addToSelection));
     selectedWallId.set(null);
     selectedVertexIndices.set(new Set());
 }
@@ -84,19 +73,7 @@ export function isLightSelected(id: string): boolean {
 
 // Vertex selection helpers
 export function selectVertex(index: number, addToSelection: boolean = false): void {
-    if (addToSelection) {
-        selectedVertexIndices.update((indices) => {
-            const newIndices = new Set(indices);
-            if (newIndices.has(index)) {
-                newIndices.delete(index); // Toggle off if already selected
-            } else {
-                newIndices.add(index);
-            }
-            return newIndices;
-        });
-    } else {
-        selectedVertexIndices.set(new Set([index]));
-    }
+    selectedVertexIndices.update((indices) => selectionService.selectItem(indices, index, addToSelection));
     selectedWallId.set(null);
     selectedLightIds.set(new Set());
 }

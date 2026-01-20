@@ -166,12 +166,21 @@ function validateDisplayPreferences(data: unknown): DisplayPreferences {
     const gridSnapEnabled = typeof prefs.gridSnapEnabled === "boolean" ? prefs.gridSnapEnabled : false;
     const gridSize = typeof prefs.gridSize === "number" && prefs.gridSize > 0 ? prefs.gridSize : 0.5;
 
+    // lightRadiusVisibility is optional for backwards compatibility
+    const validVisibilityValues = ["selected", "always", "never"];
+    const rawVisibility = prefs.lightRadiusVisibility as string | undefined;
+    const lightRadiusVisibility =
+        rawVisibility && validVisibilityValues.includes(rawVisibility)
+            ? (rawVisibility as "selected" | "always" | "never")
+            : "selected";
+
     return {
         useFractions: prefs.useFractions,
         snapThreshold: prefs.snapThreshold,
         unitFormat: prefs.unitFormat,
         gridSnapEnabled,
         gridSize,
+        lightRadiusVisibility,
     };
 }
 

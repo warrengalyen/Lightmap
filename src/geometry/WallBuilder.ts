@@ -74,7 +74,7 @@ export class WallBuilder {
         const start = this.vertices[this.vertices.length - 1];
         const length = distancePointToPoint(start, point);
 
-        if (length < MIN_SEGMENT_LENGTH_FT) {
+        if (length < MIN_WALL_LENGTH_FT) {
             return null;
         }
 

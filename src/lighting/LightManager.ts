@@ -6,9 +6,9 @@ import { getDefinitionById } from "../stores/lightDefinitionsStore";
 
 export class LightManager {
     private lights: Map<string, LightFixture> = new Map();
-    private getDefinition: (id: string) => LightDefinition | null;
+    private getDefinition: (id: string) => LightDefinition | undefined;
 
-    constructor(getDefinition: (id: string) => LightDefinition | null = getDefinitionById) {
+    constructor(getDefinition: (id: string) => LightDefinition | undefined = getDefinitionById) {
         this.getDefinition = getDefinition;
     }
 
