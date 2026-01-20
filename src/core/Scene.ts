@@ -56,6 +56,9 @@ export class Scene {
     private handleResize(): void {
         const width = this.container.clientWidth;
         const height = this.container.clientHeight;
+
+        if (width <=0 || height <= 0) return;
+        
         const aspect = width / height;
         const frustumSize = DEFAULT_FRUSTUM_SIZE / this.zoom;
 
@@ -66,6 +69,9 @@ export class Scene {
         this.camera.updateProjectionMatrix();
 
         this.renderer.setSize(width, height);
+
+        // Render immediately to avoid flickering
+        this.render();
     }
 
     private addGrid(): void {
