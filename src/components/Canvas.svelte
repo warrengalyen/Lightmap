@@ -215,14 +215,15 @@
     spacingWarningRenderer.updateWarnings(currentSpacingWarnings);
   }
 
-  // Fit camera to room bounds only when walls change
+  // Fit camera to room bounds only when walls change (but not during drag operations)
   let previousWallsLength = 0;
   let previousWallsJson = '';
   $: {
     const wallsJson = JSON.stringify(currentRoomState.walls.map(w => ({ start: w.start, end: w.end })));
     const wallsChanged = wallsJson !== previousWallsJson || currentRoomState.walls.length !== previousWallsLength;
 
-    if (scene && currentBounds && currentRoomState.walls.length > 0 && wallsChanged) {
+    // Don't auto-fit camera during drag operations
+    if (scene && currentBounds && currentRoomState.walls.length > 0 && wallsChanged && !dragManager?.isActive) {
       scene.fitToBounds(currentBounds);
       previousWallsLength = currentRoomState.walls.length;
       previousWallsJson = wallsJson;
