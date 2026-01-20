@@ -68,14 +68,8 @@
 
   function cycleLightRadiusVisibility(): void {
     displayPreferences.update(p => {
-      let newVisibility: LightRadiusVisibility;
-      if (p.lightRadiusVisibility === 'selected') {
-        newVisibility = 'always';
-      } else if (p.lightRadiusVisibility === 'always') {
-        newVisibility = 'never';
-      } else {
-        newVisibility = 'selected';
-      }
+      const newVisibility: LightRadiusVisibility =
+        p.lightRadiusVisibility === 'selected' ? 'always' : 'selected';
       return { ...p, lightRadiusVisibility: newVisibility };
     });
   }
@@ -84,7 +78,6 @@
     switch (visibility) {
       case 'selected': return 'Radius: Selected';
       case 'always': return 'Radius: Always';
-      case 'never': return 'Radius: Hidden';
       default: return 'Radius';
     }
   }
