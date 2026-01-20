@@ -105,13 +105,7 @@
 </script>
 
 <div class="app">
-  <header class="header">
-    <div class="header-left">
-      <img src={iconPath} alt="Lightmap" class="app-icon" />
-      <h1>Lightmap</h1>
-    </div>
-    <Toolbar on:toggleMeasurement={handleToggleMeasurement} />
-  </header>
+  <Toolbar on:toggleMeasurement={handleToggleMeasurement} />
 
   <main class="main">
     <div class="canvas-area">
@@ -177,40 +171,6 @@
     flex-direction: column;
     height: 100vh;
     background: var(--input-bg);
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 0 16px;
-    background: var(--panel-bg);
-    border-bottom: 1px solid var(--border-color);
-    min-height: 80px;
-    flex-shrink: 0;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .app-icon {
-    width: 48px;
-    height: 48px;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .tagline {
-    font-size: 12px;
-    color: var(--text-muted);
   }
 
   .main {

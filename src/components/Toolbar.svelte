@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { activeTool, viewMode, setActiveTool, setViewMode, selectedVertexIndex, selectedLightId, clearSelection } from '../stores/appStore';
   import { canPlaceLights, roomStore, resetRoom } from '../stores/roomStore';
   import { toggleRafters, rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
@@ -12,6 +12,10 @@
   import { importFromJSON } from '../persistence/jsonImport';
   import { saveNow, clearLocalStorage } from '../persistence/localStorage';
   import type { Tool, ViewMode, LightRadiusVisibility, RoomState } from '../types';
+
+  const iconPath = `${import.meta.env.BASE_URL}icons/lightmap_icon.png`;
+
+  let toolbarElement: HTMLDivElement;
 
   let fileInput: HTMLInputElement;
   let currentRoom: RoomState;
@@ -124,6 +128,28 @@
 
     input.value = '';
   }
+
+  function handleWheel(e: WheelEvent): void {
+    if (!toolbarElement) return;
+
+    // Convert vertical scroll to horizontal scroll
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      toolbarElement.scrollLeft += e.deltaY;
+    }
+  }
+
+  onMount(() => {
+    if (toolbarElement) {
+      toolbarElement.addEventListener('wheel', handleWheel, { passive: false });
+    }
+  });
+
+  onDestroy(() => {
+    if (toolbarElement) {
+      toolbarElement.removeEventListener('wheel', handleWheel);
+    }
+  });
 </script>
 
 <input
@@ -134,7 +160,14 @@
   style="display: none"
 />
 
-<div class="toolbar">
+<div class="toolbar" bind:this={toolbarElement}>
+  <div class="toolbar-section branding-section">
+    <div class="branding">
+      <img src={iconPath} alt="Lightmap" class="app-icon" />
+      <h1>Lightmap</h1>
+    </div>
+  </div>
+
   <div class="toolbar-section">
     <span class="section-label">File</span>
     <div class="button-group">
@@ -460,6 +493,15 @@
     background: var(--panel-bg);
     border-bottom: 1px solid var(--border-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* Hide scrollbar */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
   }
 
   .toolbar-section {
@@ -468,11 +510,38 @@
     gap: 4px;
     padding-right: 16px;
     border-right: 1px solid var(--border-color);
+    flex-shrink: 0;
   }
 
   .toolbar-section:last-child {
     border-right: none;
     padding-right: 0;
+  }
+
+  .branding-section {
+    padding-left: 0;
+    padding-right: 16px;
+    justify-content: center;
+  }
+
+  .branding {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+  }
+
+  .app-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
   }
 
   .section-label {
