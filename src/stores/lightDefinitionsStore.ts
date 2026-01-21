@@ -11,7 +11,9 @@ function loadCustomDefinitions(): LightDefinition[] {
         if (!data) return [];
         const parsed = JSON.parse(data) as LightDefinition[];
         // Filter out any that might have invalid data
-        return parsed.filter((d) => d.id && d.name && typeof d.lumen === "number");
+        return parsed.filter(
+            (d) => d.id && d.name && typeof d.lumen === "number",
+        );
     } catch (e) {
         console.error("Failed to load custom light definitions:", e);
         return [];
@@ -21,7 +23,9 @@ function loadCustomDefinitions(): LightDefinition[] {
 function saveCustomDefinitions(definitions: LightDefinition[]): void {
     try {
         // Only save custom definitions (those with custom- prefix)
-        const customDefs = definitions.filter((d) => d.id.startsWith("custom-"));
+        const customDefs = definitions.filter((d) =>
+            d.id.startsWith("custom-"),
+        );
         localStorage.setItem(STORAGE_KEY, JSON.stringify(customDefs));
     } catch (e) {
         console.error("Failed to save custom light definitions:", e);
@@ -39,17 +43,27 @@ lightDefinitions.subscribe((defs) => {
     saveCustomDefinitions(defs);
 });
 
-export const selectedDefinitionId = writable<string>(DEFAULT_LIGHT_DEFINITIONS[0].id);
+export const selectedDefinitionId = writable<string>(
+    DEFAULT_LIGHT_DEFINITIONS[0].id,
+);
 
-export const selectedDefinition = derived([lightDefinitions, selectedDefinitionId], ([$definitions, $selectedId]) => {
-    return $definitions.find((d) => d.id === $selectedId) ?? $definitions[0];
-});
+export const selectedDefinition = derived(
+    [lightDefinitions, selectedDefinitionId],
+    ([$definitions, $selectedId]) => {
+        return (
+            $definitions.find((d) => d.id === $selectedId) ?? $definitions[0]
+        );
+    },
+);
 
 export function getDefinitionById(id: string): LightDefinition | undefined {
     return get(lightDefinitions).find((d) => d.id === id);
 }
 
-export function getPropertiesForLight(definitionId: string, fallbackProperties: LightProperties): LightProperties {
+export function getPropertiesForLight(
+    definitionId: string,
+    fallbackProperties: LightProperties,
+): LightProperties {
     const definition = getDefinitionById(definitionId);
     if (definition) {
         return {
@@ -61,7 +75,9 @@ export function getPropertiesForLight(definitionId: string, fallbackProperties: 
     return fallbackProperties;
 }
 
-export function addLightDefinition(definition: Omit<LightDefinition, "id">): LightDefinition {
+export function addLightDefinition(
+    definition: Omit<LightDefinition, "id">,
+): LightDefinition {
     const newDef: LightDefinition = {
         ...definition,
         id: `custom-${Date.now()}`,
@@ -70,8 +86,13 @@ export function addLightDefinition(definition: Omit<LightDefinition, "id">): Lig
     return newDef;
 }
 
-export function addLightDefinitionFromIES(iesData: IESData, warmth: number = 3000): LightDefinition {
-    const name = iesData.manufacturer ? `${iesData.manufacturer} - ${iesData.name}` : iesData.name;
+export function addLightDefinitionFromIES(
+    iesData: IESData,
+    warmth: number = 3000,
+): LightDefinition {
+    const name = iesData.manufacturer
+        ? `${iesData.manufacturer} - ${iesData.name}`
+        : iesData.name;
 
     // Create a descriptive name with key specs
     const displayName = `${name} (${iesData.lumens}lm, ${iesData.beamAngle}°)`;
@@ -84,8 +105,13 @@ export function addLightDefinitionFromIES(iesData: IESData, warmth: number = 300
     });
 }
 
-export function updateLightDefinition(id: string, updates: Partial<Omit<LightDefinition, "id">>): void {
-    lightDefinitions.update((defs) => defs.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+export function updateLightDefinition(
+    id: string,
+    updates: Partial<Omit<LightDefinition, "id">>,
+): void {
+    lightDefinitions.update((defs) =>
+        defs.map((d) => (d.id === id ? { ...d, ...updates } : d)),
+    );
 }
 
 export function deleteLightDefinition(id: string): void {
@@ -106,4 +132,12 @@ export function deleteLightDefinition(id: string): void {
 
 export function setSelectedDefinition(id: string): void {
     selectedDefinitionId.set(id);
+}
+
+export function mergeLightDefinitions(definitions: LightDefinition[]): void {
+    lightDefinitions.update((existingDefs) => {
+        const existingIds = new Set(existingDefs.map((d) => d.id));
+        const newDefs = definitions.filter((d) => !existingIds.has(d.id));
+        return [...existingDefs, ...newDefs];
+    });
 }

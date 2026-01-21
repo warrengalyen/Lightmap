@@ -1,7 +1,16 @@
-import type { RoomState } from "../types";
+import { get } from "svelte/store";
+import type { RoomState, LightDefinition } from "../types";
+import { lightDefinitions } from "../stores/lightDefinitionsStore";
+
+export interface ExportData {
+    version: 1;
+    roomState: RoomState;
+    lightDefinitions: LightDefinition[];
+}
 
 export function exportToJSON(state: RoomState): void {
-    const json = JSON.stringify(state, null, 2);
+    const exportData = createExportData(state);
+    const json = JSON.stringify(exportData, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
@@ -15,5 +24,32 @@ export function exportToJSON(state: RoomState): void {
 }
 
 export function getJSONString(state: RoomState): string {
-    return JSON.stringify(state, null, 2);
+    const exportData = createExportData(state);
+    return JSON.stringify(exportData, null, 2);
+}
+
+function createExportData(state: RoomState): ExportData {
+    // Get all current light definitions
+    const allDefinitions = get(lightDefinitions);
+
+    // Find which custom definitions are actually used by lights in this room
+    const usedDefinitionIds = new Set(
+        state.lights
+            .map((light) => light.definitionId)
+            .filter(
+                (id): id is string =>
+                    id !== undefined && id.startsWith("custom-"),
+            ),
+    );
+
+    // Only include custom definitions that are used
+    const usedCustomDefinitions = allDefinitions.filter((def) =>
+        usedDefinitionIds.has(def.id),
+    );
+
+    return {
+        version: 1,
+        roomState: state,
+        lightDefinitions: usedCustomDefinitions,
+    };
 }

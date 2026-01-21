@@ -1,4 +1,13 @@
-import type { RoomState, WallSegment, LightFixture, RafterConfig, DisplayPreferences } from "../types";
+import type {
+    RoomState,
+    WallSegment,
+    LightFixture,
+    RafterConfig,
+    DisplayPreferences,
+    LightDefinition,
+} from "../types";
+import { mergeLightDefinitions } from "../stores/lightDefinitionsStore";
+import type { ExportData } from "./jsonExport";
 
 export class ValidationError extends Error {
     constructor(message: string) {
@@ -15,7 +24,9 @@ export function validateRoomState(data: unknown): RoomState {
     const obj = data as Record<string, unknown>;
 
     if (typeof obj.ceilingHeight !== "number" || obj.ceilingHeight <= 0) {
-        throw new ValidationError("Invalid ceilingHeight: must be a positive number");
+        throw new ValidationError(
+            "Invalid ceilingHeight: must be a positive number",
+        );
     }
 
     if (!Array.isArray(obj.walls)) {
@@ -50,7 +61,9 @@ export function validateRoomState(data: unknown): RoomState {
     }
 
     if (obj.displayPreferences !== undefined) {
-        result.displayPreferences = validateDisplayPreferences(obj.displayPreferences);
+        result.displayPreferences = validateDisplayPreferences(
+            obj.displayPreferences,
+        );
     }
 
     return result;
@@ -71,7 +84,9 @@ function validateWallSegment(data: unknown): void {
     validateVector2(wall.end, "wall.end");
 
     if (typeof wall.length !== "number" || wall.length < 0) {
-        throw new ValidationError("Invalid wall length: must be a non-negative number");
+        throw new ValidationError(
+            "Invalid wall length: must be a non-negative number",
+        );
     }
 }
 
@@ -89,21 +104,37 @@ function validateLightFixture(data: unknown): void {
     validateVector2(light.position, "light.position");
 
     if (!light.properties || typeof light.properties !== "object") {
-        throw new ValidationError("Invalid light properties: must be an object");
+        throw new ValidationError(
+            "Invalid light properties: must be an object",
+        );
     }
 
     const props = light.properties as Record<string, unknown>;
 
     if (typeof props.lumen !== "number" || props.lumen < 0) {
-        throw new ValidationError("Invalid lumen: must be a non-negative number");
+        throw new ValidationError(
+            "Invalid lumen: must be a non-negative number",
+        );
     }
 
-    if (typeof props.beamAngle !== "number" || props.beamAngle <= 0 || props.beamAngle > 180) {
-        throw new ValidationError("Invalid beamAngle: must be between 0 and 180");
+    if (
+        typeof props.beamAngle !== "number" ||
+        props.beamAngle <= 0 ||
+        props.beamAngle > 180
+    ) {
+        throw new ValidationError(
+            "Invalid beamAngle: must be between 0 and 180",
+        );
     }
 
-    if (typeof props.warmth !== "number" || props.warmth < 1000 || props.warmth > 10000) {
-        throw new ValidationError("Invalid warmth: must be between 1000K and 10000K");
+    if (
+        typeof props.warmth !== "number" ||
+        props.warmth < 1000 ||
+        props.warmth > 10000
+    ) {
+        throw new ValidationError(
+            "Invalid warmth: must be between 1000K and 10000K",
+        );
     }
 }
 
@@ -114,12 +145,19 @@ function validateRafterConfig(data: unknown): RafterConfig {
 
     const config = data as Record<string, unknown>;
 
-    if (config.orientation !== "horizontal" && config.orientation !== "vertical") {
-        throw new ValidationError('Invalid rafter orientation: must be "horizontal" or "vertical"');
+    if (
+        config.orientation !== "horizontal" &&
+        config.orientation !== "vertical"
+    ) {
+        throw new ValidationError(
+            'Invalid rafter orientation: must be "horizontal" or "vertical"',
+        );
     }
 
     if (typeof config.spacing !== "number" || config.spacing <= 0) {
-        throw new ValidationError("Invalid rafter spacing: must be a positive number");
+        throw new ValidationError(
+            "Invalid rafter spacing: must be a positive number",
+        );
     }
 
     if (typeof config.offsetX !== "number") {
@@ -145,7 +183,9 @@ function validateRafterConfig(data: unknown): RafterConfig {
 
 function validateDisplayPreferences(data: unknown): DisplayPreferences {
     if (!data || typeof data !== "object") {
-        throw new ValidationError("Invalid display preferences: expected an object");
+        throw new ValidationError(
+            "Invalid display preferences: expected an object",
+        );
     }
 
     const prefs = data as Record<string, unknown>;
@@ -155,23 +195,33 @@ function validateDisplayPreferences(data: unknown): DisplayPreferences {
     }
 
     if (typeof prefs.snapThreshold !== "number" || prefs.snapThreshold < 0) {
-        throw new ValidationError("Invalid snapThreshold: must be a non-negative number");
+        throw new ValidationError(
+            "Invalid snapThreshold: must be a non-negative number",
+        );
     }
 
     if (prefs.unitFormat !== "feet-inches" && prefs.unitFormat !== "inches") {
-        throw new ValidationError('Invalid unitFormat: must be "feet-inches" or "inches"');
+        throw new ValidationError(
+            'Invalid unitFormat: must be "feet-inches" or "inches"',
+        );
     }
 
     // gridSnapEnabled and gridSize are optional for backwards compatibility
-    const gridSnapEnabled = typeof prefs.gridSnapEnabled === "boolean" ? prefs.gridSnapEnabled : false;
-    const gridSize = typeof prefs.gridSize === "number" && prefs.gridSize > 0 ? prefs.gridSize : 0.5;
+    const gridSnapEnabled =
+        typeof prefs.gridSnapEnabled === "boolean"
+            ? prefs.gridSnapEnabled
+            : false;
+    const gridSize =
+        typeof prefs.gridSize === "number" && prefs.gridSize > 0
+            ? prefs.gridSize
+            : 0.5;
 
     // lightRadiusVisibility is optional for backwards compatibility
-    const validVisibilityValues = ["selected", "always", "never"];
+    const validVisibilityValues = ["selected", "always"];
     const rawVisibility = prefs.lightRadiusVisibility as string | undefined;
     const lightRadiusVisibility =
         rawVisibility && validVisibilityValues.includes(rawVisibility)
-            ? (rawVisibility as "selected" | "always" | "never")
+            ? (rawVisibility as "selected" | "always")
             : "selected";
 
     return {
@@ -210,7 +260,7 @@ export async function importFromJSON(file: File): Promise<RoomState> {
         throw new ValidationError("Invalid JSON format");
     }
 
-    return validateRoomState(data);
+    return processImportData(data);
 }
 
 export function importFromString(jsonString: string): RoomState {
@@ -222,5 +272,56 @@ export function importFromString(jsonString: string): RoomState {
         throw new ValidationError("Invalid JSON format");
     }
 
+    return processImportData(data);
+}
+
+function processImportData(data: unknown): RoomState {
+    if (!data || typeof data !== "object") {
+        throw new ValidationError("Invalid data format: expected an object");
+    }
+
+    const obj = data as Record<string, unknown>;
+
+    // Check if this is the new export format (version 1+)
+    if (obj.version === 1 && obj.roomState) {
+        // New format: { version, roomState, lightDefinitions }
+        const exportData = data as ExportData;
+
+        // Validate and merge light definitions first
+        if (Array.isArray(exportData.lightDefinitions)) {
+            const validDefinitions = exportData.lightDefinitions.filter(
+                validateLightDefinition,
+            );
+            if (validDefinitions.length > 0) {
+                mergeLightDefinitions(validDefinitions);
+            }
+        }
+
+        // Then validate and return the room state
+        return validateRoomState(exportData.roomState);
+    }
+
+    // Legacy format: direct RoomState object
     return validateRoomState(data);
+}
+
+function validateLightDefinition(data: unknown): data is LightDefinition {
+    if (!data || typeof data !== "object") {
+        return false;
+    }
+
+    const def = data as Record<string, unknown>;
+
+    return (
+        typeof def.id === "string" &&
+        typeof def.name === "string" &&
+        typeof def.lumen === "number" &&
+        def.lumen >= 0 &&
+        typeof def.beamAngle === "number" &&
+        def.beamAngle > 0 &&
+        def.beamAngle <= 180 &&
+        typeof def.warmth === "number" &&
+        def.warmth >= 1000 &&
+        def.warmth <= 10000
+    );
 }
