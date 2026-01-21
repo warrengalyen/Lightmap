@@ -1,5 +1,5 @@
 import type { InputEvent } from "../../core/InputManager";
-import type { Vector2 } from "../../types";
+import type { Vector2, LightFixture, WallSegment } from "../../types";
 import type { InteractionContext, GrabModeState, SelectionState } from "../../types/interaction";
 import type { DragManager } from "../DragManager";
 import type { GrabModeDragOperation } from "../operations/GrabModeDragOperation";
@@ -18,6 +18,9 @@ export interface GrabModeHandlerConfig {
     setGrabModeActive: (active: boolean) => void;
     getSelection: () => SelectionState;
     getCurrentMousePos: () => Vector2;
+    getVertices: () => Vector2[];
+    getLights: () => LightFixture[];
+    getWalls: () => WallSegment[];
 }
 
 /**
@@ -32,7 +35,10 @@ export class GrabModeHandler extends BaseInteractionHandler {
     private config: GrabModeHandlerConfig;
     private callbacks: GrabModeHandlerCallbacks;
 
-    constructor(config: GrabModeHandlerConfig, callbacks: GrabModeHandlerCallbacks) {
+    constructor(
+        config: GrabModeHandlerConfig,
+        callbacks: GrabModeHandlerCallbacks,
+    ) {
         super();
         this.config = config;
         this.callbacks = callbacks;
@@ -81,10 +87,12 @@ export class GrabModeHandler extends BaseInteractionHandler {
             if (!event.ctrlKey && !event.altKey) {
                 if (event.key?.toLowerCase() === "x") {
                     this.config.dragManager.setAxisLock("x");
+                    this.updateAxisLockGuides();
                     return true;
                 }
                 if (event.key?.toLowerCase() === "y") {
                     this.config.dragManager.setAxisLock("y");
+                    this.updateAxisLockGuides();
                     return true;
                 }
             }
@@ -93,7 +101,10 @@ export class GrabModeHandler extends BaseInteractionHandler {
         return false;
     }
 
-    private shouldStartGrabMode(event: InputEvent, context: InteractionContext): boolean {
+    private shouldStartGrabMode(
+        event: InputEvent,
+        context: InteractionContext,
+    ): boolean {
         if (event.key?.toLowerCase() !== "g") return false;
         if (event.ctrlKey || event.altKey) return false;
         if (context.isGrabMode) return false;
@@ -107,7 +118,12 @@ export class GrabModeHandler extends BaseInteractionHandler {
     }
 
     private startGrabMode(): void {
-        const { dragManager, createGrabOperation, getSelection, getCurrentMousePos } = this.config;
+        const {
+            dragManager,
+            createGrabOperation,
+            getSelection,
+            getCurrentMousePos,
+        } = this.config;
 
         this.config.setGrabModeActive(true);
 
@@ -134,5 +150,54 @@ export class GrabModeHandler extends BaseInteractionHandler {
         this.config.dragManager.cancelDrag();
         this.config.setGrabModeActive(false);
         this.callbacks.onGrabModeCancel();
+    }
+
+    /**
+     * Update axis lock guides with the correct selection origin.
+     * This ensures the visual guides are drawn from the object's position,
+     * not the mouse position when grab mode started.
+     */
+    private updateAxisLockGuides(): void {
+        const origin = this.getSelectionOrigin();
+        if (origin) {
+            this.config.dragManager.updateAxisLockGuides(origin);
+        }
+    }
+
+    /**
+     * Get the position of the first selected object (vertex, light, or wall).
+     */
+    private getSelectionOrigin(): Vector2 | null {
+        const selection = this.config.getSelection();
+
+        // Check for selected vertices first
+        if (selection.selectedVertexIndices.size > 0) {
+            const vertices = this.config.getVertices();
+            const firstIndex = Array.from(selection.selectedVertexIndices)[0];
+            if (vertices[firstIndex]) {
+                return vertices[firstIndex];
+            }
+        }
+
+        // Check for selected lights
+        if (selection.selectedLightIds.size > 0) {
+            const lights = this.config.getLights();
+            const firstId = Array.from(selection.selectedLightIds)[0];
+            const light = lights.find((l) => l.id === firstId);
+            if (light) {
+                return light.position;
+            }
+        }
+
+        // Check for selected wall
+        if (selection.selectedWallId) {
+            const walls = this.config.getWalls();
+            const wall = walls.find((w) => w.id === selection.selectedWallId);
+            if (wall) {
+                return wall.start;
+            }
+        }
+
+        return null;
     }
 }

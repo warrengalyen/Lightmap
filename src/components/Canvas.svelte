@@ -643,6 +643,9 @@
         setGrabModeActive: (active) => { isGrabMode = active; },
         getSelection: () => buildInteractionContext().selection,
         getCurrentMousePos: () => currentMousePos,
+        getVertices: () => getVertices(currentRoomState),
+        getLights: () => currentRoomState.lights,
+        getWalls: () => currentRoomState.walls,
       },
       {
         onGrabModeStart: () => {},
