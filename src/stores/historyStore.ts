@@ -94,6 +94,9 @@ function createHistoryStore() {
         clear: () => {
             set({ past: [], future: [] });
             lastSavedState = structuredClone(get(roomStore));
+            // Reset pause state to prevent stale state from affecting future recordings
+            isRecordingPaused = false;
+            stateBeforePause = null;
         },
 
         canUndo: () => {

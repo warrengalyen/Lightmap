@@ -95,6 +95,7 @@
     clearLocalStorage();
     resetRoom();
     clearSelection();
+    historyStore.clear();
   }
 
   function handleSave(): void {
@@ -122,6 +123,7 @@
       const imported = await importFromJSON(file);
       roomStore.set(imported);
       clearSelection();
+      historyStore.clear();
     } catch (err) {
       alert(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
