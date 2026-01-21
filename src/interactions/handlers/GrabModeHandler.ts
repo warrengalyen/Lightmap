@@ -96,11 +96,13 @@ export class GrabModeHandler extends BaseInteractionHandler {
                 if (event.key?.toLowerCase() === "x") {
                     this.config.dragManager.setAxisLock("x");
                     this.updateAxisLockGuides();
+                    this.triggerImmediateUpdate();
                     return true;
                 }
                 if (event.key?.toLowerCase() === "y") {
                     this.config.dragManager.setAxisLock("y");
                     this.updateAxisLockGuides();
+                    this.triggerImmediateUpdate();
                     return true;
                 }
             }
@@ -176,6 +178,20 @@ export class GrabModeHandler extends BaseInteractionHandler {
                 this.originalSelectionOrigin,
             );
         }
+    }
+
+    /**
+     * Trigger an immediate drag update with the current mouse position.
+     * This ensures the object position updates immediately when axis lock changes,
+     * rather than waiting for the next mouse move.
+     */
+    private triggerImmediateUpdate(): void {
+        const currentPos = this.config.getCurrentMousePos();
+        this.config.dragManager.updateDrag(currentPos, {
+            shiftKey: false,
+            ctrlKey: false,
+            altKey: false,
+        });
     }
 
     /**

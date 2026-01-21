@@ -1,6 +1,13 @@
 import type { Vector2, LightFixture, WallSegment } from "../../types";
-import type { DragStartContext, DragUpdateContext, SelectionState } from "../../types/interaction";
-import type { SnapController, SnapGuide } from "../../controllers/SnapController";
+import type {
+    DragStartContext,
+    DragUpdateContext,
+    SelectionState,
+} from "../../types/interaction";
+import type {
+    SnapController,
+    SnapGuide,
+} from "../../controllers/SnapController";
 import type { DragManagerCallbacks } from "../DragManager";
 import { BaseDragOperation } from "../DragOperation";
 import { DEFAULT_GRID_SIZE_FT } from "../../constants/editor";
@@ -30,7 +37,8 @@ export class GrabModeDragOperation extends BaseDragOperation {
 
     private originalVertexPositions: Map<number, Vector2> = new Map();
     private originalLightPositions: Map<string, Vector2> = new Map();
-    private originalWallVertices: { start: Vector2; end: Vector2 } | null = null;
+    private originalWallVertices: { start: Vector2; end: Vector2 } | null =
+        null;
     private anchorVertexIndex: number | null = null;
     private anchorLightId: string | null = null;
     private wallId: string | null = null;
@@ -76,16 +84,25 @@ export class GrabModeDragOperation extends BaseDragOperation {
         let anchorPos: Vector2 | null = null;
 
         if (context.selection.selectedVertexIndices.size > 0) {
-            this.anchorVertexIndex = Array.from(context.selection.selectedVertexIndices)[0];
-            anchorPos = this.originalVertexPositions.get(this.anchorVertexIndex)!;
+            this.anchorVertexIndex = Array.from(
+                context.selection.selectedVertexIndices,
+            )[0];
+            anchorPos = this.originalVertexPositions.get(
+                this.anchorVertexIndex,
+            )!;
         } else if (context.selection.selectedLightIds.size > 0) {
-            this.anchorLightId = Array.from(context.selection.selectedLightIds)[0];
+            this.anchorLightId = Array.from(
+                context.selection.selectedLightIds,
+            )[0];
             anchorPos = this.originalLightPositions.get(this.anchorLightId)!;
         } else if (context.selection.selectedWallId) {
             this.wallId = context.selection.selectedWallId;
             const wall = this.config.getWallById(this.wallId);
             if (wall) {
-                this.originalWallVertices = { start: { ...wall.start }, end: { ...wall.end } };
+                this.originalWallVertices = {
+                    start: { ...wall.start },
+                    end: { ...wall.end },
+                };
                 anchorPos = wall.start;
             }
         }
@@ -139,34 +156,55 @@ export class GrabModeDragOperation extends BaseDragOperation {
 
         // Restore original light positions
         if (this.originalLightPositions.size > 0) {
-            this.callbacks.onUpdateLightPositions(new Map(this.originalLightPositions));
+            this.callbacks.onUpdateLightPositions(
+                new Map(this.originalLightPositions),
+            );
         }
 
         // Restore original wall position
         if (this.wallId && this.originalWallVertices) {
-            this.callbacks.onMoveWall(this.wallId, this.originalWallVertices.start, this.originalWallVertices.end);
+            this.callbacks.onMoveWall(
+                this.wallId,
+                this.originalWallVertices.start,
+                this.originalWallVertices.end,
+            );
         }
 
         this._isActive = false;
         this.cleanup();
     }
 
-    private updateVerticesAndLights(adjustedPos: Vector2, context: DragUpdateContext): void {
+    private updateVerticesAndLights(
+        adjustedPos: Vector2,
+        context: DragUpdateContext,
+    ): void {
         if (!this.startPosition || !this.selection) return;
 
         let targetPos = adjustedPos;
 
-        // Apply axis lock using the original position
-        if (context.axisLock !== "none") {
-            targetPos = this.applyAxisConstraint(targetPos, context.axisLock, this.startPosition);
-        }
-
-        // Grid snap
+        // Grid snap - apply before axis lock, but only to the free axis when locked
         const gridSize = this.config.getGridSize() || DEFAULT_GRID_SIZE_FT;
         if (this.config.getGridSnapEnabled() && gridSize > 0) {
-            targetPos = this.config.snapController.snapToGrid(targetPos, gridSize);
             if (context.axisLock === "none") {
+                // No axis lock - snap both axes
+                targetPos = this.config.snapController.snapToGrid(
+                    targetPos,
+                    gridSize,
+                );
                 this.callbacks.onSetSnapGuides([]);
+            } else {
+                // Axis lock active - only snap the free axis
+                const snapped = this.config.snapController.snapToGrid(
+                    targetPos,
+                    gridSize,
+                );
+                if (context.axisLock === "x") {
+                    // X-axis movement (horizontal) - only snap X, keep Y at original
+                    targetPos = { x: snapped.x, y: this.startPosition.y };
+                } else {
+                    // Y-axis movement (vertical) - only snap Y, keep X at original
+                    targetPos = { x: this.startPosition.x, y: snapped.y };
+                }
             }
         }
         // Shift snapping for single items
@@ -174,13 +212,27 @@ export class GrabModeDragOperation extends BaseDragOperation {
             const result = this.handleShiftSnapping(targetPos);
             targetPos = result.snappedPos;
             if (context.axisLock !== "none") {
-                targetPos = this.applyAxisConstraint(targetPos, context.axisLock, this.startPosition);
+                targetPos = this.applyAxisConstraint(
+                    targetPos,
+                    context.axisLock,
+                    this.startPosition,
+                );
             }
             if (context.axisLock === "none") {
                 this.callbacks.onSetSnapGuides(result.guides);
             }
-        } else if (context.axisLock === "none") {
-            this.callbacks.onSetSnapGuides([]);
+        } else {
+            // No grid snap, no shift snap - just apply axis lock if active
+            if (context.axisLock !== "none") {
+                targetPos = this.applyAxisConstraint(
+                    targetPos,
+                    context.axisLock,
+                    this.startPosition,
+                );
+            }
+            if (context.axisLock === "none") {
+                this.callbacks.onSetSnapGuides([]);
+            }
         }
 
         // Calculate delta from anchor point
@@ -219,13 +271,18 @@ export class GrabModeDragOperation extends BaseDragOperation {
     }
 
     private updateWall(adjustedPos: Vector2, context: DragUpdateContext): void {
-        if (!this.wallId || !this.originalWallVertices || !this.startPosition) return;
+        if (!this.wallId || !this.originalWallVertices || !this.startPosition)
+            return;
 
         let constrainedPos = adjustedPos;
 
         // Apply axis lock using the original position
         if (context.axisLock !== "none") {
-            constrainedPos = this.applyAxisConstraint(adjustedPos, context.axisLock, this.startPosition);
+            constrainedPos = this.applyAxisConstraint(
+                adjustedPos,
+                context.axisLock,
+                this.startPosition,
+            );
         }
 
         const delta = this.calculateDelta(this.startPosition, constrainedPos);
@@ -248,7 +305,10 @@ export class GrabModeDragOperation extends BaseDragOperation {
         this.callbacks.onMoveWall(this.wallId, newStart, newEnd);
     }
 
-    private handleShiftSnapping(targetPos: Vector2): { snappedPos: Vector2; guides: SnapGuide[] } {
+    private handleShiftSnapping(targetPos: Vector2): {
+        snappedPos: Vector2;
+        guides: SnapGuide[];
+    } {
         if (!this.selection) {
             return { snappedPos: targetPos, guides: [] };
         }
@@ -260,7 +320,11 @@ export class GrabModeDragOperation extends BaseDragOperation {
             this.anchorVertexIndex !== null
         ) {
             const vertices = this.config.getVertices();
-            return this.config.snapController.snapToVertices(targetPos, vertices, this.anchorVertexIndex);
+            return this.config.snapController.snapToVertices(
+                targetPos,
+                vertices,
+                this.anchorVertexIndex,
+            );
         }
 
         // Only snap for single light selection
@@ -270,7 +334,11 @@ export class GrabModeDragOperation extends BaseDragOperation {
             this.anchorLightId !== null
         ) {
             const lights = this.config.getLights();
-            return this.config.snapController.snapToLights(targetPos, lights, this.anchorLightId);
+            return this.config.snapController.snapToLights(
+                targetPos,
+                lights,
+                this.anchorLightId,
+            );
         }
 
         return { snappedPos: targetPos, guides: [] };
@@ -295,20 +363,35 @@ export class GrabModeDragOperation extends BaseDragOperation {
         const numWalls = walls.length;
         const excludeIndices = [wallIndex, (wallIndex + 1) % numWalls];
 
-        return this.config.snapController.snapWallToVertices(newStart, newEnd, vertices, excludeIndices);
+        return this.config.snapController.snapWallToVertices(
+            newStart,
+            newEnd,
+            vertices,
+            excludeIndices,
+        );
     }
 
     private calculateDeltaFromAnchor(targetPos: Vector2): Vector2 {
         let delta = { x: 0, y: 0 };
 
-        if (this.anchorVertexIndex !== null && this.originalVertexPositions.has(this.anchorVertexIndex)) {
-            const anchorOriginal = this.originalVertexPositions.get(this.anchorVertexIndex)!;
+        if (
+            this.anchorVertexIndex !== null &&
+            this.originalVertexPositions.has(this.anchorVertexIndex)
+        ) {
+            const anchorOriginal = this.originalVertexPositions.get(
+                this.anchorVertexIndex,
+            )!;
             delta = {
                 x: targetPos.x - anchorOriginal.x,
                 y: targetPos.y - anchorOriginal.y,
             };
-        } else if (this.anchorLightId !== null && this.originalLightPositions.has(this.anchorLightId)) {
-            const anchorOriginal = this.originalLightPositions.get(this.anchorLightId)!;
+        } else if (
+            this.anchorLightId !== null &&
+            this.originalLightPositions.has(this.anchorLightId)
+        ) {
+            const anchorOriginal = this.originalLightPositions.get(
+                this.anchorLightId,
+            )!;
             delta = {
                 x: targetPos.x - anchorOriginal.x,
                 y: targetPos.y - anchorOriginal.y,
