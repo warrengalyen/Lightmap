@@ -19,6 +19,7 @@
   let selectedWall: WallSegment | null = null;
   let selectedVertex: import('../types').Vector2 | null = null;
   let canPlace: boolean;
+  let ceilingHeightInput: string = '';
   let wallLengthInput: string = '';
   let vertexXInput: string = '';
   let vertexYInput: string = '';
@@ -62,6 +63,8 @@
       : null;
   }
 
+  $: ceilingHeightInput = formatImperial(currentRoom.ceilingHeight);
+
   $: if (selectedWall) {
     wallLengthInput = formatImperial(selectedWall.length);
   }
@@ -71,10 +74,23 @@
     vertexYInput = selectedVertex.y.toFixed(2);
   }
 
-  function updateCeilingHeight(e: Event): void {
-    const value = parseFloat((e.target as HTMLInputElement).value);
-    if (!isNaN(value) && value > 0) {
-      roomStore.update(state => ({ ...state, ceilingHeight: value }));
+  function handleCeilingHeightChange(e: Event): void {
+    ceilingHeightInput = (e.target as HTMLInputElement).value;
+  }
+
+  function handleCeilingHeightKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Enter') {
+      applyCeilingHeight();
+    }
+  }
+
+  function applyCeilingHeight(): void {
+    const newHeight = parseImperial(ceilingHeightInput);
+    if (newHeight !== null && newHeight > 0 && newHeight <= 50) {
+      roomStore.update(state => ({ ...state, ceilingHeight: newHeight }));
+    } else {
+      // Reset to current value if invalid
+      ceilingHeightInput = formatImperial(currentRoom.ceilingHeight);
     }
   }
 
@@ -193,19 +209,18 @@
   <h3>Properties</h3>
 
   <div class="property-section">
-    <h4>Room</h4>
     <label class="property-row">
       <span>Ceiling Height</span>
       <div class="input-group">
         <input
-          type="number"
-          min="1"
-          max="50"
-          step="0.5"
-          value={currentRoom.ceilingHeight}
-          on:change={updateCeilingHeight}
+          type="text"
+          value={ceilingHeightInput}
+          on:input={handleCeilingHeightChange}
+          on:keydown={handleCeilingHeightKeydown}
+          on:blur={applyCeilingHeight}
+          class="height-input"
+          placeholder="e.g., 8' 6&quot;"
         />
-        <span class="unit">ft</span>
       </div>
     </label>
     <div class="property-row info">
@@ -503,7 +518,8 @@
     border-color: var(--button-active);
   }
 
-  .length-input {
+  .length-input,
+  .height-input {
     width: 90px;
     padding: 4px 8px;
     border: 1px solid var(--input-border);
@@ -514,7 +530,8 @@
     text-align: right;
   }
 
-  .length-input:focus {
+  .length-input:focus,
+  .height-input:focus {
     outline: none;
     border-color: var(--button-active);
   }
