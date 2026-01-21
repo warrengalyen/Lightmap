@@ -21,7 +21,7 @@
   let currentRoom: RoomState;
   $: currentRoom = $roomStore;
 
-  const dispatch = createEventDispatcher<{ toggleMeasurement: void }>();
+  const dispatch = createEventDispatcher<{ toggleMeasurement: void; openLightManager: void }>();
 
   let currentTool: Tool;
   let currentViewMode: ViewMode;
@@ -68,6 +68,10 @@
 
   function toggleMeasurement(): void {
     dispatch('toggleMeasurement');
+  }
+
+  function openLightManager(): void {
+    dispatch('openLightManager');
   }
 
   function cycleLightRadiusVisibility(): void {
@@ -454,20 +458,33 @@
   </div>
 
   <div class="toolbar-section">
-    <span class="section-label">Analysis</span>
-    <button
-      class="toggle-button"
-      class:active={statsVisible}
-      on:click={toggleLightingStats}
-      title="Toggle Lighting Stats (Q)"
-    >
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-      <span class="label">Stats</span>
-    </button>
+    <span class="section-label">Settings</span>
+    <div class="button-group">
+      <button
+        class="toggle-button"
+        class:active={statsVisible}
+        on:click={toggleLightingStats}
+        title="Toggle Lighting Stats (Q)"
+      >
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span class="label">Stats</span>
+      </button>
+      <button
+        class="tool-button"
+        on:click={openLightManager}
+        title="Manage Light Definitions"
+      >
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <span class="label">Lights</span>
+      </button>
+    </div>
   </div>
 
   <div class="toolbar-section">
@@ -537,8 +554,8 @@
   }
 
   .app-icon {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
   }
 
   .branding-text {

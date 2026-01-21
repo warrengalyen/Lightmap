@@ -105,7 +105,7 @@
 </script>
 
 <div class="app">
-  <Toolbar on:toggleMeasurement={handleToggleMeasurement} />
+  <Toolbar on:toggleMeasurement={handleToggleMeasurement} on:openLightManager={handleOpenLightManager} />
 
   <main class="main">
     <div class="canvas-area">
