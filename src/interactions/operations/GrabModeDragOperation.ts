@@ -156,7 +156,7 @@ export class GrabModeDragOperation extends BaseDragOperation {
 
         let targetPos = adjustedPos;
 
-        // Apply axis lock
+        // Apply axis lock using the original position
         if (context.axisLock !== "none") {
             targetPos = this.applyAxisConstraint(targetPos, context.axisLock, this.startPosition);
         }
@@ -223,7 +223,7 @@ export class GrabModeDragOperation extends BaseDragOperation {
 
         let constrainedPos = adjustedPos;
 
-        // Apply axis lock
+        // Apply axis lock using the original position
         if (context.axisLock !== "none") {
             constrainedPos = this.applyAxisConstraint(adjustedPos, context.axisLock, this.startPosition);
         }

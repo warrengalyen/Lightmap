@@ -1,6 +1,10 @@
 import type { InputEvent } from "../../core/InputManager";
 import type { Vector2, LightFixture, WallSegment } from "../../types";
-import type { InteractionContext, GrabModeState, SelectionState } from "../../types/interaction";
+import type {
+    InteractionContext,
+    GrabModeState,
+    SelectionState,
+} from "../../types/interaction";
 import type { DragManager } from "../DragManager";
 import type { GrabModeDragOperation } from "../operations/GrabModeDragOperation";
 import { BaseInteractionHandler } from "../InteractionHandler";
@@ -34,6 +38,10 @@ export class GrabModeHandler extends BaseInteractionHandler {
 
     private config: GrabModeHandlerConfig;
     private callbacks: GrabModeHandlerCallbacks;
+
+    // Store the original selection origin when grab mode starts
+    // This is used for axis lock guides to match the constraint behavior
+    private originalSelectionOrigin: Vector2 | null = null;
 
     constructor(
         config: GrabModeHandlerConfig,
@@ -125,6 +133,9 @@ export class GrabModeHandler extends BaseInteractionHandler {
             getCurrentMousePos,
         } = this.config;
 
+        // Capture the original selection origin before any movement
+        this.originalSelectionOrigin = this.getSelectionOrigin();
+
         this.config.setGrabModeActive(true);
 
         const operation = createGrabOperation();
@@ -143,29 +154,33 @@ export class GrabModeHandler extends BaseInteractionHandler {
     private confirmGrabMode(): void {
         this.config.dragManager.commitDrag();
         this.config.setGrabModeActive(false);
+        this.originalSelectionOrigin = null;
         this.callbacks.onGrabModeConfirm();
     }
 
     private cancelGrabMode(): void {
         this.config.dragManager.cancelDrag();
         this.config.setGrabModeActive(false);
+        this.originalSelectionOrigin = null;
         this.callbacks.onGrabModeCancel();
     }
 
     /**
-     * Update axis lock guides with the correct selection origin.
-     * This ensures the visual guides are drawn from the object's position,
-     * not the mouse position when grab mode started.
+     * Update axis lock guides with the original selection origin.
+     * Uses the position captured when grab mode started, so guides
+     * match the axis constraint behavior (which uses original position).
      */
     private updateAxisLockGuides(): void {
-        const origin = this.getSelectionOrigin();
-        if (origin) {
-            this.config.dragManager.updateAxisLockGuides(origin);
+        if (this.originalSelectionOrigin) {
+            this.config.dragManager.updateAxisLockGuides(
+                this.originalSelectionOrigin,
+            );
         }
     }
 
     /**
-     * Get the position of the first selected object (vertex, light, or wall).
+     * Get the current position of the first selected object (vertex, light, or wall).
+     * Used to capture the original position when grab mode starts.
      */
     private getSelectionOrigin(): Vector2 | null {
         const selection = this.config.getSelection();
@@ -175,7 +190,7 @@ export class GrabModeHandler extends BaseInteractionHandler {
             const vertices = this.config.getVertices();
             const firstIndex = Array.from(selection.selectedVertexIndices)[0];
             if (vertices[firstIndex]) {
-                return vertices[firstIndex];
+                return { ...vertices[firstIndex] };
             }
         }
 
@@ -185,7 +200,7 @@ export class GrabModeHandler extends BaseInteractionHandler {
             const firstId = Array.from(selection.selectedLightIds)[0];
             const light = lights.find((l) => l.id === firstId);
             if (light) {
-                return light.position;
+                return { ...light.position };
             }
         }
 
@@ -194,7 +209,7 @@ export class GrabModeHandler extends BaseInteractionHandler {
             const walls = this.config.getWalls();
             const wall = walls.find((w) => w.id === selection.selectedWallId);
             if (wall) {
-                return wall.start;
+                return { ...wall.start };
             }
         }
 

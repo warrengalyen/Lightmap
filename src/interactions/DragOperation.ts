@@ -10,7 +10,6 @@ export abstract class BaseDragOperation implements IDragOperation {
 
     protected _isActive: boolean = false;
     protected startPosition: Vector2 | null = null;
-    protected currentAxisLock: AxisLock = "none";
 
     isActive(): boolean {
         return this._isActive;
