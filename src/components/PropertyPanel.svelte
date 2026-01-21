@@ -4,6 +4,7 @@
   import { selectedLightId, selectedLightIds, selectedWallId, selectedVertexIndex, clearLightSelection, clearVertexSelection, activeTool } from '../stores/appStore';
   import { lightDefinitions, selectedDefinitionId, setSelectedDefinition, getDefinitionById } from '../stores/lightDefinitionsStore';
   import { formatImperial, parseImperial } from '../utils/format';
+  import { displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
   import type { LightFixture, WallSegment, RoomState, LightDefinition } from '../types';
 
   const dispatch = createEventDispatcher<{ openLightManager: void }>();
@@ -23,8 +24,10 @@
   let vertexYInput: string = '';
   let definitions: LightDefinition[] = [];
   let currentDefinitionId: string;
+  let unitFormat: 'feet-inches' | 'inches';
 
   $: currentRoom = $roomStore;
+  $: unitFormat = $displayPreferences.unitFormat;
   $: currentSelectedLightId = $selectedLightId;
   $: currentSelectedLightIds = $selectedLightIds;
   $: currentSelectedWallId = $selectedWallId;
@@ -218,6 +221,12 @@
     <div class="property-row info">
       <span>Lights</span>
       <span class="light-count">{currentRoom.lights.length}</span>
+    </div>
+    <div class="property-row">
+      <span>Units</span>
+      <button class="unit-toggle" on:click={toggleUnitFormat} title="Toggle Units (U)">
+        {unitFormat === 'feet-inches' ? "ft' in\"" : 'in"'}
+      </button>
     </div>
   </div>
 
@@ -678,6 +687,21 @@
   }
 
   .manage-button:hover {
+    background: var(--button-bg-hover);
+  }
+
+  .unit-toggle {
+    padding: 4px 10px;
+    background: var(--button-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .unit-toggle:hover {
     background: var(--button-bg-hover);
   }
 </style>

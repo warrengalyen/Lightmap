@@ -2,7 +2,7 @@
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { activeTool, viewMode, setActiveTool, setViewMode, selectedVertexIndex, selectedLightId, clearSelection } from '../stores/appStore';
   import { canPlaceLights, roomStore, resetRoom } from '../stores/roomStore';
-  import { toggleRafters, rafterConfig, displayPreferences, toggleUnitFormat } from '../stores/settingsStore';
+  import { toggleRafters, rafterConfig, displayPreferences } from '../stores/settingsStore';
   import { toggleLightingStats, lightingStatsConfig } from '../stores/lightingStatsStore';
   import { toggleDeadZones, deadZoneConfig } from '../stores/deadZoneStore';
   import { toggleSpacingWarnings, spacingConfig } from '../stores/spacingStore';
@@ -29,7 +29,6 @@
   let raftersVisible: boolean;
   let undoEnabled: boolean;
   let redoEnabled: boolean;
-  let unitFormat: 'feet-inches' | 'inches';
   let statsVisible: boolean;
   let deadZonesEnabled: boolean;
   let spacingEnabled: boolean;
@@ -45,7 +44,6 @@
   $: raftersVisible = $rafterConfig.visible;
   $: undoEnabled = $canUndo;
   $: redoEnabled = $canRedo;
-  $: unitFormat = $displayPreferences.unitFormat;
   $: statsVisible = $lightingStatsConfig.visible;
   $: deadZonesEnabled = $deadZoneConfig.enabled;
   $: spacingEnabled = $spacingConfig.enabled;
@@ -487,23 +485,6 @@
     </div>
   </div>
 
-  <div class="toolbar-section">
-    <span class="section-label">Units</span>
-    <button
-      class="toggle-button"
-      on:click={toggleUnitFormat}
-      title="Toggle Units (U)"
-    >
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 3H3v18h18V3z"/>
-        <path d="M21 9H3"/>
-        <path d="M21 15H3"/>
-        <path d="M9 3v18"/>
-        <path d="M15 3v18"/>
-      </svg>
-      <span class="label">{unitFormat === 'feet-inches' ? "ft' in\"" : 'in"'}</span>
-    </button>
-  </div>
 </div>
 
 <style>
