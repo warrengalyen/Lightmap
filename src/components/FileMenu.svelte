@@ -1,6 +1,6 @@
 <script lang="ts">
   import { roomStore, resetRoom } from '../stores/roomStore';
-  import { clearSelection } from '../stores/appStore';
+  import { clearSelection, requestCameraFit } from '../stores/appStore';
   import { exportToJSON } from '../persistence/jsonExport';
   import { importFromJSON } from '../persistence/jsonImport';
   import { saveNow, clearLocalStorage } from '../persistence/localStorage';
@@ -44,6 +44,7 @@
       const imported = await importFromJSON(file);
       roomStore.set(imported);
       clearSelection();
+      requestCameraFit();
     } catch (err) {
       alert(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }

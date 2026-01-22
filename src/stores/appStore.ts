@@ -9,6 +9,13 @@ export const selectedLightIds = writable<Set<string>>(new Set());
 export const selectedWallId = writable<string | null>(null);
 export const selectedVertexIndices = writable<Set<number>>(new Set());
 
+// Signal to request camera fit (only used when loading/importing projects)
+export const shouldFitCamera = writable<boolean>(false);
+
+export function requestCameraFit(): void {
+  shouldFitCamera.set(true);
+}
+
 // Derived store for backward compatibility - returns first selected vertex or null
 export const selectedVertexIndex = derived(selectedVertexIndices, ($indices) =>
     $indices.size > 0 ? Array.from($indices)[0] : null,

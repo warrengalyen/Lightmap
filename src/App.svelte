@@ -11,7 +11,7 @@
   import LightingStatsPanel from './components/LightingStatsPanel.svelte';
   import LightDefinitionManager from './components/LightDefinitionManager.svelte';
   import { roomStore } from './stores/roomStore';
-  import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
+  import { activeTool, setActiveTool, requestCameraFit } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
   import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
   import { togglePropertiesPanel } from './stores/propertiesPanelStore';
@@ -97,6 +97,8 @@
       roomStore.set(savedState);
       // Initialize settings from saved room state
       initSettingsFromRoom();
+      // Fit camera to the loaded project
+      requestCameraFit();
     }
 
     cleanupAutoSave = setupAutoSave(roomStore);
