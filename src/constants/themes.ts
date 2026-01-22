@@ -36,6 +36,35 @@ export interface Theme {
         buttonBackgroundHover: string;
         buttonActive: string;
         statusBarBackground: string;
+
+        // Status colors
+        statusSuccess: string;
+        statusWarning: string;
+        statusError: string;
+        statusInfo: string;
+
+        // Measurement colors
+        measurementX: string;
+        measurementY: string;
+        measurementDistance: string;
+        measurementActive: string;
+
+        // Spacing scale
+        spacing4: string;
+        spacing8: string;
+        spacing12: string;
+        spacing16: string;
+        spacing24: string;
+
+        // Border radius
+        radiusSmall: string;
+        radiusMedium: string;
+        radiusLarge: string;
+
+        // Shadow scale
+        shadowSmall: string;
+        shadowMedium: string;
+        shadowLarge: string;
     };
 }
 
@@ -74,6 +103,35 @@ export const BLUEPRINT_THEME: Theme = {
         buttonBackgroundHover: "#3e3e42",
         buttonActive: "#0066cc",
         statusBarBackground: "#2d2d30",
+
+        // Status colors
+        statusSuccess: "#22c55e",
+        statusWarning: "#ff9500",
+        statusError: "#ef4444",
+        statusInfo: "#0066cc",
+
+        // Measurement colors
+        measurementX: "#ff6600",
+        measurementY: "#0066ff",
+        measurementDistance: "#ff00ff",
+        measurementActive: "#ff9500",
+
+        // Spacing scale
+        spacing4: "4px",
+        spacing8: "8px",
+        spacing12: "12px",
+        spacing16: "16px",
+        spacing24: "24px",
+
+        // Border radius
+        radiusSmall: "4px",
+        radiusMedium: "6px",
+        radiusLarge: "8px",
+
+        // Shadow scale
+        shadowSmall: "0 1px 3px rgba(0, 0, 0, 0.3)",
+        shadowMedium: "0 2px 8px rgba(0, 0, 0, 0.5)",
+        shadowLarge: "0 2px 10px rgba(0, 0, 0, 0.5)",
     },
 };
 
@@ -112,6 +170,35 @@ export const DARK_THEME: Theme = {
         buttonBackgroundHover: "#3e3e42",
         buttonActive: "#0066cc",
         statusBarBackground: "#2d2d30",
+
+        // Status colors
+        statusSuccess: "#22c55e",
+        statusWarning: "#ff9500",
+        statusError: "#ef4444",
+        statusInfo: "#0066cc",
+
+        // Measurement colors
+        measurementX: "#ff6600",
+        measurementY: "#0066ff",
+        measurementDistance: "#ff00ff",
+        measurementActive: "#ff9500",
+
+        // Spacing scale
+        spacing4: "4px",
+        spacing8: "8px",
+        spacing12: "12px",
+        spacing16: "16px",
+        spacing24: "24px",
+
+        // Border radius
+        radiusSmall: "4px",
+        radiusMedium: "6px",
+        radiusLarge: "8px",
+
+        // Shadow scale
+        shadowSmall: "0 1px 3px rgba(0, 0, 0, 0.3)",
+        shadowMedium: "0 2px 8px rgba(0, 0, 0, 0.5)",
+        shadowLarge: "0 2px 10px rgba(0, 0, 0, 0.5)",
     },
 };
 
@@ -150,6 +237,35 @@ export const LIGHT_THEME: Theme = {
         buttonBackgroundHover: "#e0e0e0",
         buttonActive: "#0066cc",
         statusBarBackground: "#f8f8f8",
+
+        // Status colors
+        statusSuccess: "#22c55e",
+        statusWarning: "#ff9500",
+        statusError: "#ef4444",
+        statusInfo: "#0066cc",
+
+        // Measurement colors
+        measurementX: "#ff6600",
+        measurementY: "#0066ff",
+        measurementDistance: "#ff00ff",
+        measurementActive: "#ff9500",
+
+        // Spacing scale
+        spacing4: "4px",
+        spacing8: "8px",
+        spacing12: "12px",
+        spacing16: "16px",
+        spacing24: "24px",
+
+        // Border radius
+        radiusSmall: "4px",
+        radiusMedium: "6px",
+        radiusLarge: "8px",
+
+        // Shadow scale
+        shadowSmall: "0 1px 3px rgba(0, 0, 0, 0.2)",
+        shadowMedium: "0 2px 8px rgba(0, 0, 0, 0.3)",
+        shadowLarge: "0 2px 10px rgba(0, 0, 0, 0.3)",
     },
 };
 

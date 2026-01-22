@@ -3,6 +3,8 @@
   import Canvas from './components/Canvas.svelte';
   import Toolbar from './components/Toolbar.svelte';
   import PropertyPanel from './components/PropertyPanel.svelte';
+  import LightPropertiesPanel from './components/LightPropertiesPanel.svelte';
+  import LightToolPanel from './components/LightToolPanel.svelte';
   import StatusBar from './components/StatusBar.svelte';
   import LengthInput from './components/LengthInput.svelte';
   import RafterControls from './components/RafterControls.svelte';
@@ -12,10 +14,11 @@
   import { activeTool, setActiveTool, setViewMode } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
   import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
+  import { togglePropertiesPanel } from './stores/propertiesPanelStore';
   import './stores/themeStore'; // Initialize theme CSS variables
   import type { Vector2 } from './types';
 
-   const iconPath = `${import.meta.env.BASE_URL}icons/lightmap_icon.png`;
+  const iconPath = `${import.meta.env.BASE_URL}icons/lightmap_icon.png`;
 
   let canvasComponent: Canvas;
   let mousePos: Vector2 = { x: 0, y: 0 };
@@ -51,9 +54,11 @@
   function handleLengthCancel(): void {
     showLengthInput = false;
   }
+
   function handleOpenLightManager(): void {
     showLightManager = true;
   }
+
   function handleCloseLightManager(): void {
     showLightManager = false;
   }
@@ -79,6 +84,9 @@
         break;
       case 's':
         displayPreferences.update(p => ({ ...p, gridSnapEnabled: !p.gridSnapEnabled }));
+        break;
+      case 'p':
+        togglePropertiesPanel();
         break;
     }
   }
@@ -119,15 +127,15 @@
         <div class="measurement-panel">
           <div class="measurement-title">Measurement</div>
           <div class="measurement-row">
-            <span class="measurement-label" style="color: #ff6600;">ΔX:</span>
+            <span class="measurement-label" style="color: var(--measurement-x);">ΔX:</span>
             <span class="measurement-value">{Math.abs(measurement.deltaX).toFixed(2)} ft</span>
           </div>
           <div class="measurement-row">
-            <span class="measurement-label" style="color: #0066ff;">ΔY:</span>
+            <span class="measurement-label" style="color: var(--measurement-y);">ΔY:</span>
             <span class="measurement-value">{Math.abs(measurement.deltaY).toFixed(2)} ft</span>
           </div>
           <div class="measurement-row">
-            <span class="measurement-label" style="color: #ff00ff;">Distance:</span>
+            <span class="measurement-label" style="color: var(--measurement-distance);">Distance:</span>
             <span class="measurement-value">{measurement.distance.toFixed(2)} ft</span>
           </div>
           <div class="measurement-hint">Press M or Esc to clear</div>
@@ -135,8 +143,10 @@
       {/if}
       <RafterControls />
       <LightingStatsPanel />
+      <LightToolPanel on:openLightManager={handleOpenLightManager} />
+      <PropertyPanel />
+      <LightPropertiesPanel />
     </div>
-    <PropertyPanel on:openLightManager={handleOpenLightManager} />
   </main>
 
   <StatusBar {mousePos} {snapType} />
@@ -146,6 +156,7 @@
     on:submit={handleLengthSubmit}
     on:cancel={handleLengthCancel}
   />
+
   <LightDefinitionManager
     visible={showLightManager}
     on:close={handleCloseLightManager}
@@ -173,6 +184,7 @@
     background: var(--input-bg);
   }
 
+
   .main {
     display: flex;
     flex: 1;
@@ -187,13 +199,13 @@
 
   .measurement-panel {
     position: absolute;
-    top: 16px;
-    left: 16px;
-    background: rgba(45, 45, 48, 0.95);
+    top: var(--spacing-16);
+    left: var(--spacing-16);
+    background: var(--panel-bg);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 12px 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-12) var(--spacing-16);
+    box-shadow: var(--shadow-md);
     font-size: 13px;
     min-width: 160px;
   }
@@ -201,7 +213,7 @@
   .measurement-title {
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: var(--spacing-8);
     padding-bottom: 6px;
     border-bottom: 1px solid var(--border-color);
   }
@@ -209,7 +221,7 @@
   .measurement-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 4px;
+    margin-bottom: var(--spacing-4);
   }
 
   .measurement-label {

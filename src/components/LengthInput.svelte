@@ -126,12 +126,12 @@
   }
 
   input.error {
-    border-color: #ef4444;
+    border-color: var(--status-error);
   }
 
   .error-message {
     margin: 8px 0 0 0;
-    color: #ef4444;
+    color: var(--status-error);
     font-size: 12px;
   }
 

@@ -41,6 +41,11 @@ export interface DisplayPreferences {
     lightRadiusVisibility: LightRadiusVisibility;
 }
 
+export interface PropertiesPanelConfig {
+    visible: boolean;
+    position: { x: number; y: number };
+}
+
 export const DEFAULT_ROOM_STATE: RoomState = {
     ceilingHeight: 8.0,
     walls: [],

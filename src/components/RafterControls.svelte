@@ -1,5 +1,6 @@
 <script lang="ts">
   import { rafterConfig, setRafterOrientation, setRafterSpacing } from '../stores/settingsStore';
+  import FloatingPanel from './FloatingPanel.svelte';
   import type { RafterConfig } from '../types';
 
   let config: RafterConfig;
@@ -25,10 +26,15 @@
   }
 </script>
 
-{#if config.visible}
-  <div class="rafter-controls">
-    <h4>Rafter Settings</h4>
-
+<FloatingPanel
+  visible={config.visible}
+  title="Rafter Settings"
+  defaultX={16}
+  defaultY={60}
+  minWidth="200px"
+  persistenceKey="rafter-controls-panel"
+>
+  <div class="rafter-content">
     <label class="control-row">
       <span>Orientation</span>
       <select value={config.orientation} on:change={handleOrientationChange}>
@@ -82,27 +88,11 @@
       </div>
     </label>
   </div>
-{/if}
+</FloatingPanel>
 
 <style>
-  .rafter-controls {
-    position: absolute;
-    top: 60px;
-    left: 16px;
-    background: rgba(45, 45, 48, 0.95);
-    padding: 16px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--border-color);
-    z-index: 100;
-    min-width: 200px;
-  }
-
-  h4 {
-    margin: 0 0 12px 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
+  .rafter-content {
+    padding: 0;
   }
 
   .control-row {

@@ -4,6 +4,7 @@
   import { canPlaceLights, roomStore, resetRoom } from '../stores/roomStore';
   import { toggleRafters, rafterConfig, displayPreferences } from '../stores/settingsStore';
   import { toggleLightingStats, lightingStatsConfig } from '../stores/lightingStatsStore';
+  import { togglePropertiesPanel, propertiesPanelConfig } from '../stores/propertiesPanelStore';
   import { toggleDeadZones, deadZoneConfig } from '../stores/deadZoneStore';
   import { toggleSpacingWarnings, spacingConfig } from '../stores/spacingStore';
   import { historyStore, canUndo, canRedo } from '../stores/historyStore';
@@ -30,6 +31,7 @@
   let undoEnabled: boolean;
   let redoEnabled: boolean;
   let statsVisible: boolean;
+  let propertiesVisible: boolean;
   let deadZonesEnabled: boolean;
   let spacingEnabled: boolean;
   let gridSnapEnabled: boolean;
@@ -45,6 +47,7 @@
   $: undoEnabled = $canUndo;
   $: redoEnabled = $canRedo;
   $: statsVisible = $lightingStatsConfig.visible;
+  $: propertiesVisible = $propertiesPanelConfig.visible;
   $: deadZonesEnabled = $deadZoneConfig.enabled;
   $: spacingEnabled = $spacingConfig.enabled;
   $: gridSnapEnabled = $displayPreferences.gridSnapEnabled;
@@ -78,14 +81,6 @@
         p.lightRadiusVisibility === 'selected' ? 'always' : 'selected';
       return { ...p, lightRadiusVisibility: newVisibility };
     });
-  }
-
-  function getRadiusVisibilityLabel(visibility: LightRadiusVisibility): string {
-    switch (visibility) {
-      case 'selected': return 'Radius: Selected';
-      case 'always': return 'Radius: Always';
-      default: return 'Radius';
-    }
   }
 
   function handleNew(): void {
@@ -309,14 +304,9 @@
         </svg>
         <span class="label">Light</span>
       </button>
-    </div>
-  </div>
-
-  <div class="toolbar-section">
-    <span class="section-label">Modes</span>
-    <div class="button-group">
+      <div class="section-divider"></div>
       <button
-        class="toggle-button"
+        class="toggle-button modifier"
         class:active={gridSnapEnabled}
         on:click={toggleGridSnap}
         title="Snap to Grid (S)"
@@ -331,7 +321,7 @@
         <span class="label">Snap</span>
       </button>
       <button
-        class="toggle-button measuring"
+        class="toggle-button measuring modifier"
         class:active={measuringActive}
         disabled={!canMeasure}
         on:click={toggleMeasurement}
@@ -456,7 +446,7 @@
   </div>
 
   <div class="toolbar-section">
-    <span class="section-label">Settings</span>
+    <span class="section-label">More</span>
     <div class="button-group">
       <button
         class="toggle-button"
@@ -470,6 +460,18 @@
           <line x1="6" y1="20" x2="6" y2="14"/>
         </svg>
         <span class="label">Stats</span>
+      </button>
+      <button
+        class="toggle-button"
+        class:active={propertiesVisible}
+        on:click={togglePropertiesPanel}
+        title="Toggle Properties Panel (P)"
+      >
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="9" y1="3" x2="9" y2="21"/>
+        </svg>
+        <span class="label">Properties</span>
       </button>
       <button
         class="tool-button"
@@ -491,11 +493,11 @@
   .toolbar {
     display: flex;
     align-items: stretch;
-    gap: 16px;
-    padding: 6px 16px;
+    gap: var(--spacing-16);
+    padding: 6px var(--spacing-16);
     background: var(--panel-bg);
     border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-sm);
     overflow-x: auto;
     overflow-y: hidden;
     /* Hide scrollbar */
@@ -510,8 +512,8 @@
   .toolbar-section {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding-right: 16px;
+    gap: var(--spacing-4);
+    padding-right: var(--spacing-16);
     border-right: 1px solid var(--border-color);
     flex-shrink: 0;
   }
@@ -523,14 +525,14 @@
 
   .branding-section {
     padding-left: 0;
-    padding-right: 16px;
+    padding-right: var(--spacing-16);
     justify-content: center;
   }
 
   .branding {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--spacing-8);
     height: 100%;
   }
 
@@ -562,7 +564,7 @@
   }
 
   .section-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -573,6 +575,23 @@
     display: flex;
     gap: 2px;
     flex: 1;
+    align-items: center;
+  }
+
+  .section-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border-color);
+    margin: 0 var(--spacing-4);
+    flex-shrink: 0;
+  }
+
+  .modifier {
+    opacity: 0.85;
+  }
+
+  .modifier:hover:not(:disabled) {
+    opacity: 1;
   }
 
   .tool-button,
@@ -582,12 +601,12 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 8px 12px;
+    gap: var(--spacing-4);
+    padding: var(--spacing-8) var(--spacing-12);
     min-width: 56px;
     min-height: 54px;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: transparent;
     color: var(--text-secondary);
     font-size: 11px;
@@ -611,8 +630,8 @@
   }
 
   .tool-button.save-success {
-    background: #22c55e;
-    border-color: #22c55e;
+    background: var(--status-success);
+    border-color: var(--status-success);
     color: white;
   }
 
@@ -661,8 +680,8 @@
   }
 
   .toggle-button.measuring.active {
-    background: #ff9500;
-    border-color: #ff9500;
+    background: var(--measurement-active);
+    border-color: var(--measurement-active);
     color: var(--text-primary);
     animation: pulse 2s infinite;
   }

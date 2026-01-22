@@ -1,51 +1,26 @@
 <script lang="ts">
-  import { viewMode, activeTool, appMode } from '../stores/appStore';
+  import { activeTool } from '../stores/appStore';
   import { roomStore } from '../stores/roomStore';
   import { formatImperial } from '../utils/format';
-  import type { Vector2, ViewMode, Tool, AppMode } from '../types';
+  import type { Vector2, Tool } from '../types';
 
   export let mousePos: Vector2 = { x: 0, y: 0 };
   export let snapType: string = '';
 
-  let currentViewMode: ViewMode;
   let currentTool: Tool;
-  let currentAppMode: AppMode;
   let isClosed: boolean;
 
-  $: currentViewMode = $viewMode;
   $: currentTool = $activeTool;
-  $: currentAppMode = $appMode;
   $: isClosed = $roomStore.isClosed;
 
   function formatCoord(value: number): string {
     return formatImperial(value, { decimal: false });
   }
-
-  function getToolLabel(tool: Tool): string {
-    switch (tool) {
-      case 'select': return 'Select';
-      case 'draw': return 'Draw Walls';
-      case 'light': return 'Place Light';
-      default: return tool;
-    }
-  }
-
-  function getViewModeLabel(mode: ViewMode): string {
-    switch (mode) {
-      case 'editor': return 'Editor';
-      case 'shadow': return 'Shadow';
-      case 'heatmap': return 'Heatmap';
-      default: return mode;
-    }
-  }
 </script>
 
 <div class="status-bar">
   <div class="status-section">
-    <span class="label">Position:</span>
-    <span class="value coords">
-      X: {formatCoord(mousePos.x)}, Y: {formatCoord(mousePos.y)}
-    </span>
+    <span class="value coords">{formatCoord(mousePos.x)}, {formatCoord(mousePos.y)}</span>
   </div>
 
   {#if snapType && snapType !== 'none'}
@@ -53,16 +28,6 @@
       <span class="snap-badge">{snapType}</span>
     </div>
   {/if}
-
-  <div class="status-section">
-    <span class="label">Tool:</span>
-    <span class="value">{getToolLabel(currentTool)}</span>
-  </div>
-
-  <div class="status-section">
-    <span class="label">View:</span>
-    <span class="value view-mode">{getViewModeLabel(currentViewMode)}</span>
-  </div>
 
   <div class="status-section">
     <span class="label">Room:</span>
@@ -88,8 +53,8 @@
   .status-bar {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 6px 16px;
+    gap: var(--spacing-16);
+    padding: 6px var(--spacing-16);
     background: var(--status-bar-bg);
     border-top: 1px solid var(--border-color);
     font-size: 12px;
@@ -98,7 +63,7 @@
   .status-section {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--spacing-4);
   }
 
   .label {
@@ -112,27 +77,23 @@
 
   .coords {
     font-family: monospace;
-    min-width: 160px;
-  }
-
-  .view-mode {
-    color: #0066cc;
+    min-width: 120px;
   }
 
   .status-closed {
-    color: #22c55e;
+    color: var(--status-success);
   }
 
   .status-open {
-    color: #f59e0b;
+    color: var(--status-warning);
   }
 
   .snap-badge {
     display: inline-block;
-    padding: 2px 8px;
-    background: #0066cc;
+    padding: 2px var(--spacing-8);
+    background: var(--status-info);
     color: white;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     text-transform: capitalize;
   }

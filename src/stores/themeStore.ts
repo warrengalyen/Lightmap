@@ -34,6 +34,38 @@ function updateCSSVariables(theme: Theme): void {
     root.style.setProperty("--button-bg-hover", theme.ui.buttonBackgroundHover);
     root.style.setProperty("--button-active", theme.ui.buttonActive);
     root.style.setProperty("--status-bar-bg", theme.ui.statusBarBackground);
+
+    // Status colors
+    root.style.setProperty("--status-success", theme.ui.statusSuccess);
+    root.style.setProperty("--status-warning", theme.ui.statusWarning);
+    root.style.setProperty("--status-error", theme.ui.statusError);
+    root.style.setProperty("--status-info", theme.ui.statusInfo);
+
+    // Measurement colors
+    root.style.setProperty("--measurement-x", theme.ui.measurementX);
+    root.style.setProperty("--measurement-y", theme.ui.measurementY);
+    root.style.setProperty(
+        "--measurement-distance",
+        theme.ui.measurementDistance,
+    );
+    root.style.setProperty("--measurement-active", theme.ui.measurementActive);
+
+    // Spacing scale
+    root.style.setProperty("--spacing-4", theme.ui.spacing4);
+    root.style.setProperty("--spacing-8", theme.ui.spacing8);
+    root.style.setProperty("--spacing-12", theme.ui.spacing12);
+    root.style.setProperty("--spacing-16", theme.ui.spacing16);
+    root.style.setProperty("--spacing-24", theme.ui.spacing24);
+
+    // Border radius
+    root.style.setProperty("--radius-sm", theme.ui.radiusSmall);
+    root.style.setProperty("--radius-md", theme.ui.radiusMedium);
+    root.style.setProperty("--radius-lg", theme.ui.radiusLarge);
+
+    // Shadow scale
+    root.style.setProperty("--shadow-sm", theme.ui.shadowSmall);
+    root.style.setProperty("--shadow-md", theme.ui.shadowMedium);
+    root.style.setProperty("--shadow-lg", theme.ui.shadowLarge);
 }
 
 // Derived store for theme name (useful for displaying current theme)
