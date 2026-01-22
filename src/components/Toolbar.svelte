@@ -165,7 +165,7 @@
       <img src={iconPath} alt="Lightmap" class="app-icon" />
       <div class="branding-text">
         <h1>Lightmap</h1>
-        <span class="version-badge">{__APP_VERSION__}</span>
+        <div class="subtitle">Studio <span class="version-badge">{__APP_VERSION__}</span></div>
       </div>
     </div>
   </div>
@@ -555,6 +555,15 @@
     color: var(--text-primary);
     white-space: nowrap;
     line-height: 1;
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
   }
 
   .version-badge {

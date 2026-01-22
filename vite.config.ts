@@ -13,7 +13,6 @@ function getGitVersion(): string {
 
 export default defineConfig({
     plugins: [svelte()],
-    base: '/lightmap/',
     define: {
         __APP_VERSION__: JSON.stringify(getGitVersion()),
     },
