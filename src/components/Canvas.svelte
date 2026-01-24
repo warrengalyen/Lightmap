@@ -176,6 +176,16 @@
     editorRenderer.clearDoorPreview();
   }
 
+  // Clear vertex preview when exiting draw mode
+  $: if (editorRenderer && !isDrawing) {
+    editorRenderer.setPreviewVertex(null);
+  }
+
+  // Clear light preview when exiting light placement mode
+  $: if (editorRenderer && !isPlacingLights) {
+    editorRenderer.setPreviewLight(null);
+  }
+
   $: currentSelectedLightId = $selectedLightId;
   $: currentSelectedLightIds = $selectedLightIds;
   $: currentSelectedWallId = $selectedWallId;
@@ -569,6 +579,7 @@
       },
       {
         onLightPlaced: (light) => roomStore.update(state => ({ ...state, lights: [...state.lights, light] })),
+        onSetPreviewLight: (pos) => editorRenderer.setPreviewLight(pos),
       }
     );
 
