@@ -1,9 +1,11 @@
 import type { InputEvent } from "../../core/InputManager";
-import type { LightFixture, WallSegment } from "../../types";
+import type { LightFixture, WallSegment, Vector2 } from "../../types";
 import type { InteractionContext } from "../../types/interaction";
 import type { LightManager } from "../../lighting/LightManager";
 import type { PolygonValidator } from "../../geometry/PolygonValidator";
+import type { SnapController } from "../../controllers/SnapController";
 import { BaseInteractionHandler } from "../InteractionHandler";
+import { DEFAULT_GRID_SIZE_FT } from "../../constants/editor";
 
 export interface LightPlacementHandlerCallbacks {
     onLightPlaced: (light: LightFixture) => void;
@@ -13,9 +15,12 @@ export interface LightPlacementHandlerCallbacks {
 export interface LightPlacementHandlerConfig {
     lightManager: LightManager;
     polygonValidator: PolygonValidator;
+    snapController: SnapController;
     getSelectedDefinitionId: () => string | null;
     canPlaceLights: () => boolean;
     getWalls: () => WallSegment[];
+    getGridSnapEnabled: () => boolean;
+    getGridSize: () => number;
 }
 
 /**
@@ -47,9 +52,15 @@ export class LightPlacementHandler extends BaseInteractionHandler {
             return false;
         }
 
-        const { lightManager, polygonValidator } = this.config;
+        const { lightManager, polygonValidator, snapController } = this.config;
         const walls = this.config.getWalls();
-        const pos = event.worldPos;
+        let pos = event.worldPos;
+
+        // Apply grid snapping if enabled
+        const gridSize = this.config.getGridSize() || DEFAULT_GRID_SIZE_FT;
+        if (this.config.getGridSnapEnabled() && gridSize > 0) {
+            pos = snapController.snapToGrid(pos, gridSize);
+        }
 
         // Only place lights inside the room
         if (!polygonValidator.isPointInside(pos, walls)) {
@@ -69,9 +80,15 @@ export class LightPlacementHandler extends BaseInteractionHandler {
             return false;
         }
 
-        const { polygonValidator } = this.config;
+        const { polygonValidator, snapController } = this.config;
         const walls = this.config.getWalls();
-        const pos = event.worldPos;
+        let pos = event.worldPos;
+
+        // Apply grid snapping if enabled
+        const gridSize = this.config.getGridSize() || DEFAULT_GRID_SIZE_FT;
+        if (this.config.getGridSnapEnabled() && gridSize > 0) {
+            pos = snapController.snapToGrid(pos, gridSize);
+        }
 
         // Only show preview if cursor is inside the room
         if (polygonValidator.isPointInside(pos, walls)) {

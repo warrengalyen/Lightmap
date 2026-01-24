@@ -573,9 +573,12 @@
       {
         lightManager,
         polygonValidator,
+        snapController,
         getSelectedDefinitionId: () => get(selectedDefinitionId),
         canPlaceLights: () => get(canPlaceLights),
         getWalls: () => currentRoomState.walls,
+        getGridSnapEnabled: () => currentDisplayPrefs.gridSnapEnabled,
+        getGridSize: () => currentDisplayPrefs.gridSize || 0.5,
       },
       {
         onLightPlaced: (light) => roomStore.update(state => ({ ...state, lights: [...state.lights, light] })),
