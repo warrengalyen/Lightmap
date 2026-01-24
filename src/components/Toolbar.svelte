@@ -58,7 +58,12 @@
   $: lightRadiusVisibility = $displayPreferences.lightRadiusVisibility;
 
   function handleToolChange(tool: Tool): void {
-    setActiveTool(tool);
+    // If clicking the already active tool (and it's not select), toggle back to select
+    if (currentTool === tool && tool !== 'select') {
+      setActiveTool('select');
+    } else {
+      setActiveTool(tool);
+    }
   }
 
   function handleViewModeChange(mode: ViewMode): void {
