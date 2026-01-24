@@ -3,6 +3,8 @@
   import Canvas from './components/Canvas.svelte';
   import Toolbar from './components/Toolbar.svelte';
   import PropertyPanel from './components/PropertyPanel.svelte';
+  import VertexPropertiesPanel from './components/VertexPropertiesPanel.svelte';
+  import WallPropertiesPanel from './components/WallPropertiesPanel.svelte';
   import LightPropertiesPanel from './components/LightPropertiesPanel.svelte';
   import DoorPropertiesPanel from './components/DoorPropertiesPanel.svelte';
   import LightToolPanel from './components/LightToolPanel.svelte';
@@ -156,6 +158,8 @@
       <LightToolPanel on:openLightManager={handleOpenLightManager} />
       <DoorToolPanel />
       <PropertyPanel />
+      <VertexPropertiesPanel />
+      <WallPropertiesPanel />
       <LightPropertiesPanel />
       <DoorPropertiesPanel />
     </div>

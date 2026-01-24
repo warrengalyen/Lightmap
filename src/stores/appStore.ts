@@ -106,6 +106,11 @@ export function isVertexSelected(index: number): boolean {
   return get(selectedVertexIndices).has(index);
 }
 
+// Wall selection helpers
+export function clearWallSelection(): void {
+  selectedWallId.set(null);
+}
+
 // Door selection helpers
 export function selectDoor(id: string): void {
   selectedDoorId.set(id);
