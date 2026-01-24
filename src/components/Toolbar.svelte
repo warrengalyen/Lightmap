@@ -267,18 +267,6 @@
     <div class="button-group">
       <button
         class="tool-button"
-        class:active={currentTool === 'select'}
-        on:click={() => handleToolChange('select')}
-        title="Select (V)"
-      >
-        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>
-          <path d="M13 13l6 6"/>
-        </svg>
-        <span class="label">Select</span>
-      </button>
-      <button
-        class="tool-button"
         class:active={currentTool === 'draw'}
         on:click={() => handleToolChange('draw')}
         title="Draw Walls (D)"
