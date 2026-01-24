@@ -16,7 +16,7 @@ export function exportToJSON(state: RoomState): void {
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = `lightmap-design-${Date.now()}.json`;
+  a.download = `lightmap-${Date.now()}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

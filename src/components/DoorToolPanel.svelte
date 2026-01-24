@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activeTool } from '../stores/appStore';
+  import { activeTool, setActiveTool } from '../stores/appStore';
   import { canPlaceDoors } from '../stores/roomStore';
   import {
     doorPlacementSettings,
@@ -44,6 +44,10 @@
     const side = (e.target as HTMLSelectElement).value as 'inside' | 'outside';
     setDoorSwingSide(side);
   }
+
+  function handleClose(): void {
+    setActiveTool('select');
+  }
 </script>
 
 <FloatingPanel
@@ -52,7 +56,10 @@
   defaultX={16}
   defaultY={16}
   minWidth="220px"
+  maxWidth="320px"
   persistenceKey="door-tool-panel"
+  showCloseButton={true}
+  onClose={handleClose}
 >
   <div class="panel-content">
     <label class="setting-row">
@@ -114,6 +121,9 @@
     color: var(--text-secondary);
     cursor: pointer;
     transition: border-color 0.15s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   select:focus {

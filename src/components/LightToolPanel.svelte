@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { activeTool } from '../stores/appStore';
+  import { activeTool, setActiveTool } from '../stores/appStore';
   import { canPlaceLights } from '../stores/roomStore';
   import { lightDefinitions, selectedDefinitionId, setSelectedDefinition } from '../stores/lightDefinitionsStore';
   import FloatingPanel from './FloatingPanel.svelte';
@@ -27,6 +27,10 @@
   function openLightManager(): void {
     dispatch('openLightManager');
   }
+
+  function handleClose(): void {
+    setActiveTool('select');
+  }
 </script>
 
 <FloatingPanel
@@ -35,7 +39,10 @@
   defaultX={16}
   defaultY={16}
   minWidth="240px"
+  maxWidth="320px"
   persistenceKey="light-tool-panel"
+  showCloseButton={true}
+  onClose={handleClose}
 >
   <div class="panel-content">
       <label class="definition-select">
@@ -107,6 +114,9 @@
     color: var(--text-secondary);
     cursor: pointer;
     transition: border-color 0.15s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   select:focus {
