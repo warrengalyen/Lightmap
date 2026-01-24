@@ -553,6 +553,7 @@
       {
         onUpdateDrawingVertices: (vertices) => editorRenderer.updateDrawingVertices(vertices),
         onSetPhantomLine: (from, to) => editorRenderer.setPhantomLine(from, to),
+        onSetPreviewVertex: (pos) => editorRenderer.setPreviewVertex(pos),
         onCloseRoom: (walls) => roomStore.update(state => ({ ...state, walls, isClosed: true })),
         onSnapChange: (snapType) => dispatch('snapChange', { snapType }),
       }
