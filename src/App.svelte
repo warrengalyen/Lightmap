@@ -71,6 +71,12 @@
     }
 
     switch (e.key.toLowerCase()) {
+      case 'escape':
+        // Switch to selection tool if currently using a drawing tool
+        if ($activeTool === 'draw' || $activeTool === 'light' || $activeTool === 'door') {
+          setActiveTool('select');
+        }
+        break;
       case 'l':
         if ($activeTool === 'draw') {
           showLengthInput = true;
