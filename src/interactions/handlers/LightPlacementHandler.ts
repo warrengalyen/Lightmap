@@ -9,7 +9,7 @@ import { DEFAULT_GRID_SIZE_FT } from "../../constants/editor";
 
 export interface LightPlacementHandlerCallbacks {
     onLightPlaced: (light: LightFixture) => void;
-    onSetPreviewLight: (pos: Vector2 | null) => void;
+    onSetPreviewLight: (pos: Vector2 | null, isValid?: boolean) => void;
 }
 
 export interface LightPlacementHandlerConfig {
@@ -90,12 +90,11 @@ export class LightPlacementHandler extends BaseInteractionHandler {
             pos = snapController.snapToGrid(pos, gridSize);
         }
 
-        // Only show preview if cursor is inside the room
-        if (polygonValidator.isPointInside(pos, walls)) {
-            this.callbacks.onSetPreviewLight(pos);
-        } else {
-            this.callbacks.onSetPreviewLight(null);
-        }
+        // Check if position is inside the room
+        const isInside = polygonValidator.isPointInside(pos, walls);
+
+        // Always show preview, but indicate validity with color
+        this.callbacks.onSetPreviewLight(pos, isInside);
 
         return true;
     }

@@ -582,7 +582,7 @@
       },
       {
         onLightPlaced: (light) => roomStore.update(state => ({ ...state, lights: [...state.lights, light] })),
-        onSetPreviewLight: (pos) => editorRenderer.setPreviewLight(pos),
+        onSetPreviewLight: (pos, isValid) => editorRenderer.setPreviewLight(pos, isValid),
       }
     );
 
