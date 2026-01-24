@@ -4,14 +4,16 @@
   import Toolbar from './components/Toolbar.svelte';
   import PropertyPanel from './components/PropertyPanel.svelte';
   import LightPropertiesPanel from './components/LightPropertiesPanel.svelte';
+  import DoorPropertiesPanel from './components/DoorPropertiesPanel.svelte';
   import LightToolPanel from './components/LightToolPanel.svelte';
+  import DoorToolPanel from './components/DoorToolPanel.svelte';
   import StatusBar from './components/StatusBar.svelte';
   import LengthInput from './components/LengthInput.svelte';
   import RafterControls from './components/RafterControls.svelte';
   import LightingStatsPanel from './components/LightingStatsPanel.svelte';
   import LightDefinitionManager from './components/LightDefinitionManager.svelte';
   import { roomStore } from './stores/roomStore';
-  import { activeTool, setActiveTool, requestCameraFit } from './stores/appStore';
+  import { activeTool, setActiveTool, setViewMode, requestCameraFit } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
   import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
   import { togglePropertiesPanel } from './stores/propertiesPanelStore';
@@ -146,8 +148,10 @@
       <RafterControls />
       <LightingStatsPanel />
       <LightToolPanel on:openLightManager={handleOpenLightManager} />
+      <DoorToolPanel />
       <PropertyPanel />
       <LightPropertiesPanel />
+      <DoorPropertiesPanel />
     </div>
   </main>
 

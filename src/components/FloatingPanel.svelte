@@ -7,6 +7,7 @@
   export let defaultX: number = 16;
   export let defaultY: number = 16;
   export let minWidth: string = '200px';
+  export let maxWidth: string | null = null;
   export let maxHeight: string = 'calc(100vh - 200px)';
   export let persistenceKey: string | null = null;
   export let draggable: boolean = true;
@@ -122,6 +123,7 @@
     style:left={position.x >= 0 ? `${position.x}px` : undefined}
     style:top={position.y >= 0 ? `${position.y}px` : undefined}
     style:min-width={minWidth}
+    style:max-width={maxWidth}
     style:max-height={maxHeight}
     style:z-index={zIndex}
   >

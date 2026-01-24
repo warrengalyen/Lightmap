@@ -69,6 +69,7 @@
   defaultX={window.innerWidth - 530}
   defaultY={16}
   minWidth="250px"
+  maxWidth="320px"
   maxHeight="calc(100vh - 200px)"
   persistenceKey="light-properties-panel"
   showCloseButton={true}

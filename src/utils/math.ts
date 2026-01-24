@@ -1,4 +1,4 @@
-import type { Vector2 } from "../types";
+import type { Vector2 } from '../types';
 
 export function vectorAdd(a: Vector2, b: Vector2): Vector2 {
     return { x: a.x + b.x, y: a.y + b.y };
@@ -47,7 +47,11 @@ export function angleBetween(a: Vector2, b: Vector2): number {
     return Math.acos(cosAngle);
 }
 
-export function projectPointOntoLine(point: Vector2, lineStart: Vector2, lineDir: Vector2): Vector2 {
+export function projectPointOntoLine(
+  point: Vector2,
+  lineStart: Vector2,
+  lineDir: Vector2
+): Vector2 {
     const toPoint = vectorSubtract(point, lineStart);
     const t = vectorDot(toPoint, lineDir);
     return vectorAdd(lineStart, vectorScale(lineDir, t));
@@ -70,7 +74,12 @@ export function radToDeg(radians: number): number {
     return radians * (180 / Math.PI);
 }
 
-export function lineSegmentsIntersect(a1: Vector2, a2: Vector2, b1: Vector2, b2: Vector2): boolean {
+export function lineSegmentsIntersect(
+  a1: Vector2,
+  a2: Vector2,
+  b1: Vector2,
+  b2: Vector2
+): boolean {
     const d1 = vectorSubtract(a2, a1);
     const d2 = vectorSubtract(b2, b1);
     const d3 = vectorSubtract(b1, a1);
@@ -88,7 +97,7 @@ export function raySegmentIntersect(
     rayOrigin: Vector2,
     rayDir: Vector2,
     segStart: Vector2,
-    segEnd: Vector2,
+  segEnd: Vector2
 ): { t: number; point: Vector2 } | null {
     const segDir = vectorSubtract(segEnd, segStart);
     const cross = vectorCross(rayDir, segDir);
@@ -111,14 +120,22 @@ export function raySegmentIntersect(
  * Projects a point onto a line segment, clamped to segment bounds.
  * Returns the closest point on the segment to the given point.
  */
-export function projectPointOntoSegment(point: Vector2, segStart: Vector2, segEnd: Vector2): Vector2 {
+export function projectPointOntoSegment(
+  point: Vector2,
+  segStart: Vector2,
+  segEnd: Vector2
+): Vector2 {
     const dx = segEnd.x - segStart.x;
     const dy = segEnd.y - segStart.y;
     const lengthSq = dx * dx + dy * dy;
 
     if (lengthSq === 0) return { ...segStart };
 
-    const t = clamp(((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq, 0, 1);
+  const t = clamp(
+    ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq,
+    0,
+    1
+  );
 
     return {
         x: segStart.x + t * dx,
@@ -130,14 +147,22 @@ export function projectPointOntoSegment(point: Vector2, segStart: Vector2, segEn
  * Projects a point onto a line segment for vertex insertion.
  * Clamped to 0.1-0.9 to keep distance from endpoints.
  */
-export function projectPointOntoSegmentForInsertion(point: Vector2, segStart: Vector2, segEnd: Vector2): Vector2 {
+export function projectPointOntoSegmentForInsertion(
+  point: Vector2,
+  segStart: Vector2,
+  segEnd: Vector2
+): Vector2 {
     const dx = segEnd.x - segStart.x;
     const dy = segEnd.y - segStart.y;
     const lengthSq = dx * dx + dy * dy;
 
     if (lengthSq === 0) return { ...segStart };
 
-    const t = clamp(((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq, 0.1, 0.9);
+  const t = clamp(
+    ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq,
+    0.1,
+    0.9
+  );
 
     return {
         x: segStart.x + t * dx,
@@ -148,7 +173,11 @@ export function projectPointOntoSegmentForInsertion(point: Vector2, segStart: Ve
 /**
  * Calculates the distance from a point to a line segment.
  */
-export function distancePointToSegment(point: Vector2, segStart: Vector2, segEnd: Vector2): number {
+export function distancePointToSegment(
+  point: Vector2,
+  segStart: Vector2,
+  segEnd: Vector2
+): number {
     const projected = projectPointOntoSegment(point, segStart, segEnd);
     return distancePointToPoint(point, projected);
 }
@@ -157,7 +186,11 @@ export function distancePointToSegment(point: Vector2, segStart: Vector2, segEnd
  * Finds the index of a vertex at or near a given position.
  * Returns null if no vertex is within the tolerance.
  */
-export function findVertexAtPosition(pos: Vector2, vertices: Vector2[], tolerance: number): number | null {
+export function findVertexAtPosition(
+  pos: Vector2,
+  vertices: Vector2[],
+  tolerance: number
+): number | null {
     for (let i = 0; i < vertices.length; i++) {
         if (distancePointToPoint(pos, vertices[i]) <= tolerance) {
             return i;

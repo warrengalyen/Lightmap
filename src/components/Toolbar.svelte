@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { activeTool, viewMode, setActiveTool, setViewMode, selectedVertexIndex, selectedLightId, clearSelection } from '../stores/appStore';
-  import { canPlaceLights, roomStore, resetRoom } from '../stores/roomStore';
+  import { canPlaceLights, canPlaceDoors, roomStore, resetRoom } from '../stores/roomStore';
   import { toggleRafters, rafterConfig, displayPreferences } from '../stores/settingsStore';
   import { toggleLightingStats, lightingStatsConfig } from '../stores/lightingStatsStore';
   import { togglePropertiesPanel, propertiesPanelConfig } from '../stores/propertiesPanelStore';
@@ -27,6 +27,7 @@
   let currentTool: Tool;
   let currentViewMode: ViewMode;
   let lightsEnabled: boolean;
+  let doorsEnabled: boolean;
   let raftersVisible: boolean;
   let undoEnabled: boolean;
   let redoEnabled: boolean;
@@ -43,6 +44,7 @@
   $: currentTool = $activeTool;
   $: currentViewMode = $viewMode;
   $: lightsEnabled = $canPlaceLights;
+  $: doorsEnabled = $canPlaceDoors;
   $: raftersVisible = $rafterConfig.visible;
   $: undoEnabled = $canUndo;
   $: redoEnabled = $canRedo;
@@ -303,6 +305,20 @@
           <circle cx="12" cy="12" r="5"/>
         </svg>
         <span class="label">Light</span>
+      </button>
+      <button
+        class="tool-button"
+        class:active={currentTool === 'door'}
+        on:click={() => handleToolChange('door')}
+        disabled={!doorsEnabled}
+        title={doorsEnabled ? 'Place Door' : 'Close room first'}
+      >
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 21V3h18v18H3z"/>
+          <path d="M9 21V7l6-1v15"/>
+          <circle cx="13" cy="12" r="1"/>
+        </svg>
+        <span class="label">Door</span>
       </button>
       <div class="section-divider"></div>
       <button

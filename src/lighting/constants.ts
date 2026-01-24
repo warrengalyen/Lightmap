@@ -40,6 +40,8 @@ export const GRADE_THRESHOLDS = {
 // Lux Calculation
 // ============================================
 
+/** Conversion factor from feet to meters */
+export const FEET_TO_METERS = 0.3048;
 /** Minimum distance (in feet) before using point source approximation */
 export const MIN_DISTANCE_FT = 0.001;
 

@@ -58,7 +58,10 @@ export class DeadZoneRenderer {
 
         for (let i = 0; i < MAX_LIGHTS; i++) {
             if (i < count) {
-                this.material.uniforms.uLightPositions.value[i].set(lights[i].position.x, lights[i].position.y);
+        this.material.uniforms.uLightPositions.value[i].set(
+          lights[i].position.x,
+          lights[i].position.y
+        );
                 this.material.uniforms.uLightLumens.value[i] = lights[i].properties.lumen;
                 this.material.uniforms.uLightBeamAngles.value[i] = lights[i].properties.beamAngle;
             } else {

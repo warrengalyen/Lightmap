@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 
 /**
  * Disposes of a Three.js Object3D's geometry and material resources.

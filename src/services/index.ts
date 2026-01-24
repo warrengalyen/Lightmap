@@ -1,2 +1,2 @@
-export { GeometryService, geometryService } from "./GeometryService";
-export { SelectionService, selectionService } from "./SelectionService";
+export { SelectionService, selectionService } from './SelectionService';
+export { GeometryService, geometryService } from './GeometryService';

@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+import { writable } from 'svelte/store';
 
 /**
  * Store to manage z-index stacking for floating panels.
@@ -16,12 +16,12 @@ export const panelZIndices = writable<Record<string, number>>({});
  * @returns The new z-index value
  */
 export function bringPanelToFront(panelId: string): number {
-    currentMaxZIndex++;
-    panelZIndices.update((indices) => ({
-        ...indices,
-        [panelId]: currentMaxZIndex,
-    }));
-    return currentMaxZIndex;
+  currentMaxZIndex++;
+  panelZIndices.update(indices => ({
+    ...indices,
+    [panelId]: currentMaxZIndex
+  }));
+  return currentMaxZIndex;
 }
 
 /**
@@ -30,17 +30,17 @@ export function bringPanelToFront(panelId: string): number {
  * @returns The z-index value
  */
 export function getPanelZIndex(panelId: string): number {
-    let result = BASE_Z_INDEX;
-    panelZIndices.subscribe((indices) => {
-        result = indices[panelId] ?? BASE_Z_INDEX;
-    })();
-    return result;
+  let result = BASE_Z_INDEX;
+  panelZIndices.subscribe(indices => {
+    result = indices[panelId] ?? BASE_Z_INDEX;
+  })();
+  return result;
 }
 
 /**
  * Reset all panel z-indices to the base value.
  */
 export function resetPanelZIndices(): void {
-    currentMaxZIndex = BASE_Z_INDEX;
-    panelZIndices.set({});
+  currentMaxZIndex = BASE_Z_INDEX;
+  panelZIndices.set({});
 }

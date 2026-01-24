@@ -1,5 +1,5 @@
-import type { Vector2, RoomState } from "./index";
-import type { InputEvent } from "../core/InputManager";
+import type { Vector2, RoomState } from './index';
+import type { InputEvent } from '../core/InputManager';
 
 // ============================================
 // Selection State
@@ -9,6 +9,7 @@ export interface SelectionState {
     selectedVertexIndices: Set<number>;
     selectedLightIds: Set<string>;
     selectedWallId: string | null;
+  selectedDoorId: string | null;
 }
 
 // ============================================
@@ -16,14 +17,15 @@ export interface SelectionState {
 // ============================================
 
 export type InteractionMode =
-    | "idle"
-    | "selecting"
-    | "dragging"
-    | "boxSelecting"
-    | "grabMode"
-    | "drawing"
-    | "measuring"
-    | "placingLight";
+  | 'idle'
+  | 'selecting'
+  | 'dragging'
+  | 'boxSelecting'
+  | 'grabMode'
+  | 'drawing'
+  | 'measuring'
+  | 'placingLight'
+  | 'placingDoor';
 
 // ============================================
 // Drag State
@@ -48,7 +50,7 @@ export interface DragContext {
     dragStartPos: Vector2 | null;
 }
 
-export type AxisLock = "none" | "x" | "y";
+export type AxisLock = 'none' | 'x' | 'y';
 
 // ============================================
 // Input Modifiers
@@ -95,6 +97,7 @@ export interface InteractionContext {
     selection: SelectionState;
     isDrawingEnabled: boolean;
     isPlacingLights: boolean;
+  isPlacingDoors: boolean;
     isMeasuring: boolean;
     isGrabMode: boolean;
     isBoxSelecting: boolean;
@@ -163,7 +166,7 @@ export interface HandlerResult {
 // ============================================
 
 export interface MeasurementTarget {
-    type: "vertex" | "light" | "wall";
+  type: 'vertex' | 'light' | 'wall';
     id: string | number;
     position: Vector2;
 }
