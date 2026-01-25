@@ -86,6 +86,7 @@ export interface IDragOperation {
     commit(): void;
     cancel(): void;
     isActive(): boolean;
+    getStartPosition(): Vector2 | null;
 }
 
 // ============================================

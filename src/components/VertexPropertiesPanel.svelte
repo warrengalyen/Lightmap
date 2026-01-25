@@ -84,8 +84,8 @@
   onClose={handleClose}
 >
   {#if selectedVertex}
-    <div class="property-section">
-      <label class="property-row">
+    <div class="panel-section">
+      <label class="panel-row">
         <span>X</span>
         <div class="input-group">
           <input
@@ -94,12 +94,12 @@
             on:input={handleVertexXChange}
             on:keydown={handleVertexKeydown}
             on:blur={applyVertexPosition}
-            class="coord-input"
+            class="panel-input coord-input"
           />
           <span class="unit">ft</span>
         </div>
       </label>
-      <label class="property-row">
+      <label class="panel-row">
         <span>Y</span>
         <div class="input-group">
           <input
@@ -108,50 +108,28 @@
             on:input={handleVertexYChange}
             on:keydown={handleVertexKeydown}
             on:blur={applyVertexPosition}
-            class="coord-input"
+            class="panel-input coord-input"
           />
           <span class="unit">ft</span>
         </div>
       </label>
-      <p class="hint">
+      <p class="panel-hint">
         Drag the vertex or type new coordinates and press Enter.
         Double-click a wall to insert a new vertex.
       </p>
       {#if currentRoom.walls.length > 3}
-        <button class="delete-button" on:click={deleteSelectedVertex}>
+        <button class="panel-delete-btn" on:click={deleteSelectedVertex}>
           Delete Vertex
         </button>
       {:else}
-        <p class="hint warning">Cannot delete: minimum 3 vertices required.</p>
+        <p class="panel-hint warning">Cannot delete: minimum 3 vertices required.</p>
       {/if}
     </div>
   {/if}
 </FloatingPanel>
 
 <style>
-  .property-section {
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .property-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-  }
-
-  .property-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-
-  .property-row span:first-child {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
+  /* Component-specific styles only - shared styles in App.svelte */
   .input-group {
     display: flex;
     align-items: center;
@@ -160,58 +138,11 @@
 
   .coord-input {
     width: 70px;
-    padding: 4px 6px;
-    border: 1px solid var(--input-border);
-    border-radius: 4px;
-    font-size: 13px;
-    background: var(--input-bg);
-    color: var(--text-primary);
-    text-align: right;
-    font-family: monospace;
-  }
-
-  .coord-input:focus {
-    outline: none;
-    border-color: var(--button-active);
   }
 
   .unit {
     font-size: 11px;
     color: var(--text-muted);
     min-width: 16px;
-  }
-
-  .hint {
-    margin: 12px 0 0 0;
-    font-size: 11px;
-    color: var(--text-muted);
-    line-height: 1.4;
-    font-style: italic;
-    padding: 8px;
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.2);
-    border-radius: 4px;
-  }
-
-  .hint.warning {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-  }
-
-  .delete-button {
-    width: 100%;
-    padding: 8px;
-    margin-top: 12px;
-    background: var(--status-error);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-
-  .delete-button:hover {
-    background: #dc2626;
   }
 </style>

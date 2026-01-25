@@ -730,6 +730,7 @@
         createWallDragOperation,
         createDoorDragOperation,
         getSelection: () => buildInteractionContext().selection,
+        getCurrentMousePos: () => currentMousePos,
       },
       {
         onSelectVertex: (index, addToSelection) => selectVertex(index, addToSelection),

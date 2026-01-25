@@ -76,11 +76,11 @@
   onClose={handleClose}
 >
   {#if selectedLights.length > 1}
-    <div class="property-section">
+    <div class="panel-section">
       <p class="multi-select-hint">Shift+click to add/remove lights from selection</p>
-      <label class="property-row definition-select">
+      <label class="definition-select">
         <span>{commonDefinitionId ? 'Type' : 'Change All To'}</span>
-        <select value={commonDefinitionId || ''} on:change={updateLightDefinition}>
+        <select class="panel-select" value={commonDefinitionId || ''} on:change={updateLightDefinition}>
           {#if !commonDefinitionId}
             <option value="" disabled>Mixed types...</option>
           {/if}
@@ -92,16 +92,16 @@
       {#if commonDefinitionId}
         {@const def = getDefinitionById(commonDefinitionId)}
         {#if def}
-          <div class="light-specs">
-            <div class="spec-row">
+          <div class="panel-info-box">
+            <div class="panel-info-row">
               <span>Lumens (each)</span>
               <span>{def.lumen} lm</span>
             </div>
-            <div class="spec-row">
+            <div class="panel-info-row">
               <span>Beam Angle</span>
               <span>{def.beamAngle}°</span>
             </div>
-            <div class="spec-row">
+            <div class="panel-info-row">
               <span>Color Temp</span>
               <span>{def.warmth}K</span>
             </div>
@@ -114,17 +114,18 @@
           <span>{selectedLights.reduce((sum, l) => sum + l.properties.lumen, 0).toLocaleString()} lm</span>
         </div>
       </div>
-      <button class="delete-button" on:click={deleteSelectedLights}>
+      <button class="panel-delete-btn" on:click={deleteSelectedLights}>
         Delete {selectedLights.length} Lights
       </button>
     </div>
   {:else if selectedLights.length === 1}
     {@const light = selectedLights[0]}
-    <div class="property-section">
+    <div class="panel-section">
       <p class="multi-select-hint">Shift+click to select multiple lights</p>
-      <label class="property-row definition-select">
+      <label class="definition-select">
         <span>Type</span>
         <select
+          class="panel-select"
           value={light.definitionId || definitions[0]?.id}
           on:change={updateLightDefinition}
         >
@@ -133,27 +134,27 @@
           {/each}
         </select>
       </label>
-      <div class="light-specs">
-        <div class="spec-row">
+      <div class="panel-info-box">
+        <div class="panel-info-row">
           <span>Lumens</span>
           <span>{light.properties.lumen} lm</span>
         </div>
-        <div class="spec-row">
+        <div class="panel-info-row">
           <span>Beam Angle</span>
           <span>{light.properties.beamAngle}°</span>
         </div>
-        <div class="spec-row">
+        <div class="panel-info-row">
           <span>Color Temp</span>
           <span>{light.properties.warmth}K</span>
         </div>
       </div>
-      <div class="property-row">
+      <div class="panel-row">
         <span>Position</span>
-        <span class="coords">
+        <span class="panel-coords">
           ({light.position.x.toFixed(1)}, {light.position.y.toFixed(1)})
         </span>
       </div>
-      <button class="delete-button" on:click={deleteSelectedLights}>
+      <button class="panel-delete-btn" on:click={deleteSelectedLights}>
         Delete Light
       </button>
     </div>
@@ -161,85 +162,18 @@
 </FloatingPanel>
 
 <style>
-  .property-section {
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .property-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-  }
-
-  .property-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-
-  .property-row span:first-child {
-    color: var(--text-muted);
-  }
-
-  .coords {
-    font-family: monospace;
-    font-size: 12px;
-  }
-
+  /* Component-specific styles only - shared styles in App.svelte */
   .definition-select {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
+    margin-bottom: 8px;
   }
 
   .definition-select span {
     font-size: 12px;
     color: var(--text-muted);
-  }
-
-  .definition-select select {
-    padding: 8px;
-    background: var(--input-bg);
-    color: var(--text-secondary);
-    border: 1px solid var(--input-border);
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .definition-select select:focus {
-    outline: none;
-    border-color: var(--button-active);
-  }
-
-  .light-specs {
-    background: var(--input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin: 8px 0;
-  }
-
-  .spec-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    padding: 2px 0;
-  }
-
-  .spec-row span:first-child {
-    color: var(--text-muted);
-  }
-
-  .spec-row span:last-child {
-    font-weight: 500;
-    color: var(--text-primary);
   }
 
   .multi-select-hint {
@@ -270,22 +204,5 @@
   .summary-row span:last-child {
     font-weight: 600;
     color: var(--button-active);
-  }
-
-  .delete-button {
-    width: 100%;
-    padding: 8px;
-    margin-top: 12px;
-    background: var(--status-error);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-
-  .delete-button:hover {
-    background: #dc2626;
   }
 </style>

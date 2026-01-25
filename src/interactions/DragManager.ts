@@ -42,7 +42,8 @@ export class DragManager {
   }
 
   get startPosition(): Vector2 | null {
-    return this.dragStartPos;
+    // Prefer the operation's start position (item's original position) over mouse click position
+    return this.currentOperation?.getStartPosition() ?? this.dragStartPos;
   }
 
   /**

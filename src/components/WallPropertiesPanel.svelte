@@ -65,8 +65,8 @@
   onClose={handleClose}
 >
   {#if selectedWall}
-    <div class="property-section">
-      <label class="property-row">
+    <div class="panel-section">
+      <label class="panel-row">
         <span>Length</span>
         <div class="input-group">
           <input
@@ -75,24 +75,24 @@
             on:input={handleWallLengthChange}
             on:keydown={handleWallLengthKeydown}
             on:blur={applyWallLength}
-            class="length-input"
+            class="panel-input length-input"
             placeholder="e.g., 10' 6&quot;"
           />
         </div>
       </label>
-      <div class="property-row info">
+      <div class="panel-row info">
         <span>Start</span>
-        <span class="coords">
+        <span class="panel-coords">
           ({selectedWall.start.x.toFixed(1)}, {selectedWall.start.y.toFixed(1)})
         </span>
       </div>
-      <div class="property-row info">
+      <div class="panel-row info">
         <span>End</span>
-        <span class="coords">
+        <span class="panel-coords">
           ({selectedWall.end.x.toFixed(1)}, {selectedWall.end.y.toFixed(1)})
         </span>
       </div>
-      <p class="hint">
+      <p class="panel-hint">
         Type a new length and press Enter to apply.
         Format: 10' 6" or 10.5
       </p>
@@ -101,30 +101,8 @@
 </FloatingPanel>
 
 <style>
-  .property-section {
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .property-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-  }
-
-  .property-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-
-  .property-row span:first-child {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .property-row.info {
+  /* Component-specific styles only - shared styles in App.svelte */
+  .info {
     padding: 6px 0;
   }
 
@@ -136,36 +114,5 @@
 
   .length-input {
     width: 90px;
-    padding: 4px 6px;
-    border: 1px solid var(--input-border);
-    border-radius: 4px;
-    font-size: 13px;
-    background: var(--input-bg);
-    color: var(--text-primary);
-    text-align: right;
-    font-family: monospace;
-  }
-
-  .length-input:focus {
-    outline: none;
-    border-color: var(--button-active);
-  }
-
-  .coords {
-    font-size: 12px;
-    color: var(--text-primary);
-    font-family: monospace;
-  }
-
-  .hint {
-    margin: 12px 0 0 0;
-    font-size: 11px;
-    color: var(--text-muted);
-    line-height: 1.4;
-    font-style: italic;
-    padding: 8px;
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.2);
-    border-radius: 4px;
   }
 </style>

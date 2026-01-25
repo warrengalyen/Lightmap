@@ -249,7 +249,7 @@ export class EditorRenderer {
             this.previewLightGroup = new THREE.Group();
 
             // Choose color based on validity
-            const color = isValid ? 0xfbbf24 : 0xef4444; // Amber for valid, red for invalid
+            const color = isValid ? 0x22c55e : 0xef4444; // Green for valid, red for invalid
 
             // Outer circle (6 inches = 0.5 feet radius)
             const outerGeometry = new THREE.RingGeometry(0.48, 0.5, 32);
