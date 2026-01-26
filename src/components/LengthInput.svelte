@@ -48,7 +48,7 @@
 
 {#if visible}
   <div class="overlay" on:click={close} on:keydown={handleKeydown} role="button" tabindex="-1">
-    <div class="modal" on:click|stopPropagation role="dialog">
+    <div class="modal" on:click|stopPropagation on:keydown|stopPropagation role="dialog" tabindex="-1">
       <h3>Set Segment Length</h3>
       <p class="help">Enter length in feet and inches (e.g., "10' 6\"" or "10.5")</p>
 

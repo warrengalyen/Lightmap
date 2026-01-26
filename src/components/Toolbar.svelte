@@ -670,33 +670,6 @@
     white-space: nowrap;
   }
 
-  .icon-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    min-height: 54px;
-    padding: 8px 4px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .icon-button:hover:not(:disabled) {
-    background: var(--button-bg-hover);
-    border-color: var(--border-color);
-  }
-
-  .icon-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
   .toggle-button.measuring.active {
     background: var(--measurement-active);
     border-color: var(--measurement-active);

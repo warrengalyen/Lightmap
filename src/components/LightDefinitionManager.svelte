@@ -164,7 +164,7 @@
 
 {#if visible}
   <div class="modal-overlay" on:click={close} on:keydown={(e) => e.key === 'Enter' && close()} role="button" tabindex="0">
-    <div class="modal" on:click|stopPropagation on:keydown|stopPropagation role="dialog" aria-modal="true">
+    <div class="modal" on:click|stopPropagation on:keydown|stopPropagation role="dialog" aria-modal="true" tabindex="-1">
       <div class="modal-header">
         <h2>Light Types</h2>
         <button class="close-button" on:click={close} title="Close">
