@@ -16,29 +16,9 @@ export interface SelectionState {
 // Interaction Modes
 // ============================================
 
-export type InteractionMode =
-  | 'idle'
-  | 'selecting'
-  | 'dragging'
-  | 'boxSelecting'
-  | 'grabMode'
-  | 'drawing'
-  | 'measuring'
-  | 'placingLight'
-  | 'placingDoor';
-
 // ============================================
 // Drag State
 // ============================================
-
-export type AnchorType = "vertex" | "light" | "wall" | null;
-
-export interface DragState {
-    isDragging: boolean;
-    startPosition: Vector2 | null;
-    anchorType: AnchorType;
-    anchorId: string | number | null;
-}
 
 export interface DragContext {
     originalVertexPositions: Map<number, Vector2>;
@@ -157,17 +137,7 @@ export interface GrabModeState {
 // Handler Results
 // ============================================
 
-export interface HandlerResult {
-    handled: boolean;
-    stopPropagation?: boolean;
-}
-
 // ============================================
 // Measurement State (for handlers)
 // ============================================
 
-export interface MeasurementTarget {
-  type: 'vertex' | 'light' | 'wall';
-    id: string | number;
-    position: Vector2;
-}

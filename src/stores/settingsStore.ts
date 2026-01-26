@@ -64,6 +64,3 @@ export function toggleUnitFormat(): void {
   }));
 }
 
-export function setUnitFormat(format: 'feet-inches' | 'inches'): void {
-  displayPreferences.update((prefs) => ({ ...prefs, unitFormat: format }));
-}

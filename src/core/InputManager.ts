@@ -61,16 +61,6 @@ export class InputManager {
     this.handlers.get(eventType)!.push(handler);
   }
 
-  off(eventType: InputEventType, handler: InputHandler): void {
-    const handlers = this.handlers.get(eventType);
-    if (handlers) {
-      const index = handlers.indexOf(handler);
-      if (index !== -1) {
-        handlers.splice(index, 1);
-      }
-    }
-  }
-
   private emit(eventType: InputEventType, event: InputEvent): void {
     const handlers = this.handlers.get(eventType);
     if (handlers) {

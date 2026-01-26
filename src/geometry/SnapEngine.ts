@@ -1,4 +1,4 @@
-import type { Vector2, SnapResult, SnapType } from '../types';
+import type { Vector2, SnapResult } from '../types';
 import {
   vectorSubtract,
   vectorNormalize,
@@ -52,24 +52,4 @@ export class SnapEngine {
     return { snappedPos: mousePos, snapType: 'none' };
   }
 
-  setClosureThreshold(threshold: number): void {
-    this.closureThreshold = threshold;
-  }
-
-  setAngleThreshold(degrees: number): void {
-    this.angleThreshold = degrees * (Math.PI / 180);
-  }
-
-  getSnapTypeLabel(snapType: SnapType): string {
-    switch (snapType) {
-      case 'parallel':
-        return 'Parallel';
-      case 'perpendicular':
-        return 'Perpendicular';
-      case 'closure':
-        return 'Close';
-      default:
-        return '';
-    }
-  }
 }

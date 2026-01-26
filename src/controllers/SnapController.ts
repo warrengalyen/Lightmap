@@ -31,11 +31,7 @@ export class SnapController {
     this.snapThreshold = snapThreshold;
   }
 
-  setSnapThreshold(threshold: number): void {
-    this.snapThreshold = threshold;
-  }
-
-  /**
+    /**
    * Snaps a position to align with other vertices.
    * @param pos - The position to snap
    * @param vertices - All vertices to check alignment against

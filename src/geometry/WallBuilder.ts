@@ -95,10 +95,6 @@ export class WallBuilder {
     this.manualLength = length > 0 ? length : null;
   }
 
-  clearManualLength(): void {
-    this.manualLength = null;
-  }
-
   getManualLength(): number | null {
     return this.manualLength;
   }

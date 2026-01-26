@@ -47,16 +47,6 @@ export function angleBetween(a: Vector2, b: Vector2): number {
     return Math.acos(cosAngle);
 }
 
-export function projectPointOntoLine(
-  point: Vector2,
-  lineStart: Vector2,
-  lineDir: Vector2
-): Vector2 {
-    const toPoint = vectorSubtract(point, lineStart);
-    const t = vectorDot(toPoint, lineDir);
-    return vectorAdd(lineStart, vectorScale(lineDir, t));
-}
-
 export function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
 }

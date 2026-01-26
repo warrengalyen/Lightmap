@@ -1,17 +1,7 @@
 import { writable, derived } from 'svelte/store';
-import { BLUEPRINT_THEME, DARK_THEME, LIGHT_THEME, type Theme, _setThemeInternal } from '../constants/themes';
+import { BLUEPRINT_THEME, DARK_THEME, LIGHT_THEME, type Theme } from '../constants/themes';
 
 export const currentTheme = writable<Theme>(BLUEPRINT_THEME);
-
-/**
- * Set the active theme and update both CSS variables and canvas theme.
- * After calling this, you should also call scene.updateTheme() and re-render the editor.
- */
-export function setActiveTheme(theme: Theme): void {
-  currentTheme.set(theme);
-  _setThemeInternal(theme); // Update canvas theme
-  updateCSSVariables(theme);
-}
 
 export { BLUEPRINT_THEME, DARK_THEME, LIGHT_THEME };
 
@@ -66,7 +56,7 @@ function updateCSSVariables(theme: Theme): void {
 }
 
 // Derived store for theme name (useful for displaying current theme)
-export const themeName = derived(currentTheme, $theme => $theme.name);
+derived(currentTheme, $theme => $theme.name);
 
 // Initialize CSS variables on module load
 updateCSSVariables(BLUEPRINT_THEME);

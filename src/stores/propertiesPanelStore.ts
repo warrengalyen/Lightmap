@@ -47,23 +47,3 @@ export function togglePropertiesPanel(): void {
   }));
 }
 
-export function setPropertiesPanelPosition(x: number, y: number): void {
-  propertiesPanelConfig.update((config) => ({
-    ...config,
-    position: { x, y },
-  }));
-}
-
-export function showPropertiesPanel(): void {
-  propertiesPanelConfig.update((config) => ({
-    ...config,
-    visible: true,
-  }));
-}
-
-export function hidePropertiesPanel(): void {
-  propertiesPanelConfig.update((config) => ({
-    ...config,
-    visible: false,
-  }));
-}

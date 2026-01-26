@@ -15,13 +15,6 @@ export type AppMode = 'drafting' | 'viewing';
 export type ViewMode = 'editor' | 'shadow' | 'heatmap';
 export type Tool = 'select' | 'draw' | 'light' | 'door';
 
-export interface AppState {
-  mode: AppMode;
-  viewMode: ViewMode;
-  activeTool: Tool;
-  selectedLightId: string | null;
-}
-
 export interface RafterConfig {
   orientation: 'horizontal' | 'vertical';
   spacing: number;
@@ -55,12 +48,7 @@ export const DEFAULT_ROOM_STATE: RoomState = {
   isClosed: false,
 };
 
-export const DEFAULT_APP_STATE: AppState = {
-  mode: 'drafting',
-  viewMode: 'editor',
-  activeTool: 'select',
-  selectedLightId: null,
-};
+
 
 export const DEFAULT_RAFTER_CONFIG: RafterConfig = {
   orientation: 'horizontal',

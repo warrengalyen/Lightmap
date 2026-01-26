@@ -36,16 +36,12 @@ export abstract class BaseDragOperation implements IDragOperation {
     /**
      * Apply axis lock constraint to a position.
      */
-    protected applyAxisConstraint(
-        pos: Vector2,
-        axisLock: AxisLock,
-        origin: Vector2,
-    ): Vector2 {
-        if (axisLock === "none" || !origin) return pos;
+  protected applyAxisConstraint(pos: Vector2, axisLock: AxisLock, origin: Vector2): Vector2 {
+    if (axisLock === 'none' || !origin) return pos;
 
-        if (axisLock === "x") {
+    if (axisLock === 'x') {
             return { x: pos.x, y: origin.y };
-        } else if (axisLock === "y") {
+    } else if (axisLock === 'y') {
             return { x: origin.x, y: pos.y };
         }
 

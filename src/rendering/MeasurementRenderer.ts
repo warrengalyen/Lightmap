@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import type { Vector2, UnitFormat } from '../types';
 import { formatImperial } from '../utils/format';
 import { clearGroup } from '../utils/three';
+import {
+  Z_LAYERS,
+  GEOMETRY,
+  DASH_PATTERNS,
+  PREVIEW_COLORS,
+  LABEL_SCALE,
+} from '../constants/rendering';
 
 interface MeasurementColors {
   main: number;
@@ -11,8 +18,8 @@ interface MeasurementColors {
 
 const DEFAULT_COLORS: MeasurementColors = {
   main: 0xff00ff,
-  xComponent: 0xff6600,
-  yComponent: 0x0066ff,
+  xComponent: PREVIEW_COLORS.SNAP_GUIDE_X,
+  yComponent: PREVIEW_COLORS.SNAP_GUIDE_Y,
 };
 
 /**
@@ -51,26 +58,25 @@ export class MeasurementRenderer {
 
     if (!from || !to) return;
 
-    const z = 0.2;
     const deltaX = Math.abs(to.x - from.x);
     const deltaY = Math.abs(to.y - from.y);
 
-    this.renderDiagonalLine(from, to, z);
-    this.renderEndpointMarkers(from, to, z);
+    this.renderDiagonalLine(from, to);
+    this.renderEndpointMarkers(from, to);
 
     if (deltaX > 0.1) {
-      this.renderXComponent(from, to, deltaX, z);
+      this.renderXComponent(from, to, deltaX);
     }
 
     if (deltaY > 0.1) {
-      this.renderYComponent(from, to, deltaY, z);
+      this.renderYComponent(from, to, deltaY);
     }
   }
 
-  private renderDiagonalLine(from: Vector2, to: Vector2, z: number): void {
+  private renderDiagonalLine(from: Vector2, to: Vector2): void {
     const points = [
-      new THREE.Vector3(from.x, from.y, z),
-      new THREE.Vector3(to.x, to.y, z),
+      new THREE.Vector3(from.x, from.y, Z_LAYERS.MEASUREMENT),
+      new THREE.Vector3(to.x, to.y, Z_LAYERS.MEASUREMENT),
     ];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = new THREE.LineBasicMaterial({
@@ -80,27 +86,27 @@ export class MeasurementRenderer {
     this.group.add(new THREE.Line(geometry, material));
   }
 
-  private renderEndpointMarkers(from: Vector2, to: Vector2, z: number): void {
+  private renderEndpointMarkers(from: Vector2, to: Vector2): void {
     for (const point of [from, to]) {
-      const geometry = new THREE.CircleGeometry(0.15, 16);
+      const geometry = new THREE.CircleGeometry(GEOMETRY.MEASUREMENT_MARKER_RADIUS, GEOMETRY.CIRCLE_SEGMENTS);
       const material = new THREE.MeshBasicMaterial({ color: this.colors.main });
       const marker = new THREE.Mesh(geometry, material);
-      marker.position.set(point.x, point.y, z + 0.01);
+      marker.position.set(point.x, point.y, Z_LAYERS.MEASUREMENT + 0.01);
       this.group.add(marker);
     }
   }
 
-  private renderXComponent(from: Vector2, to: Vector2, deltaX: number, z: number): void {
+  private renderXComponent(from: Vector2, to: Vector2, deltaX: number): void {
     // Horizontal dashed line
     const points = [
-      new THREE.Vector3(from.x, from.y, z),
-      new THREE.Vector3(to.x, from.y, z),
+      new THREE.Vector3(from.x, from.y, Z_LAYERS.MEASUREMENT),
+      new THREE.Vector3(to.x, from.y, Z_LAYERS.MEASUREMENT),
     ];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = new THREE.LineDashedMaterial({
       color: this.colors.xComponent,
-      dashSize: 0.15,
-      gapSize: 0.1,
+      dashSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.dashSize,
+      gapSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.gapSize,
     });
     const line = new THREE.Line(geometry, material);
     line.computeLineDistances();
@@ -111,21 +117,21 @@ export class MeasurementRenderer {
       formatImperial(deltaX, { format: this.currentUnitFormat }),
       this.colors.xComponent
     );
-    label.position.set((from.x + to.x) / 2, from.y - 0.4, z + 0.01);
+    label.position.set((from.x + to.x) / 2, from.y - 0.4, Z_LAYERS.MEASUREMENT + 0.01);
     this.group.add(label);
   }
 
-  private renderYComponent(from: Vector2, to: Vector2, deltaY: number, z: number): void {
+  private renderYComponent(from: Vector2, to: Vector2, deltaY: number): void {
     // Vertical dashed line
     const points = [
-      new THREE.Vector3(to.x, from.y, z),
-      new THREE.Vector3(to.x, to.y, z),
+      new THREE.Vector3(to.x, from.y, Z_LAYERS.MEASUREMENT),
+      new THREE.Vector3(to.x, to.y, Z_LAYERS.MEASUREMENT),
     ];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = new THREE.LineDashedMaterial({
       color: this.colors.yComponent,
-      dashSize: 0.15,
-      gapSize: 0.1,
+      dashSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.dashSize,
+      gapSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.gapSize,
     });
     const line = new THREE.Line(geometry, material);
     line.computeLineDistances();
@@ -136,7 +142,7 @@ export class MeasurementRenderer {
       formatImperial(deltaY, { format: this.currentUnitFormat }),
       this.colors.yComponent
     );
-    label.position.set(to.x + 0.5, (from.y + to.y) / 2, z + 0.01);
+    label.position.set(to.x + 0.5, (from.y + to.y) / 2, Z_LAYERS.MEASUREMENT + 0.01);
     this.group.add(label);
   }
 
@@ -168,7 +174,7 @@ export class MeasurementRenderer {
     const sprite = new THREE.Sprite(material);
 
     const aspectRatio = canvas.width / canvas.height;
-    sprite.scale.set(aspectRatio * 0.4, 0.4, 1);
+    sprite.scale.set(aspectRatio * LABEL_SCALE.MEASUREMENT_LABEL, LABEL_SCALE.MEASUREMENT_LABEL, 1);
 
     return sprite;
   }

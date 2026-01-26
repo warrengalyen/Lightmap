@@ -16,14 +16,7 @@ export class InteractionManager {
     this.handlers.sort((a, b) => b.priority - a.priority);
   }
 
-  /**
-   * Unregister a handler by name.
-   */
-  unregisterHandler(name: string): void {
-    this.handlers = this.handlers.filter(h => h.name !== name);
-  }
-
-  /**
+    /**
    * Handle a click event.
    */
   handleClick(event: InputEvent, context: InteractionContext): boolean {
@@ -88,17 +81,4 @@ export class InteractionManager {
     return false;
   }
 
-  /**
-   * Get all registered handlers.
-   */
-  getHandlers(): IInteractionHandler[] {
-    return [...this.handlers];
-  }
-
-  /**
-   * Get a handler by name.
-   */
-  getHandler<T extends IInteractionHandler>(name: string): T | undefined {
-    return this.handlers.find(h => h.name === name) as T | undefined;
-  }
 }

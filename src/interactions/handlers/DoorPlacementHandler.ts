@@ -3,7 +3,8 @@ import type { Door, DoorSwingDirection, DoorSwingSide, WallSegment, Vector2 } fr
 import type { InteractionContext } from '../../types/interaction';
 import { BaseInteractionHandler } from '../InteractionHandler';
 import { generateId } from '../../utils/id';
-import { vectorSubtract, vectorDot, vectorLength } from '../../utils/math';
+import { doorPositioningService } from '../../services';
+import { DOOR_PLACEMENT_TOLERANCE_FT } from '../../constants/editor';
 
 export interface DoorPlacementHandlerCallbacks {
   onDoorPlaced: (door: Door) => void;
@@ -29,96 +30,6 @@ export const DOOR_WIDTHS = {
 } as const;
 
 export const DEFAULT_DOOR_WIDTH = DOOR_WIDTHS['3\'0"'];
-export const DOOR_PLACEMENT_TOLERANCE = 0.5; // feet
-
-/**
- * Projects a point onto a wall and returns the distance from the wall's start.
- */
-function projectPointOntoWall(point: Vector2, wall: WallSegment): number {
-  const wallDir = vectorSubtract(wall.end, wall.start);
-  const wallLength = vectorLength(wallDir);
-  if (wallLength === 0) return 0;
-
-  const normalizedDir = { x: wallDir.x / wallLength, y: wallDir.y / wallLength };
-  const toPoint = vectorSubtract(point, wall.start);
-  const projection = vectorDot(toPoint, normalizedDir);
-
-  // Clamp to wall bounds
-  return Math.max(0, Math.min(wallLength, projection));
-}
-
-/**
- * Clamps a door position to valid wall bounds.
- * Returns the clamped position that keeps the door within the wall.
- */
-function clampDoorPositionToWall(
-  wall: WallSegment,
-  position: number,
-  width: number
-): number {
-  const halfWidth = width / 2;
-  const margin = 0.25; // 3 inches from corners
-
-  const minPosition = halfWidth + margin;
-  const maxPosition = wall.length - halfWidth - margin;
-
-  // If the wall is too short for the door, center it
-  if (minPosition > maxPosition) {
-    return wall.length / 2;
-  }
-
-  return Math.max(minPosition, Math.min(maxPosition, position));
-}
-
-/**
- * Checks if a door overlaps with existing doors on the same wall.
- * Returns false if there's an overlap.
- */
-function checkDoorOverlap(
-  wallId: string,
-  position: number,
-  width: number,
-  existingDoors: Door[]
-): boolean {
-  const halfWidth = width / 2;
-  const doorsOnWall = existingDoors.filter(d => d.wallId === wallId);
-
-  for (const door of doorsOnWall) {
-    const doorHalfWidth = door.width / 2;
-    const doorStart = door.position - doorHalfWidth;
-    const doorEnd = door.position + doorHalfWidth;
-    const newDoorStart = position - halfWidth;
-    const newDoorEnd = position + halfWidth;
-
-    // Check for overlap (with small gap requirement)
-    const gap = 0.1; // Small gap between doors
-    if (!(newDoorEnd + gap < doorStart || newDoorStart - gap > doorEnd)) {
-      return false; // Overlap detected
-    }
-  }
-
-  return true; // No overlap
-}
-
-/**
- * Checks if a door can be placed at the given position on a wall.
- * Returns false if the wall is too short or there's overlap with existing doors.
- */
-function canPlaceDoorAtPosition(
-  wall: WallSegment,
-  position: number,
-  width: number,
-  existingDoors: Door[]
-): boolean {
-  const margin = 0.25;
-
-  // Check if wall is long enough for the door
-  if (wall.length < width + margin * 2) {
-    return false;
-  }
-
-  return checkDoorOverlap(wall.id, position, width, existingDoors);
-}
 
 /**
  * Handles door placement mode.
@@ -150,7 +61,7 @@ export class DoorPlacementHandler extends BaseInteractionHandler {
     const pos = event.worldPos;
 
     // Find wall at click position
-    const wall = this.config.getWallAtPosition(pos, walls, DOOR_PLACEMENT_TOLERANCE);
+    const wall = this.config.getWallAtPosition(pos, walls, DOOR_PLACEMENT_TOLERANCE_FT);
     if (!wall) {
       return true; // Consumed the event but didn't place
     }
@@ -160,15 +71,15 @@ export class DoorPlacementHandler extends BaseInteractionHandler {
     const swingDirection = this.config.getSelectedDoorSwingDirection();
     const swingSide = this.config.getSelectedDoorSwingSide();
 
-    // Project click point onto wall and clamp to valid bounds
-    const rawPosition = projectPointOntoWall(pos, wall);
-    const positionOnWall = clampDoorPositionToWall(wall, rawPosition, doorWidth);
-
-    // Validate door fits (check overlap with existing doors)
+    // Calculate door position using the service
     const existingDoors = this.config.getDoors();
-    if (!canPlaceDoorAtPosition(wall, positionOnWall, doorWidth, existingDoors)) {
+    const result = doorPositioningService.calculateDoorPosition(pos, wall, doorWidth, existingDoors);
+
+    if (!result.canPlace) {
       return true; // Consumed the event but couldn't place
     }
+
+    const positionOnWall = result.position;
 
     // Create door with selected settings
     const newDoor: Door = {
@@ -196,7 +107,7 @@ export class DoorPlacementHandler extends BaseInteractionHandler {
     const pos = event.worldPos;
 
     // Find wall at mouse position
-    const wall = this.config.getWallAtPosition(pos, walls, DOOR_PLACEMENT_TOLERANCE);
+    const wall = this.config.getWallAtPosition(pos, walls, DOOR_PLACEMENT_TOLERANCE_FT);
     if (!wall) {
       this.callbacks.onDoorPreview(null, null, false);
       return false;
@@ -207,28 +118,21 @@ export class DoorPlacementHandler extends BaseInteractionHandler {
     const swingDirection = this.config.getSelectedDoorSwingDirection();
     const swingSide = this.config.getSelectedDoorSwingSide();
 
-    // Project mouse point onto wall and clamp to valid bounds
-    const rawPosition = projectPointOntoWall(pos, wall);
-    const positionOnWall = clampDoorPositionToWall(wall, rawPosition, doorWidth);
-
-    // Check if door can be placed (wall long enough and no overlap)
-    const margin = 0.25;
-    const wallLongEnough = wall.length >= doorWidth + margin * 2;
+    // Calculate door position using the service
     const existingDoors = this.config.getDoors();
-    const noOverlap = checkDoorOverlap(wall.id, positionOnWall, doorWidth, existingDoors);
-    const canPlace = wallLongEnough && noOverlap;
+    const result = doorPositioningService.calculateDoorPosition(pos, wall, doorWidth, existingDoors);
 
     // Create preview door (always show, but indicate if it can be placed)
     const previewDoor: Door = {
       id: 'preview',
       wallId: wall.id,
-      position: positionOnWall,
+      position: result.position,
       width: doorWidth,
       swingDirection,
       swingSide,
     };
 
-    this.callbacks.onDoorPreview(previewDoor, wall, canPlace);
+    this.callbacks.onDoorPreview(previewDoor, wall, result.canPlace);
     return false; // Don't consume the event, let other handlers process if needed
   }
 }

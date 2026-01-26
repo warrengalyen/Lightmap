@@ -10,12 +10,6 @@ export interface WallSegment {
     length: number;
 }
 
-export interface Polygon {
-    vertices: Vector2[];
-    walls: WallSegment[];
-    isClosed: boolean;
-}
-
 export interface BoundingBox {
     minX: number;
     minY: number;

@@ -297,10 +297,3 @@ export function getTheme(): Theme {
   return activeTheme;
 }
 
-/**
- * Set the active theme (internal use).
- * Use setActiveTheme from themeStore for full theme switching.
- */
-export function _setThemeInternal(theme: Theme): void {
-  activeTheme = theme;
-}

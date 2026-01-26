@@ -15,14 +15,14 @@
   import LightingStatsPanel from './components/LightingStatsPanel.svelte';
   import LightDefinitionManager from './components/LightDefinitionManager.svelte';
   import { roomStore } from './stores/roomStore';
-  import { activeTool, setActiveTool, setViewMode, requestCameraFit } from './stores/appStore';
+  import { activeTool, setActiveTool, requestCameraFit } from './stores/appStore';
   import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
   import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
   import { togglePropertiesPanel } from './stores/propertiesPanelStore';
   import './stores/themeStore'; // Initialize theme CSS variables
   import type { Vector2 } from './types';
 
-  const iconPath = `${import.meta.env.BASE_URL}icons/lightmap_icon.png`;
+
 
   let canvasComponent: Canvas;
   let mousePos: Vector2 = { x: 0, y: 0 };

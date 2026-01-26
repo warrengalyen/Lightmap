@@ -78,13 +78,6 @@ export function toggleLightingStats(): void {
   }));
 }
 
-export function setGridSpacing(spacing: number): void {
-  lightingStatsConfig.update((config) => ({
-    ...config,
-    gridSpacing: Math.max(0.25, Math.min(2, spacing)),
-  }));
-}
-
 export function setRoomType(roomType: RoomType): void {
   lightingStatsConfig.update((config) => ({
     ...config,

@@ -28,16 +28,3 @@ export function toggleSpacingWarnings(): void {
   }));
 }
 
-export function setOverlapFactor(factor: number): void {
-  spacingConfig.update((config) => ({
-    ...config,
-    overlapFactor: Math.max(0.3, Math.min(1, factor)),
-  }));
-}
-
-export function setGapTolerance(tolerance: number): void {
-  spacingConfig.update((config) => ({
-    ...config,
-    gapTolerance: Math.max(0.1, Math.min(0.8, tolerance)),
-  }));
-}

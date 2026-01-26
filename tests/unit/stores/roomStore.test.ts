@@ -14,6 +14,7 @@ describe('roomStore vertex operations', () => {
         { id: 'wall-4', start: { x: 0, y: 10 }, end: { x: 0, y: 0 }, length: 10 },
       ],
       lights: [],
+      doors: [],
       isClosed: true,
     });
   });
@@ -100,6 +101,7 @@ describe('roomStore vertex operations', () => {
           { id: 'wall-3', start: { x: 5, y: 10 }, end: { x: 0, y: 0 }, length: 11.18 },
         ],
         lights: [],
+        doors: [],
         isClosed: true,
       });
 
@@ -138,6 +140,7 @@ describe('roomStore vertex operations', () => {
         ceilingHeight: 8,
         walls: [],
         lights: [],
+        doors: [],
         isClosed: false,
       });
 

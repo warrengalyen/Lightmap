@@ -12,13 +12,23 @@ function getGitVersion(): string {
 }
 
 export default defineConfig({
-    plugins: [svelte()],
+    base: "",
+    plugins: [
+        svelte(),
+        {
+            name: "strip-dot-slash-prefix",
+            apply: "build",
+            transformIndexHtml(html) {
+                return html.replace(/(["'=])\.\/(?!\/)/g, "$1");
+            },
+        },
+    ],
     define: {
         __APP_VERSION__: JSON.stringify(getGitVersion()),
     },
     test: {
-        environment: 'jsdom',
+        environment: "jsdom",
         globals: true,
-        include: ['tests/**/*.test.ts'],
+        include: ["tests/**/*.test.ts"],
     },
 });

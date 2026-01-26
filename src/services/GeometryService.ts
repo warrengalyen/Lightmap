@@ -7,39 +7,6 @@ import { generateId } from '../utils/id';
  * Provides pure functions that don't directly mutate stores.
  */
 export class GeometryService {
-  /**
-   * Update a vertex position and return the new room state.
-   */
-  updateVertexPosition(state: RoomState, vertexIndex: number, newPosition: Vector2): RoomState {
-    if (!state.isClosed || state.walls.length === 0) return state;
-
-    const numWalls = state.walls.length;
-    if (vertexIndex < 0 || vertexIndex >= numWalls) return state;
-
-    const newWalls = [...state.walls];
-
-    // The vertex at index i is the start of wall[i] and end of wall[i-1]
-    // Update wall[vertexIndex].start
-    const currentWall = newWalls[vertexIndex];
-    const newLength = distancePointToPoint(newPosition, currentWall.end);
-    newWalls[vertexIndex] = {
-      ...currentWall,
-      start: { ...newPosition },
-      length: newLength,
-    };
-
-    // Update wall[(vertexIndex - 1 + numWalls) % numWalls].end
-    const prevWallIndex = (vertexIndex - 1 + numWalls) % numWalls;
-    const prevWall = newWalls[prevWallIndex];
-    const prevLength = distancePointToPoint(prevWall.start, newPosition);
-    newWalls[prevWallIndex] = {
-      ...prevWall,
-      end: { ...newPosition },
-      length: prevLength,
-    };
-
-    return { ...state, walls: newWalls };
-  }
 
   /**
    * Insert a vertex on a wall and return the new state and inserted index.
@@ -140,50 +107,6 @@ export class GeometryService {
   }
 
   /**
-   * Move a wall (both endpoints) and return the new state.
-   */
-  moveWall(state: RoomState, wallId: string, newStart: Vector2, newEnd: Vector2): RoomState {
-    if (!state.isClosed || state.walls.length === 0) return state;
-
-    const wallIndex = state.walls.findIndex(w => w.id === wallId);
-    if (wallIndex === -1) return state;
-
-    const numWalls = state.walls.length;
-    const newWalls = [...state.walls];
-
-    // Update the selected wall
-    const wall = newWalls[wallIndex];
-    newWalls[wallIndex] = {
-      ...wall,
-      start: { ...newStart },
-      end: { ...newEnd },
-      // Length stays the same since we're translating
-    };
-
-    // Update the previous wall's end point (it shares start vertex with this wall)
-    const prevWallIndex = (wallIndex - 1 + numWalls) % numWalls;
-    const prevWall = newWalls[prevWallIndex];
-    const prevLength = distancePointToPoint(prevWall.start, newStart);
-    newWalls[prevWallIndex] = {
-      ...prevWall,
-      end: { ...newStart },
-      length: prevLength,
-    };
-
-    // Update the next wall's start point (it shares end vertex with this wall)
-    const nextWallIndex = (wallIndex + 1) % numWalls;
-    const nextWall = newWalls[nextWallIndex];
-    const nextLength = distancePointToPoint(newEnd, nextWall.end);
-    newWalls[nextWallIndex] = {
-      ...nextWall,
-      start: { ...newEnd },
-      length: nextLength,
-    };
-
-    return { ...state, walls: newWalls };
-  }
-
-  /**
    * Get all vertices from a room state.
    */
   getVertices(state: RoomState): Vector2[] {
@@ -191,13 +114,6 @@ export class GeometryService {
     return state.walls.map(w => w.start);
   }
 
-  /**
-   * Get a wall by ID.
-   */
-  getWallById(state: RoomState, wallId: string): WallSegment | null {
-    return state.walls.find(w => w.id
-     === wallId) ?? null;
-  }
 }
 
 // Singleton instance for convenience

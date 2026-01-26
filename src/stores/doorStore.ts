@@ -28,10 +28,6 @@ export function setDoorSwingSide(side: DoorSwingSide): void {
   doorPlacementSettings.update(s => ({ ...s, swingSide: side }));
 }
 
-export function getSelectedDoorWidth(): number {
-  return get(doorPlacementSettings).width;
-}
-
 export function getDoorPlacementSettings(): DoorPlacementSettings {
   return get(doorPlacementSettings);
 }

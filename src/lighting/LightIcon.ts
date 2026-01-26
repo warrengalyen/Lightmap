@@ -173,15 +173,7 @@ export class LightIcon {
     }
   }
 
-  isSelected(): boolean {
-    return this.selected;
-  }
-
-  getLightId(): string {
-    return this.light.id;
-  }
-
-  dispose(): void {
+    dispose(): void {
     this.iconMesh.geometry.dispose();
     (this.iconMesh.material as THREE.Material).dispose();
     this.beamPreview.geometry.dispose();

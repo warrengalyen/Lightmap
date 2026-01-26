@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import type { LightDefinition, LightProperties } from '../types';
+import type { LightDefinition } from '../types';
 import { DEFAULT_LIGHT_DEFINITIONS } from '../types';
 import type { IESData } from '../lighting/IESParser';
 
@@ -41,7 +41,7 @@ lightDefinitions.subscribe(defs => {
 
 export const selectedDefinitionId = writable<string>(DEFAULT_LIGHT_DEFINITIONS[0].id);
 
-export const selectedDefinition = derived(
+derived(
   [lightDefinitions, selectedDefinitionId],
   ([$definitions, $selectedId]) => {
     return $definitions.find(d => d.id === $selectedId) ?? $definitions[0];
@@ -50,18 +50,6 @@ export const selectedDefinition = derived(
 
 export function getDefinitionById(id: string): LightDefinition | undefined {
   return get(lightDefinitions).find(d => d.id === id);
-}
-
-export function getPropertiesForLight(definitionId: string, fallbackProperties: LightProperties): LightProperties {
-  const definition = getDefinitionById(definitionId);
-  if (definition) {
-    return {
-      lumen: definition.lumen,
-      beamAngle: definition.beamAngle,
-      warmth: definition.warmth,
-    };
-  }
-  return fallbackProperties;
 }
 
 export function addLightDefinition(definition: Omit<LightDefinition, 'id'>): LightDefinition {

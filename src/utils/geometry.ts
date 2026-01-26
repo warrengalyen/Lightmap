@@ -1,10 +1,5 @@
-import type { Vector2, WallSegment, Door } from "../types";
-import {
-    distancePointToSegment,
-    vectorSubtract,
-    vectorLength,
-    vectorNormalize,
-} from "./math";
+import type { Vector2, WallSegment, Door } from '../types';
+import { distancePointToSegment, vectorSubtract, vectorLength, vectorNormalize } from './math';
 
 /**
  * Gets the direction vector and length of a wall segment.
@@ -28,7 +23,7 @@ export function getWallDirection(wall: WallSegment): {
  */
 export function getDoorEndpoints(
     door: Door,
-    wall: WallSegment,
+  wall: WallSegment
 ): { start: Vector2; end: Vector2; hingePos: Vector2 } {
     const { normalized, length } = getWallDirection(wall);
     if (length === 0) {
@@ -47,7 +42,7 @@ export function getDoorEndpoints(
     };
 
     // Hinge position depends on swing direction
-    const hingePos = door.swingDirection === "right" ? start : end;
+  const hingePos = door.swingDirection === 'right' ? start : end;
 
     return { start, end, hingePos };
 }
@@ -119,10 +114,7 @@ export function calculateRoomArea(walls: WallSegment[]): number {
 /**
  * Finds the minimum distance from a point to any wall segment.
  */
-export function getDistanceToNearestWall(
-    point: Vector2,
-    walls: WallSegment[],
-): number {
+export function getDistanceToNearestWall(point: Vector2, walls: WallSegment[]): number {
     let minDist = Infinity;
 
     for (const wall of walls) {

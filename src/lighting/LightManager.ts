@@ -63,32 +63,7 @@ export class LightManager {
     return light;
   }
 
-  updateLightDefinition(id: string, definitionId: string): LightFixture | null {
-    const light = this.lights.get(id);
-    if (!light) return null;
-
-    const definition = this.getDefinition(definitionId);
-    if (!definition) return null;
-
-    light.definitionId = definitionId;
-    light.properties = {
-      lumen: definition.lumen,
-      beamAngle: definition.beamAngle,
-      warmth: definition.warmth,
-    };
-
-    return light;
-  }
-
-  updateLightPosition(id: string, position: Vector2): LightFixture | null {
-    const light = this.lights.get(id);
-    if (!light) return null;
-
-    light.position = { ...position };
-    return light;
-  }
-
-  getLight(id: string): LightFixture | null {
+    getLight(id: string): LightFixture | null {
     return this.lights.get(id) ?? null;
   }
 

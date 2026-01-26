@@ -13,23 +13,3 @@ export function toggleDeadZones(): void {
   }));
 }
 
-export function setDeadZoneThreshold(threshold: number): void {
-  deadZoneConfig.update((config) => ({
-    ...config,
-    threshold: Math.max(1, Math.min(100, threshold)),
-  }));
-}
-
-export function setDeadZoneColor(r: number, g: number, b: number): void {
-  deadZoneConfig.update((config) => ({
-    ...config,
-    color: { r, g, b },
-  }));
-}
-
-export function setDeadZoneOpacity(opacity: number): void {
-  deadZoneConfig.update((config) => ({
-    ...config,
-    opacity: Math.max(0.1, Math.min(1, opacity)),
-  }));
-}

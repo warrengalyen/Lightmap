@@ -79,10 +79,6 @@ export function updateWallLength(wallId: string, newLength: number): void {
   });
 }
 
-export function getWallById(state: RoomState, wallId: string): WallSegment | null {
-  return state.walls.find(w => w.id === wallId) ?? null;
-}
-
 export function getVertices(state: RoomState): Vector2[] {
   if (state.walls.length === 0) return [];
   return state.walls.map(w => w.start);
@@ -284,9 +280,3 @@ export function getDoorsByWallId(state: RoomState, wallId: string): Door[] {
   return state.doors.filter(d => d.wallId === wallId);
 }
 
-export function removeDoorsOnWall(wallId: string): void {
-  roomStore.update(state => ({
-    ...state,
-    doors: state.doors.filter(d => d.wallId !== wallId),
-  }));
-}

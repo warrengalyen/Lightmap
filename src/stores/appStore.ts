@@ -1,4 +1,4 @@
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import type { AppMode, ViewMode, Tool } from '../types';
 import { selectionService } from '../services/SelectionService';
 
@@ -75,20 +75,8 @@ export function selectLight(id: string, addToSelection: boolean = false): void {
   selectedVertexIndices.set(new Set());
 }
 
-export function deselectLight(id: string): void {
-  selectedLightIds.update(ids => {
-    const newIds = new Set(ids);
-    newIds.delete(id);
-    return newIds;
-  });
-}
-
 export function clearLightSelection(): void {
   selectedLightIds.set(new Set());
-}
-
-export function isLightSelected(id: string): boolean {
-  return get(selectedLightIds).has(id);
 }
 
 // Vertex selection helpers
@@ -100,10 +88,6 @@ export function selectVertex(index: number, addToSelection: boolean = false): vo
 
 export function clearVertexSelection(): void {
   selectedVertexIndices.set(new Set());
-}
-
-export function isVertexSelected(index: number): boolean {
-  return get(selectedVertexIndices).has(index);
 }
 
 // Wall selection helpers

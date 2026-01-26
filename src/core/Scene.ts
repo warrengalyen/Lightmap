@@ -94,13 +94,7 @@ export class Scene {
     this.handleResize();
   }
 
-  resetView(): void {
-    this.zoom = 1;
-    this.panOffset.set(0, 0);
-    this.handleResize();
-  }
-
-  fitToBounds(bounds: BoundingBox, padding: number = FIT_BOUNDS_PADDING): void {
+    fitToBounds(bounds: BoundingBox, padding: number = FIT_BOUNDS_PADDING): void {
     const width = bounds.maxX - bounds.minX;
     const height = bounds.maxY - bounds.minY;
     const centerX = (bounds.minX + bounds.maxX) / 2;
@@ -138,17 +132,4 @@ export class Scene {
     return this.renderer.domElement;
   }
 
-  updateTheme(): void {
-    const theme = getTheme();
-    this.scene.background = new THREE.Color(theme.canvas.background);
-
-    // Remove old grid
-    const oldGrid = this.scene.children.find(child => child instanceof THREE.GridHelper);
-    if (oldGrid) {
-      this.scene.remove(oldGrid);
-    }
-
-    // Add new grid with updated colors
-    this.addGrid();
-  }
 }

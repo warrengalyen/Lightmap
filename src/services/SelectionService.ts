@@ -24,51 +24,6 @@ export class SelectionService {
         return new Set([item]);
     }
 
-    /**
-     * Deselect an item from a selection set.
-     *
-     * @param currentSelection - The current selection set
-     * @param item - The item to deselect
-     * @returns A new selection set without the item
-     */
-    deselectItem<T>(currentSelection: Set<T>, item: T): Set<T> {
-        const newSelection = new Set(currentSelection);
-        newSelection.delete(item);
-        return newSelection;
-    }
-
-    /**
-     * Add multiple items to a selection set.
-     *
-     * @param currentSelection - The current selection set
-     * @param items - Items to add
-     * @param addToSelection - If true, add to existing; if false, replace
-     * @returns A new selection set
-     */
-    selectMultiple<T>(currentSelection: Set<T>, items: T[], addToSelection: boolean): Set<T> {
-        if (addToSelection) {
-            const newSelection = new Set(currentSelection);
-            for (const item of items) {
-                newSelection.add(item);
-            }
-            return newSelection;
-        }
-        return new Set(items);
-    }
-
-    /**
-     * Check if an item is selected.
-     */
-    isSelected<T>(selection: Set<T>, item: T): boolean {
-        return selection.has(item);
-    }
-
-    /**
-     * Clear a selection.
-     */
-    clearSelection<T>(): Set<T> {
-        return new Set<T>();
-    }
 }
 
 // Singleton instance for convenience

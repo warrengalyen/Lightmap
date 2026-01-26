@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { lightingStatsConfig, lightingMetrics, setRoomType, toggleLightingStats } from '../stores/lightingStatsStore';
   import FloatingPanel from './FloatingPanel.svelte';
   import type { LightingMetrics, LightingStatsConfig, RoomType } from '../types';

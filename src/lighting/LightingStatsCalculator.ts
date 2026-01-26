@@ -167,8 +167,4 @@ export class LightingStatsCalculator {
     return `${lightsKey}::${wallsKey}::${ceilingHeight}::${gridSpacing}::${roomType}`;
   }
 
-  clearCache(): void {
-    this.cachedMetrics = null;
-    this.cacheKey = '';
-  }
 }

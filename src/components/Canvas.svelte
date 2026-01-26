@@ -77,7 +77,7 @@
         DragManager,
         DrawingHandler,
         DoorPlacementHandler,
-        DEFAULT_DOOR_WIDTH,
+        EMPTY_MODIFIERS,
         GrabModeDragOperation,
         GrabModeHandler,
         InteractionManager,
