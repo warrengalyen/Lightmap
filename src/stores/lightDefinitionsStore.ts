@@ -11,7 +11,7 @@ function loadCustomDefinitions(): LightDefinition[] {
         if (!data) return [];
         const parsed = JSON.parse(data) as LightDefinition[];
         // Filter out any that might have invalid data
-        return parsed.filter((d) => d.id && d.name && typeof d.lumen === 'number');
+        return parsed.filter((d) => d.id && d.name);
     } catch (e) {
         console.error('Failed to load custom light definitions:', e);
         return [];

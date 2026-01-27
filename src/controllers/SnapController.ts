@@ -228,13 +228,7 @@ export class SnapController {
      */
     snapToGrid(pos: Vector2, gridSize: number): Vector2 {
         // Validate inputs to prevent NaN
-        if (
-            !pos ||
-            typeof pos.x !== 'number' ||
-            typeof pos.y !== 'number' ||
-            !gridSize ||
-            gridSize <= 0
-        ) {
+        if (!pos || !gridSize || gridSize <= 0) {
             return pos;
         }
         return {
