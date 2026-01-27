@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
+    import { get } from 'svelte/store';
     import ViewerToolbar from './ViewerToolbar.svelte';
     import ViewerCanvas from './ViewerCanvas.svelte';
     import ViewerStatsPanel from './ViewerStatsPanel.svelte';
@@ -7,12 +9,38 @@
     import { lightingStatsConfig } from '../stores/lightingStatsStore';
     import { importFromJSON, ValidationError } from '../persistence/jsonImport';
     import { initSettingsFromRoom } from '../stores/settingsStore';
+    import { routeParams } from '../stores/routerStore';
+    import { decodeShareData } from '../persistence/shareUrl';
     import type { ViewMode } from '../types';
 
     let viewMode: ViewMode = 'editor';
     let hasProject = false;
     let errorMessage = '';
     let toolbar: ViewerToolbar;
+
+    onMount(() => {
+        const params = get(routeParams);
+        if (params.d) {
+            try {
+                const roomState = decodeShareData(params.d);
+                roomStore.set(roomState);
+                initSettingsFromRoom();
+                hasProject = true;
+
+                if (roomState.lights.length > 0) {
+                    lightingStatsConfig.update((c) => ({ ...c, visible: true }));
+                }
+
+                requestCameraFit();
+            } catch (err) {
+                if (err instanceof ValidationError) {
+                    errorMessage = err.message;
+                } else {
+                    errorMessage = 'Failed to load shared design. The URL may be corrupted.';
+                }
+            }
+        }
+    });
 
     function handleViewModeChange(e: CustomEvent<{ mode: ViewMode }>): void {
         viewMode = e.detail.mode;
