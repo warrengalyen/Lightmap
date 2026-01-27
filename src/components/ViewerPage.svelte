@@ -5,6 +5,7 @@
     import ViewerCanvas from './ViewerCanvas.svelte';
     import ViewerStatsPanel from './ViewerStatsPanel.svelte';
     import { roomStore } from '../stores/roomStore';
+    import LightInfoBottomSheet from './LightInfoBottomSheet.svelte';
     import { requestCameraFit } from '../stores/appStore';
     import { lightingStatsConfig } from '../stores/lightingStatsStore';
     import { importFromJSON, ValidationError } from '../persistence/jsonImport';
@@ -109,6 +110,8 @@
             </div>
         {/if}
     </div>
+
+    <LightInfoBottomSheet />
 </div>
 
 <style>

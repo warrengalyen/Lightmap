@@ -1,12 +1,14 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte';
+    import * as THREE from 'three';
     import { Scene } from '../core/Scene';
     import { EditorRenderer } from '../rendering/EditorRenderer';
     import { HeatmapRenderer } from '../rendering/HeatmapRenderer';
     import { ShadowRenderer } from '../rendering/ShadowRenderer';
     import { roomBounds, roomStore } from '../stores/roomStore';
     import { shouldFitCamera } from '../stores/appStore';
-    import type { BoundingBox, RoomState, ViewMode } from '../types';
+    import { selectedViewerLight } from '../stores/viewerStore';
+    import type { BoundingBox, RoomState, ViewMode, LightFixture } from '../types';
 
     export let viewMode: ViewMode = 'editor';
 
@@ -16,15 +18,20 @@
     let heatmapRenderer: HeatmapRenderer;
     let shadowRenderer: ShadowRenderer;
     let animationFrameId: number;
+    let raycaster: THREE.Raycaster;
 
     // Pan/zoom state
     let isPanning = false;
     let lastPointerPos = { x: 0, y: 0 };
+    let hasPanned = false; // Track if user has moved during mouse down
 
     // Touch state
     let lastTouchDist = 0;
     let lastTouchCenter = { x: 0, y: 0 };
     let activeTouches: Touch[] = [];
+    let touchStartTime = 0;
+    let touchStartPos = { x: 0, y: 0 };
+    let hasTouchMoved = false;
 
     // Reactive state
     let currentRoomState: RoomState;
@@ -37,6 +44,11 @@
         updateViewMode(viewMode);
     }
 
+    // Update selected light IDs for visual feedback
+    $: selectedLightIds = $selectedViewerLight
+        ? new Set([$selectedViewerLight.id])
+        : new Set<string>();
+
     $: if (editorRenderer && currentRoomState) {
         editorRenderer.updateWalls(
             currentRoomState.walls,
@@ -47,7 +59,7 @@
         editorRenderer.updateLights(
             currentRoomState.lights,
             currentRoomState.ceilingHeight,
-            new Set()
+            selectedLightIds
         );
         editorRenderer.updateDoors(currentRoomState.doors ?? [], currentRoomState.walls, null);
         editorRenderer.updateObstacles(currentRoomState.obstacles ?? [], null);
@@ -93,20 +105,104 @@
     function handleMouseDown(e: MouseEvent): void {
         if (e.button === 0 || e.button === 1) {
             isPanning = true;
+            hasPanned = false;
             lastPointerPos = { x: e.clientX, y: e.clientY };
+            if (scene) {
+                scene.domElement.style.cursor = 'grabbing';
+            }
         }
     }
 
     function handleMouseMove(e: MouseEvent): void {
-        if (!isPanning || !scene) return;
-        const dx = e.clientX - lastPointerPos.x;
-        const dy = e.clientY - lastPointerPos.y;
-        scene.pan(-dx, dy);
-        lastPointerPos = { x: e.clientX, y: e.clientY };
+        if (isPanning && scene) {
+            const dx = e.clientX - lastPointerPos.x;
+            const dy = e.clientY - lastPointerPos.y;
+
+            // Mark as panned if moved more than a few pixels
+            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                hasPanned = true;
+            }
+
+            scene.pan(-dx, dy);
+            lastPointerPos = { x: e.clientX, y: e.clientY };
+        } else {
+            // Update cursor based on hover
+            updateCursor(e.clientX, e.clientY);
+        }
     }
 
-    function handleMouseUp(): void {
+    function updateCursor(clientX: number, clientY: number): void {
+        if (!scene || !raycaster || !editorRenderer || viewMode !== 'editor') {
+            if (scene) {
+                scene.domElement.style.cursor = 'grab';
+            }
+            return;
+        }
+
+        const rect = scene.domElement.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(new THREE.Vector2(x, y), scene.camera);
+        const intersects = raycaster.intersectObjects(scene.scene.children, true);
+
+        let isOverLight = false;
+        for (const intersect of intersects) {
+            if (intersect.object.userData.lightId) {
+                isOverLight = true;
+                break;
+            }
+        }
+
+        scene.domElement.style.cursor = isOverLight ? 'pointer' : 'grab';
+    }
+
+    function handleMouseUp(e: MouseEvent): void {
+        // Only handle click if we didn't pan
+        if (isPanning && !hasPanned && e.button === 0) {
+            handleClick(e.clientX, e.clientY);
+        }
         isPanning = false;
+        hasPanned = false;
+
+        // Update cursor after mouse up
+        if (scene) {
+            updateCursor(e.clientX, e.clientY);
+        }
+    }
+
+    function handleClick(clientX: number, clientY: number): void {
+        if (!scene || !raycaster || !editorRenderer) return;
+
+        // Only handle clicks in editor mode
+        if (viewMode !== 'editor') return;
+
+        // Get normalized device coordinates
+        const rect = scene.domElement.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+        // Set up raycaster
+        raycaster.setFromCamera(new THREE.Vector2(x, y), scene.camera);
+
+        // Check for intersections with light icons
+        const intersects = raycaster.intersectObjects(scene.scene.children, true);
+
+        for (const intersect of intersects) {
+            // Check if we clicked on a light icon
+            const lightId = intersect.object.userData.lightId;
+            if (lightId) {
+                // Find the light in the room state
+                const light = $roomStore.lights.find((l) => l.id === lightId);
+                if (light) {
+                    selectedViewerLight.set(light);
+                    return;
+                }
+            }
+        }
+
+        // If we clicked outside any light, clear selection
+        selectedViewerLight.set(null);
     }
 
     function handleWheel(e: WheelEvent): void {
@@ -133,7 +229,11 @@
     function handleTouchStart(e: TouchEvent): void {
         e.preventDefault();
         activeTouches = Array.from(e.touches);
+        hasTouchMoved = false;
+
         if (activeTouches.length === 1) {
+            touchStartTime = Date.now();
+            touchStartPos = { x: activeTouches[0].clientX, y: activeTouches[0].clientY };
             lastPointerPos = { x: activeTouches[0].clientX, y: activeTouches[0].clientY };
         } else if (activeTouches.length === 2) {
             lastTouchDist = getTouchDist(activeTouches[0], activeTouches[1]);
@@ -150,9 +250,16 @@
             // 1-finger pan
             const dx = touches[0].clientX - lastPointerPos.x;
             const dy = touches[0].clientY - lastPointerPos.y;
+
+            // Mark as moved if moved more than a few pixels
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                hasTouchMoved = true;
+            }
+
             scene.pan(-dx, dy);
             lastPointerPos = { x: touches[0].clientX, y: touches[0].clientY };
         } else if (touches.length === 2) {
+            hasTouchMoved = true;
             // 2-finger pinch zoom + pan
             const dist = getTouchDist(touches[0], touches[1]);
             const center = getTouchCenter(touches[0], touches[1]);
@@ -174,7 +281,19 @@
     }
 
     function handleTouchEnd(e: TouchEvent): void {
-        activeTouches = Array.from(e.touches);
+        const remainingTouches = Array.from(e.touches);
+
+        // Handle tap (quick touch without movement)
+        if (
+            activeTouches.length === 1 &&
+            remainingTouches.length === 0 &&
+            !hasTouchMoved &&
+            Date.now() - touchStartTime < 300
+        ) {
+            handleClick(touchStartPos.x, touchStartPos.y);
+        }
+
+        activeTouches = remainingTouches;
         if (activeTouches.length < 2) {
             lastTouchDist = 0;
         }
@@ -187,6 +306,9 @@
         scene = new Scene(container);
         // Cap pixel ratio on mobile
         scene.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Initialize raycaster for click detection
+        raycaster = new THREE.Raycaster();
 
         // Attach pan/zoom events to the Three.js canvas (it sits on top of the container)
         const canvas = scene.domElement;
