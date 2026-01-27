@@ -278,7 +278,7 @@
           <div class="definitions-list">
             <div class="list-section">
               <h4>Built-in Types</h4>
-              {#each definitions.filter(d => isBuiltIn(d)) as def}
+              {#each definitions.filter(d => isBuiltIn(d)) as def (def.id)}
                 <div class="definition-item">
                   <div class="definition-info">
                     <span class="definition-name">{def.name}</span>
@@ -293,7 +293,7 @@
             {#if definitions.some(d => !isBuiltIn(d))}
               <div class="list-section">
                 <h4>Custom Types</h4>
-                {#each definitions.filter(d => !isBuiltIn(d)) as def}
+                {#each definitions.filter(d => !isBuiltIn(d)) as def (def.id)}
                   <div class="definition-item custom">
                     <div class="definition-info">
                       <span class="definition-name">{def.name}</span>

@@ -37,7 +37,7 @@ export function initSettingsFromRoom(): void {
     // Merge with defaults to handle missing fields from old data
     const mergedPrefs = { ...DEFAULT_DISPLAY_PREFERENCES, ...state.displayPreferences };
     // Migrate legacy 'never' value to 'selected'
-    if ((mergedPrefs.lightRadiusVisibility as any) === 'never') {
+    if ((mergedPrefs.lightRadiusVisibility as string) === 'never') {
       mergedPrefs.lightRadiusVisibility = 'selected';
     }
     displayPreferences.set(mergedPrefs);

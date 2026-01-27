@@ -33,7 +33,7 @@
         try {
           const parsed = JSON.parse(savedPosition);
           position = parsed;
-        } catch (e) {
+        } catch {
           // Invalid JSON, use defaults
           position = { x: defaultX, y: defaultY };
         }

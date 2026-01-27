@@ -125,7 +125,7 @@ export class GrabModeHandler extends BaseInteractionHandler {
     dragManager.startDrag(operation, {
       position: getCurrentMousePos(),
       modifiers: EMPTY_MODIFIERS,
-      roomState: null as any, // Will be populated by the operation
+      roomState: null, // Will be populated by the operation
       selection,
     });
 

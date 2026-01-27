@@ -287,7 +287,7 @@ export const LIGHT_THEME: Theme = {
 
 // Active theme (default to blueprint)
 // This is used by the canvas/THREE.js rendering
-let activeTheme: Theme = BLUEPRINT_THEME;
+const activeTheme: Theme = BLUEPRINT_THEME;
 
 /**
  * Get the current theme for canvas rendering.

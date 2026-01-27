@@ -65,7 +65,7 @@
     <label class="setting-row">
       <span class="label-text">Door Width</span>
       <select value={settings.width} on:change={handleWidthChange}>
-        {#each doorWidthOptions as { label, value }}
+        {#each doorWidthOptions as { label, value } (value)}
           <option value={value}>{label}</option>
         {/each}
       </select>

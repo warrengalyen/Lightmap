@@ -63,7 +63,7 @@
       <label>
         <span>Room Type</span>
         <select value={config.roomType} on:change={handleRoomTypeChange}>
-          {#each roomTypes as rt}
+          {#each roomTypes as rt (rt.value)}
             <option value={rt.value}>{rt.label}</option>
           {/each}
         </select>

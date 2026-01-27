@@ -80,7 +80,7 @@
       <label class="select-row">
         <span>Width</span>
         <select class="panel-select" value={selectedDoor.width} on:change={updateDoorWidth}>
-          {#each doorWidthOptions as { label, value }}
+          {#each doorWidthOptions as { label, value } (value)}
             <option value={value}>{label}</option>
           {/each}
         </select>

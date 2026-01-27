@@ -1,6 +1,7 @@
 <script lang="ts">
     import {createEventDispatcher, onDestroy, onMount} from 'svelte';
     import {get} from 'svelte/store';
+    import {SvelteSet} from 'svelte/reactivity';
     import {Scene} from '../core/Scene';
     import {type InputEvent, InputManager} from '../core/InputManager';
     import {EditorRenderer} from '../rendering/EditorRenderer';
@@ -508,7 +509,7 @@
     const obstacle = obstacles.find(o => o.id === currentSelectedObstacleId);
     if (!obstacle) return;
 
-    const allIndices = new Set<number>();
+    const allIndices = new SvelteSet<number>();
     for (let i = 0; i < obstacle.walls.length; i++) {
       allIndices.add(i);
     }
@@ -706,12 +707,12 @@
             const first = obstacleVertices[0];
             if (addToSelection) {
               selectedObstacleVertexIndices.update(existing => {
-                const newSet = new Set(existing);
+                const newSet = new SvelteSet(existing);
                 for (const idx of first.vertexIndices) newSet.add(idx);
                 return newSet;
               });
             } else {
-              selectedObstacleVertexIndices.set(new Set(first.vertexIndices));
+              selectedObstacleVertexIndices.set(new SvelteSet(first.vertexIndices));
             }
           } else if (currentSelectedObstacleId) {
             // Obstacle selected but no obstacle vertices in box — clear obstacle vertex selection
@@ -723,18 +724,18 @@
             if (vertexIndices.length > 0) {
               if (addToSelection) {
                 selectedVertexIndices.update(existing => {
-                  const newSet = new Set(existing);
+                  const newSet = new SvelteSet(existing);
                   for (const idx of vertexIndices) newSet.add(idx);
                   return newSet;
                 });
               } else {
-                selectedVertexIndices.set(new Set(vertexIndices));
+                selectedVertexIndices.set(new SvelteSet(vertexIndices));
               }
             }
             if (lightIds.length > 0) {
               if (addToSelection) {
                 selectedLightIds.update(existing => {
-                  const newSet = new Set(existing);
+                  const newSet = new SvelteSet(existing);
                   for (const id of lightIds) newSet.add(id);
                   return newSet;
                 });
@@ -807,7 +808,7 @@
           },
           dragManager.getCallbacks()
         ),
-        getGrabModeState: () => ({ isActive: isGrabMode, offset: null, originalPositions: null as any }),
+        getGrabModeState: () => ({ isActive: isGrabMode, offset: null, originalPositions: null }),
         setGrabModeActive: (active) => { isGrabMode = active; },
         getSelection: () => buildInteractionContext().selection,
         getCurrentMousePos: () => currentMousePos,

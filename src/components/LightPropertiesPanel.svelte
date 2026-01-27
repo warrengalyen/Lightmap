@@ -84,7 +84,7 @@
           {#if !commonDefinitionId}
             <option value="" disabled>Mixed types...</option>
           {/if}
-          {#each definitions as def}
+          {#each definitions as def (def.id)}
             <option value={def.id}>{def.name}</option>
           {/each}
         </select>
@@ -129,7 +129,7 @@
           value={light.definitionId || definitions[0]?.id}
           on:change={updateLightDefinition}
         >
-          {#each definitions as def}
+          {#each definitions as def (def.id)}
             <option value={def.id}>{def.name}</option>
           {/each}
         </select>

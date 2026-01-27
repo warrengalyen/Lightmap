@@ -51,7 +51,7 @@
           value={currentDefinitionId}
           on:change={handleDefinitionChange}
         >
-          {#each definitions as def}
+          {#each definitions as def (def.id)}
             <option value={def.id}>{def.name}</option>
           {/each}
         </select>

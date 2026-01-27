@@ -51,7 +51,7 @@ export interface InputModifiers {
 export interface DragStartContext {
     position: Vector2;
     modifiers: InputModifiers;
-    roomState: RoomState;
+    roomState: RoomState | null;
     selection: SelectionState;
 }
 
