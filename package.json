@@ -10,16 +10,24 @@
         "test": "vitest",
         "test:run": "vitest run",
         "lint": "eslint .",
-        "lint:fix": "eslint . --fix"
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "prepare": "husky"
     },
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
         "@testing-library/svelte": "^5.3.1",
         "@types/three": "^0.182.0",
         "eslint": "^9.39.2",
+        "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-svelte": "^3.14.0",
         "globals": "^17.3.0",
+        "husky": "^9.1.7",
         "jsdom": "^28.1.0",
+        "lint-staged": "^16.2.7",
+        "prettier": "^3.8.1",
+        "prettier-plugin-svelte": "^3.4.1",
         "svelte-eslint-parser": "^1.4.1",
         "typescript": "~5.9.3",
         "typescript-eslint": "^8.54.0",
@@ -32,5 +40,14 @@
     "dependencies": {
         "svelte": "^5.51.3",
         "three": "^0.182.0"
+    },
+    "lint-staged": {
+        "*.{js,ts,svelte}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,css,html,md}": [
+            "prettier --write"
+        ]
     }
 }

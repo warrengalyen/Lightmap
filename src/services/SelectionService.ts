@@ -23,7 +23,6 @@ export class SelectionService {
         }
         return new Set([item]);
     }
-
 }
 
 // Singleton instance for convenience

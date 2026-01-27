@@ -1,13 +1,13 @@
 import type { Vector2 } from '../types';
 import type {
-  IDragOperation,
-  DragStartContext,
-  DragUpdateContext,
-  AxisLock,
+    IDragOperation,
+    DragStartContext,
+    DragUpdateContext,
+    AxisLock,
 } from '../types/interaction';
 import {
-  calculateDelta as calcDelta,
-  applyDelta as applyDeltaHelper,
+    calculateDelta as calcDelta,
+    applyDelta as applyDeltaHelper,
 } from './operations/grabModeHelpers';
 
 /**
@@ -40,12 +40,12 @@ export abstract class BaseDragOperation implements IDragOperation {
     /**
      * Apply axis lock constraint to a position.
      */
-  protected applyAxisConstraint(pos: Vector2, axisLock: AxisLock, origin: Vector2): Vector2 {
-    if (axisLock === 'none' || !origin) return pos;
+    protected applyAxisConstraint(pos: Vector2, axisLock: AxisLock, origin: Vector2): Vector2 {
+        if (axisLock === 'none' || !origin) return pos;
 
-    if (axisLock === 'x') {
+        if (axisLock === 'x') {
             return { x: pos.x, y: origin.y };
-    } else if (axisLock === 'y') {
+        } else if (axisLock === 'y') {
             return { x: origin.x, y: pos.y };
         }
 
@@ -56,13 +56,13 @@ export abstract class BaseDragOperation implements IDragOperation {
      * Calculate delta from start position to current position.
      */
     protected calculateDelta(from: Vector2, to: Vector2): Vector2 {
-    return calcDelta(from, to);
+        return calcDelta(from, to);
     }
 
     /**
      * Apply a delta to a position.
      */
     protected applyDelta(position: Vector2, delta: Vector2): Vector2 {
-    return applyDeltaHelper(position, delta);
+        return applyDeltaHelper(position, delta);
     }
 }

@@ -1,4 +1,1 @@
-export type {
-  BaseDragConfig,
-  RoomStateWithDoors,
-} from './configInterfaces';
+export type { BaseDragConfig, RoomStateWithDoors } from './configInterfaces';

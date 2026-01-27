@@ -3,33 +3,33 @@ import { DOOR_WIDTHS, DEFAULT_DOOR_WIDTH } from '../interactions/handlers/DoorPl
 import type { DoorSwingDirection, DoorSwingSide } from '../types';
 
 export interface DoorPlacementSettings {
-  width: number;
-  swingDirection: DoorSwingDirection;
-  swingSide: DoorSwingSide;
+    width: number;
+    swingDirection: DoorSwingDirection;
+    swingSide: DoorSwingSide;
 }
 
 const DEFAULT_SETTINGS: DoorPlacementSettings = {
-  width: DEFAULT_DOOR_WIDTH,
-  swingDirection: 'right',
-  swingSide: 'inside',
+    width: DEFAULT_DOOR_WIDTH,
+    swingDirection: 'right',
+    swingSide: 'inside',
 };
 
 export const doorPlacementSettings = writable<DoorPlacementSettings>({ ...DEFAULT_SETTINGS });
 
 export function setDoorWidth(width: number): void {
-  doorPlacementSettings.update(s => ({ ...s, width }));
+    doorPlacementSettings.update((s) => ({ ...s, width }));
 }
 
 export function setDoorSwingDirection(direction: DoorSwingDirection): void {
-  doorPlacementSettings.update(s => ({ ...s, swingDirection: direction }));
+    doorPlacementSettings.update((s) => ({ ...s, swingDirection: direction }));
 }
 
 export function setDoorSwingSide(side: DoorSwingSide): void {
-  doorPlacementSettings.update(s => ({ ...s, swingSide: side }));
+    doorPlacementSettings.update((s) => ({ ...s, swingSide: side }));
 }
 
 export function getDoorPlacementSettings(): DoorPlacementSettings {
-  return get(doorPlacementSettings);
+    return get(doorPlacementSettings);
 }
 
 export { DOOR_WIDTHS, DEFAULT_DOOR_WIDTH };

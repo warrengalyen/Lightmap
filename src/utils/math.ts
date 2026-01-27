@@ -64,12 +64,7 @@ export function radToDeg(radians: number): number {
     return radians * (180 / Math.PI);
 }
 
-export function lineSegmentsIntersect(
-  a1: Vector2,
-  a2: Vector2,
-  b1: Vector2,
-  b2: Vector2
-): boolean {
+export function lineSegmentsIntersect(a1: Vector2, a2: Vector2, b1: Vector2, b2: Vector2): boolean {
     const d1 = vectorSubtract(a2, a1);
     const d2 = vectorSubtract(b2, b1);
     const d3 = vectorSubtract(b1, a1);
@@ -87,7 +82,7 @@ export function raySegmentIntersect(
     rayOrigin: Vector2,
     rayDir: Vector2,
     segStart: Vector2,
-  segEnd: Vector2
+    segEnd: Vector2
 ): { t: number; point: Vector2 } | null {
     const segDir = vectorSubtract(segEnd, segStart);
     const cross = vectorCross(rayDir, segDir);
@@ -111,9 +106,9 @@ export function raySegmentIntersect(
  * Returns the closest point on the segment to the given point.
  */
 export function projectPointOntoSegment(
-  point: Vector2,
-  segStart: Vector2,
-  segEnd: Vector2
+    point: Vector2,
+    segStart: Vector2,
+    segEnd: Vector2
 ): Vector2 {
     const dx = segEnd.x - segStart.x;
     const dy = segEnd.y - segStart.y;
@@ -121,11 +116,7 @@ export function projectPointOntoSegment(
 
     if (lengthSq === 0) return { ...segStart };
 
-  const t = clamp(
-    ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq,
-    0,
-    1
-  );
+    const t = clamp(((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq, 0, 1);
 
     return {
         x: segStart.x + t * dx,
@@ -138,9 +129,9 @@ export function projectPointOntoSegment(
  * Clamped to 0.1-0.9 to keep distance from endpoints.
  */
 export function projectPointOntoSegmentForInsertion(
-  point: Vector2,
-  segStart: Vector2,
-  segEnd: Vector2
+    point: Vector2,
+    segStart: Vector2,
+    segEnd: Vector2
 ): Vector2 {
     const dx = segEnd.x - segStart.x;
     const dy = segEnd.y - segStart.y;
@@ -148,11 +139,11 @@ export function projectPointOntoSegmentForInsertion(
 
     if (lengthSq === 0) return { ...segStart };
 
-  const t = clamp(
-    ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq,
-    0.1,
-    0.9
-  );
+    const t = clamp(
+        ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / lengthSq,
+        0.1,
+        0.9
+    );
 
     return {
         x: segStart.x + t * dx,
@@ -163,11 +154,7 @@ export function projectPointOntoSegmentForInsertion(
 /**
  * Calculates the distance from a point to a line segment.
  */
-export function distancePointToSegment(
-  point: Vector2,
-  segStart: Vector2,
-  segEnd: Vector2
-): number {
+export function distancePointToSegment(point: Vector2, segStart: Vector2, segEnd: Vector2): number {
     const projected = projectPointOntoSegment(point, segStart, segEnd);
     return distancePointToPoint(point, projected);
 }
@@ -177,9 +164,9 @@ export function distancePointToSegment(
  * Returns null if no vertex is within the tolerance.
  */
 export function findVertexAtPosition(
-  pos: Vector2,
-  vertices: Vector2[],
-  tolerance: number
+    pos: Vector2,
+    vertices: Vector2[],
+    tolerance: number
 ): number | null {
     for (let i = 0; i < vertices.length; i++) {
         if (distancePointToPoint(pos, vertices[i]) <= tolerance) {
@@ -197,23 +184,23 @@ export function findVertexAtPosition(
  * @returns Array of indices of vertices within the box
  */
 export function findVerticesInBox(
-  vertices: Vector2[],
-  boxStart: Vector2,
-  boxEnd: Vector2
+    vertices: Vector2[],
+    boxStart: Vector2,
+    boxEnd: Vector2
 ): number[] {
-  const minX = Math.min(boxStart.x, boxEnd.x);
-  const maxX = Math.max(boxStart.x, boxEnd.x);
-  const minY = Math.min(boxStart.y, boxEnd.y);
-  const maxY = Math.max(boxStart.y, boxEnd.y);
+    const minX = Math.min(boxStart.x, boxEnd.x);
+    const maxX = Math.max(boxStart.x, boxEnd.x);
+    const minY = Math.min(boxStart.y, boxEnd.y);
+    const maxY = Math.max(boxStart.y, boxEnd.y);
 
-  const result: number[] = [];
-  for (let i = 0; i < vertices.length; i++) {
-    const v = vertices[i];
-    if (v.x >= minX && v.x <= maxX && v.y >= minY && v.y <= maxY) {
-      result.push(i);
+    const result: number[] = [];
+    for (let i = 0; i < vertices.length; i++) {
+        const v = vertices[i];
+        if (v.x >= minX && v.x <= maxX && v.y >= minY && v.y <= maxY) {
+            result.push(i);
+        }
     }
-  }
-  return result;
+    return result;
 }
 
 /**
@@ -224,21 +211,21 @@ export function findVerticesInBox(
  * @returns Array of light IDs within the box
  */
 export function findLightsInBox(
-  lights: Array<{ id: string; position: Vector2 }>,
-  boxStart: Vector2,
-  boxEnd: Vector2
+    lights: Array<{ id: string; position: Vector2 }>,
+    boxStart: Vector2,
+    boxEnd: Vector2
 ): string[] {
-  const minX = Math.min(boxStart.x, boxEnd.x);
-  const maxX = Math.max(boxStart.x, boxEnd.x);
-  const minY = Math.min(boxStart.y, boxEnd.y);
-  const maxY = Math.max(boxStart.y, boxEnd.y);
+    const minX = Math.min(boxStart.x, boxEnd.x);
+    const maxX = Math.max(boxStart.x, boxEnd.x);
+    const minY = Math.min(boxStart.y, boxEnd.y);
+    const maxY = Math.max(boxStart.y, boxEnd.y);
 
-  const result: string[] = [];
-  for (const light of lights) {
-    const pos = light.position;
-    if (pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) {
-      result.push(light.id);
+    const result: string[] = [];
+    for (const light of lights) {
+        const pos = light.position;
+        if (pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) {
+            result.push(light.id);
+        }
     }
-  }
-  return result;
+    return result;
 }

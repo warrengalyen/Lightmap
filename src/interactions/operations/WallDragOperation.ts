@@ -1,18 +1,15 @@
 import type { Vector2, WallSegment } from '../../types';
-import type {
-  DragStartContext,
-  DragUpdateContext,
-} from '../../types/interaction';
+import type { DragStartContext, DragUpdateContext } from '../../types/interaction';
 import type { SnapController } from '../../controllers/SnapController';
 import type { DragManagerCallbacks } from '../DragManager';
 import { BaseDragOperation } from '../DragOperation';
 import { applyWallSnappingWithGuides } from './grabModeHelpers';
 
 export interface WallDragConfig {
-  snapController: SnapController;
-  getVertices: () => Vector2[];
-  getWalls: () => WallSegment[];
-  getWallById: (id: string) => WallSegment | undefined;
+    snapController: SnapController;
+    getVertices: () => Vector2[];
+    getWalls: () => WallSegment[];
+    getWallById: (id: string) => WallSegment | undefined;
 }
 
 /**
@@ -20,90 +17,100 @@ export interface WallDragConfig {
  * Supports axis locking and snapping to vertices.
  */
 export class WallDragOperation extends BaseDragOperation {
-  readonly type = 'wall';
+    readonly type = 'wall';
 
-  private wallId: string | null = null;
-  private originalStart: Vector2 | null = null;
-  private originalEnd: Vector2 | null = null;
-  private config: WallDragConfig;
-  private callbacks: DragManagerCallbacks;
+    private wallId: string | null = null;
+    private originalStart: Vector2 | null = null;
+    private originalEnd: Vector2 | null = null;
+    private config: WallDragConfig;
+    private callbacks: DragManagerCallbacks;
 
-  constructor(config: WallDragConfig, callbacks: DragManagerCallbacks) {
-    super();
-    this.config = config;
-    this.callbacks = callbacks;
-  }
-
-  /**
-   * Set the wall to be dragged.
-   */
-  setWallId(wallId: string): void {
-    this.wallId = wallId;
-  }
-
-  start(context: DragStartContext): void {
-    if (!this.wallId) return;
-
-    const wall = this.config.getWallById(this.wallId);
-    if (!wall) return;
-
-    this._isActive = true;
-    this.startPosition = { ...context.position };
-    this.originalStart = { ...wall.start };
-    this.originalEnd = { ...wall.end };
-  }
-
-  update(context: DragUpdateContext): void {
-    if (!this._isActive || !this.wallId || !this.startPosition ||
-        !this.originalStart || !this.originalEnd) return;
-
-    let constrainedPos = context.position;
-
-    // Apply axis lock
-    if (context.axisLock !== 'none') {
-      constrainedPos = this.applyAxisConstraint(context.position, context.axisLock, this.startPosition);
+    constructor(config: WallDragConfig, callbacks: DragManagerCallbacks) {
+        super();
+        this.config = config;
+        this.callbacks = callbacks;
     }
 
-    // Calculate delta from start position
-    const delta = this.calculateDelta(this.startPosition, constrainedPos);
+    /**
+     * Set the wall to be dragged.
+     */
+    setWallId(wallId: string): void {
+        this.wallId = wallId;
+    }
 
-    // Calculate new wall positions and apply snapping
-    const baseStart = this.applyDelta(this.originalStart, delta);
-    const baseEnd = this.applyDelta(this.originalEnd, delta);
+    start(context: DragStartContext): void {
+        if (!this.wallId) return;
 
-    const { start: newStart, end: newEnd } = applyWallSnappingWithGuides(
-      baseStart,
-      baseEnd,
-      this.wallId,
-      context,
-      this.config,
-      this.callbacks.onSetSnapGuides
-    );
+        const wall = this.config.getWallById(this.wallId);
+        if (!wall) return;
 
-    this.callbacks.onMoveWall(this.wallId, newStart, newEnd);
-  }
+        this._isActive = true;
+        this.startPosition = { ...context.position };
+        this.originalStart = { ...wall.start };
+        this.originalEnd = { ...wall.end };
+    }
 
-  commit(): void {
-    if (!this._isActive) return;
+    update(context: DragUpdateContext): void {
+        if (
+            !this._isActive ||
+            !this.wallId ||
+            !this.startPosition ||
+            !this.originalStart ||
+            !this.originalEnd
+        )
+            return;
 
-    this._isActive = false;
-    this.cleanup();
-  }
+        let constrainedPos = context.position;
 
-  cancel(): void {
-    if (!this._isActive || !this.wallId || !this.originalStart || !this.originalEnd) return;
+        // Apply axis lock
+        if (context.axisLock !== 'none') {
+            constrainedPos = this.applyAxisConstraint(
+                context.position,
+                context.axisLock,
+                this.startPosition
+            );
+        }
 
-    // Restore original wall position
-    this.callbacks.onMoveWall(this.wallId, this.originalStart, this.originalEnd);
+        // Calculate delta from start position
+        const delta = this.calculateDelta(this.startPosition, constrainedPos);
 
-    this._isActive = false;
-    this.cleanup();
-  }
+        // Calculate new wall positions and apply snapping
+        const baseStart = this.applyDelta(this.originalStart, delta);
+        const baseEnd = this.applyDelta(this.originalEnd, delta);
 
-  private cleanup(): void {
-    this.wallId = null;
-    this.originalStart = null;
-    this.originalEnd = null;
-    this.startPosition = null;
-  }
+        const { start: newStart, end: newEnd } = applyWallSnappingWithGuides(
+            baseStart,
+            baseEnd,
+            this.wallId,
+            context,
+            this.config,
+            this.callbacks.onSetSnapGuides
+        );
+
+        this.callbacks.onMoveWall(this.wallId, newStart, newEnd);
+    }
+
+    commit(): void {
+        if (!this._isActive) return;
+
+        this._isActive = false;
+        this.cleanup();
+    }
+
+    cancel(): void {
+        if (!this._isActive || !this.wallId || !this.originalStart || !this.originalEnd) return;
+
+        // Restore original wall position
+        this.callbacks.onMoveWall(this.wallId, this.originalStart, this.originalEnd);
+
+        this._isActive = false;
+        this.cleanup();
+    }
+
+    private cleanup(): void {
+        this.wallId = null;
+        this.originalStart = null;
+        this.originalEnd = null;
+        this.startPosition = null;
+    }
 }

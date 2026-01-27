@@ -1,21 +1,21 @@
-import { describe, it, expect } from "vitest";
-import { getJSONString } from "../../../src/persistence/jsonExport";
+import { describe, it, expect } from 'vitest';
+import { getJSONString } from '../../../src/persistence/jsonExport';
 import {
     validateRoomState,
     ValidationError,
     importFromString,
-} from "../../../src/persistence/jsonImport";
-import type { RoomState } from "../../../src/types";
+} from '../../../src/persistence/jsonImport';
+import type { RoomState } from '../../../src/types';
 
-describe("JSON Export/Import", () => {
-    describe("getJSONString", () => {
-        it("exports valid JSON structure with version and roomState", () => {
+describe('JSON Export/Import', () => {
+    describe('getJSONString', () => {
+        it('exports valid JSON structure with version and roomState', () => {
             const state: RoomState = {
                 ceilingHeight: 8,
                 walls: [],
                 lights: [
                     {
-                        id: "1",
+                        id: '1',
                         position: { x: 5, y: 5 },
                         properties: { lumen: 800, beamAngle: 60, warmth: 2700 },
                     },
@@ -32,7 +32,7 @@ describe("JSON Export/Import", () => {
             expect(parsed.lightDefinitions).toEqual([]);
         });
 
-        it("produces formatted output", () => {
+        it('produces formatted output', () => {
             const state: RoomState = {
                 ceilingHeight: 8,
                 walls: [],
@@ -42,18 +42,18 @@ describe("JSON Export/Import", () => {
 
             const json = getJSONString(state);
 
-            expect(json).toContain("\n");
-            expect(json).toContain("  ");
+            expect(json).toContain('\n');
+            expect(json).toContain('  ');
         });
     });
 
-    describe("validateRoomState", () => {
-        it("validates complete room state", () => {
+    describe('validateRoomState', () => {
+        it('validates complete room state', () => {
             const data = {
                 ceilingHeight: 8,
                 walls: [
                     {
-                        id: "1",
+                        id: '1',
                         start: { x: 0, y: 0 },
                         end: { x: 10, y: 0 },
                         length: 10,
@@ -61,7 +61,7 @@ describe("JSON Export/Import", () => {
                 ],
                 lights: [
                     {
-                        id: "1",
+                        id: '1',
                         position: { x: 5, y: 5 },
                         properties: { lumen: 800, beamAngle: 60, warmth: 2700 },
                     },
@@ -76,9 +76,9 @@ describe("JSON Export/Import", () => {
             expect(result.lights).toHaveLength(1);
         });
 
-        it("rejects invalid ceiling height", () => {
+        it('rejects invalid ceiling height', () => {
             const data = {
-                ceilingHeight: "invalid",
+                ceilingHeight: 'invalid',
                 walls: [],
                 lights: [],
                 isClosed: true,
@@ -86,7 +86,7 @@ describe("JSON Export/Import", () => {
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects negative ceiling height", () => {
+        it('rejects negative ceiling height', () => {
             const data = {
                 ceilingHeight: -5,
                 walls: [],
@@ -96,22 +96,22 @@ describe("JSON Export/Import", () => {
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects missing walls array", () => {
+        it('rejects missing walls array', () => {
             const data = { ceilingHeight: 8, lights: [], isClosed: true };
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects missing lights array", () => {
+        it('rejects missing lights array', () => {
             const data = { ceilingHeight: 8, walls: [], isClosed: true };
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects missing isClosed", () => {
+        it('rejects missing isClosed', () => {
             const data = { ceilingHeight: 8, walls: [], lights: [] };
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects invalid wall segment", () => {
+        it('rejects invalid wall segment', () => {
             const data = {
                 ceilingHeight: 8,
                 walls: [
@@ -128,13 +128,13 @@ describe("JSON Export/Import", () => {
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects invalid light fixture", () => {
+        it('rejects invalid light fixture', () => {
             const data = {
                 ceilingHeight: 8,
                 walls: [],
                 lights: [
                     {
-                        id: "1",
+                        id: '1',
                         position: { x: 5, y: 5 },
                         properties: {
                             lumen: -100,
@@ -148,13 +148,13 @@ describe("JSON Export/Import", () => {
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects beam angle out of range", () => {
+        it('rejects beam angle out of range', () => {
             const data = {
                 ceilingHeight: 8,
                 walls: [],
                 lights: [
                     {
-                        id: "1",
+                        id: '1',
                         position: { x: 5, y: 5 },
                         properties: {
                             lumen: 800,
@@ -168,13 +168,13 @@ describe("JSON Export/Import", () => {
             expect(() => validateRoomState(data)).toThrow(ValidationError);
         });
 
-        it("rejects warmth out of range", () => {
+        it('rejects warmth out of range', () => {
             const data = {
                 ceilingHeight: 8,
                 walls: [],
                 lights: [
                     {
-                        id: "1",
+                        id: '1',
                         position: { x: 5, y: 5 },
                         properties: { lumen: 800, beamAngle: 60, warmth: 500 },
                     },
@@ -185,8 +185,8 @@ describe("JSON Export/Import", () => {
         });
     });
 
-    describe("importFromString", () => {
-        it("imports legacy format (direct RoomState)", () => {
+    describe('importFromString', () => {
+        it('imports legacy format (direct RoomState)', () => {
             const json = JSON.stringify({
                 ceilingHeight: 10,
                 walls: [],
@@ -199,7 +199,7 @@ describe("JSON Export/Import", () => {
             expect(result.ceilingHeight).toBe(10);
         });
 
-        it("imports new format with version and roomState", () => {
+        it('imports new format with version and roomState', () => {
             const json = JSON.stringify({
                 version: 1,
                 roomState: {
@@ -217,14 +217,12 @@ describe("JSON Export/Import", () => {
             expect(result.isClosed).toBe(true);
         });
 
-        it("throws on invalid JSON", () => {
-            expect(() => importFromString("not json")).toThrow(ValidationError);
+        it('throws on invalid JSON', () => {
+            expect(() => importFromString('not json')).toThrow(ValidationError);
         });
 
-        it("throws on invalid structure", () => {
-            expect(() => importFromString('{"invalid": true}')).toThrow(
-                ValidationError,
-            );
+        it('throws on invalid structure', () => {
+            expect(() => importFromString('{"invalid": true}')).toThrow(ValidationError);
         });
     });
 });

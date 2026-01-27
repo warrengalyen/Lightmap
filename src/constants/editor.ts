@@ -39,4 +39,3 @@ export const MAX_ZOOM = 10;
 export const FIT_BOUNDS_PADDING = 1.2;
 
 // Room bounds
-

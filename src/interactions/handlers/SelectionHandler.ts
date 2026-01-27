@@ -1,39 +1,33 @@
-import type { InputEvent } from "../../core/InputManager";
-import type { Vector2, WallSegment, Door, Obstacle } from "../../types";
-import type {
-    InteractionContext,
-    SelectionState,
-} from "../../types/interaction";
-import type { LightManager } from "../../lighting/LightManager";
-import type { DragManager } from "../DragManager";
-import type { UnifiedDragOperation } from "../operations/UnifiedDragOperation";
-import type { WallDragOperation } from "../operations/WallDragOperation";
-import type { DoorDragOperation } from "../operations/DoorDragOperation";
-import type { ObstacleVertexDragOperation } from "../operations/ObstacleVertexDragOperation";
-import type { ObstacleDragOperation } from "../operations/ObstacleDragOperation";
-import type { BoxSelectionHandler } from "./BoxSelectionHandler";
-import { BaseInteractionHandler } from "../InteractionHandler";
+import type { InputEvent } from '../../core/InputManager';
+import type { Vector2, WallSegment, Door, Obstacle } from '../../types';
+import type { InteractionContext, SelectionState } from '../../types/interaction';
+import type { LightManager } from '../../lighting/LightManager';
+import type { DragManager } from '../DragManager';
+import type { UnifiedDragOperation } from '../operations/UnifiedDragOperation';
+import type { WallDragOperation } from '../operations/WallDragOperation';
+import type { DoorDragOperation } from '../operations/DoorDragOperation';
+import type { ObstacleVertexDragOperation } from '../operations/ObstacleVertexDragOperation';
+import type { ObstacleDragOperation } from '../operations/ObstacleDragOperation';
+import type { BoxSelectionHandler } from './BoxSelectionHandler';
+import { BaseInteractionHandler } from '../InteractionHandler';
 import {
     findVertexAtPosition,
     projectPointOntoSegmentForInsertion,
     distancePointToSegment,
-} from "../../utils/math";
-import { getDoorEndpoints, isPointInPolygon } from "../../utils/geometry";
+} from '../../utils/math';
+import { getDoorEndpoints, isPointInPolygon } from '../../utils/geometry';
 import {
     LIGHT_HIT_TOLERANCE_FT,
     VERTEX_HIT_TOLERANCE_FT,
     DOOR_HIT_TOLERANCE_FT,
-} from "../../constants/editor";
-import {
-    attemptItemSelection,
-    handleSelectionAction,
-} from "./selectionHelpers";
+} from '../../constants/editor';
+import { attemptItemSelection, handleSelectionAction } from './selectionHelpers';
 import {
     EMPTY_MODIFIERS,
     hasSelection,
     getSelectionOriginFromRoomState,
     handleAxisLockKey,
-} from "../utils";
+} from '../utils';
 
 export interface SelectionHandlerCallbacks {
     onSelectVertex: (index: number, addToSelection: boolean) => void;
@@ -44,7 +38,7 @@ export interface SelectionHandlerCallbacks {
     onSelectObstacleVertex: (
         obstacleId: string,
         vertexIndex: number,
-        addToSelection: boolean,
+        addToSelection: boolean
     ) => void;
     onClearSelection: () => void;
     onClearLightSelection: () => void;
@@ -60,7 +54,7 @@ export interface SelectionHandlerCallbacks {
     getWallAtPosition: (
         pos: Vector2,
         walls: WallSegment[],
-        tolerance: number,
+        tolerance: number
     ) => WallSegment | null;
     getDoors: () => Door[];
     getObstacles: () => Obstacle[];
@@ -85,16 +79,13 @@ export interface SelectionHandlerConfig {
  * and initiates drag operations.
  */
 export class SelectionHandler extends BaseInteractionHandler {
-    readonly name = "selection";
+    readonly name = 'selection';
     readonly priority = 50;
 
     private config: SelectionHandlerConfig;
     private callbacks: SelectionHandlerCallbacks;
 
-    constructor(
-        config: SelectionHandlerConfig,
-        callbacks: SelectionHandlerCallbacks,
-    ) {
+    constructor(config: SelectionHandlerConfig, callbacks: SelectionHandlerCallbacks) {
         super();
         this.config = config;
         this.callbacks = callbacks;
@@ -118,11 +109,7 @@ export class SelectionHandler extends BaseInteractionHandler {
 
         // Check vertices first (if room is closed)
         if (roomState.isClosed) {
-            const vertexResult = this.trySelectVertex(
-                pos,
-                vertices,
-                addToSelection,
-            );
+            const vertexResult = this.trySelectVertex(pos, vertices, addToSelection);
             if (vertexResult.handled) {
                 this.callbacks.onClearObstacleSelection();
                 this.callbacks.onClearObstacleVertexSelection();
@@ -131,12 +118,7 @@ export class SelectionHandler extends BaseInteractionHandler {
         }
 
         // Check lights
-        const lightResult = this.trySelectLight(
-            pos,
-            vertices,
-            addToSelection,
-            context,
-        );
+        const lightResult = this.trySelectLight(pos, vertices, addToSelection, context);
         if (lightResult.handled) {
             this.callbacks.onClearObstacleSelection();
             this.callbacks.onClearObstacleVertexSelection();
@@ -155,10 +137,7 @@ export class SelectionHandler extends BaseInteractionHandler {
 
         // Check obstacle vertices (if room is closed)
         if (roomState.isClosed) {
-            const obstacleVertexResult = this.trySelectObstacleVertex(
-                pos,
-                addToSelection,
-            );
+            const obstacleVertexResult = this.trySelectObstacleVertex(pos, addToSelection);
             if (obstacleVertexResult.handled) return true;
         }
 
@@ -206,19 +185,16 @@ export class SelectionHandler extends BaseInteractionHandler {
         const wall = this.callbacks.getWallAtPosition(
             event.worldPos,
             roomState.walls,
-            VERTEX_HIT_TOLERANCE_FT,
+            VERTEX_HIT_TOLERANCE_FT
         );
 
         if (wall) {
             const insertPos = projectPointOntoSegmentForInsertion(
                 event.worldPos,
                 wall.start,
-                wall.end,
+                wall.end
             );
-            const newVertexIndex = this.callbacks.onInsertVertex(
-                wall.id,
-                insertPos,
-            );
+            const newVertexIndex = this.callbacks.onInsertVertex(wall.id, insertPos);
 
             if (newVertexIndex !== null) {
                 this.callbacks.onSelectVertex(newVertexIndex, false);
@@ -250,8 +226,7 @@ export class SelectionHandler extends BaseInteractionHandler {
                 handleAxisLockKey(event, {
                     dragManager: this.config.dragManager,
                     getGuideOrigin: () =>
-                        this.config.dragManager.startPosition ||
-                        this.getSelectionOrigin(context),
+                        this.config.dragManager.startPosition || this.getSelectionOrigin(context),
                     // Only trigger immediate update if actively dragging
                     triggerImmediateUpdate: this.config.dragManager.isActive
                         ? () => this.triggerImmediateUpdate()
@@ -263,8 +238,8 @@ export class SelectionHandler extends BaseInteractionHandler {
         }
 
         // Escape clears selection or axis lock
-        if (event.key === "Escape") {
-            if (this.config.dragManager.axisLock !== "none") {
+        if (event.key === 'Escape') {
+            if (this.config.dragManager.axisLock !== 'none') {
                 this.config.dragManager.clearAxisLock();
                 return true;
             }
@@ -280,7 +255,7 @@ export class SelectionHandler extends BaseInteractionHandler {
     private trySelectVertex(
         pos: Vector2,
         vertices: Vector2[],
-        addToSelection: boolean,
+        addToSelection: boolean
     ): { handled: boolean } {
         const selectedIndices = this.callbacks.getSelectedVertexIndices();
         const selectedLightIds = this.callbacks.getSelectedLightIds();
@@ -288,13 +263,10 @@ export class SelectionHandler extends BaseInteractionHandler {
         const attempt = attemptItemSelection<number>(pos, {
             findItemAtPosition: (p, tolerance) => {
                 const idx = findVertexAtPosition(p, vertices, tolerance);
-                return idx !== null
-                    ? { id: idx, position: vertices[idx] }
-                    : null;
+                return idx !== null ? { id: idx, position: vertices[idx] } : null;
             },
             isSelected: (idx) => selectedIndices.has(idx),
-            getOtherSelectedCount: () =>
-                selectedIndices.size - 1 + selectedLightIds.size,
+            getOtherSelectedCount: () => selectedIndices.size - 1 + selectedLightIds.size,
             hitTolerance: VERTEX_HIT_TOLERANCE_FT,
         });
 
@@ -303,8 +275,7 @@ export class SelectionHandler extends BaseInteractionHandler {
             onClearOtherSelection: () => this.callbacks.onClearLightSelection(),
             onClearWallSelection: () => this.callbacks.onClearWallSelection(),
             onClearDoorSelection: () => this.callbacks.onClearDoorSelection(),
-            isSelectedNow: (idx) =>
-                this.callbacks.getSelectedVertexIndices().has(idx),
+            isSelectedNow: (idx) => this.callbacks.getSelectedVertexIndices().has(idx),
             startDrag: (idx) => this.startUnifiedDrag(idx, null, pos, vertices),
         });
 
@@ -315,7 +286,7 @@ export class SelectionHandler extends BaseInteractionHandler {
         pos: Vector2,
         vertices: Vector2[],
         addToSelection: boolean,
-        _context: InteractionContext,
+        _context: InteractionContext
     ): { handled: boolean } {
         const selectedIndices = this.callbacks.getSelectedVertexIndices();
         const selectedLightIds = this.callbacks.getSelectedLightIds();
@@ -323,20 +294,16 @@ export class SelectionHandler extends BaseInteractionHandler {
         const attempt = attemptItemSelection<string>(pos, {
             findItemAtPosition: (p, tolerance) => {
                 const light = this.config.lightManager.getLightAt(p, tolerance);
-                return light
-                    ? { id: light.id, position: light.position }
-                    : null;
+                return light ? { id: light.id, position: light.position } : null;
             },
             isSelected: (id) => selectedLightIds.has(id),
-            getOtherSelectedCount: () =>
-                selectedLightIds.size - 1 + selectedIndices.size,
+            getOtherSelectedCount: () => selectedLightIds.size - 1 + selectedIndices.size,
             hitTolerance: LIGHT_HIT_TOLERANCE_FT,
         });
 
         const handled = handleSelectionAction(attempt, addToSelection, {
             onSelect: (id, add) => this.callbacks.onSelectLight(id, add),
-            onClearOtherSelection: () =>
-                this.callbacks.onClearVertexSelection(),
+            onClearOtherSelection: () => this.callbacks.onClearVertexSelection(),
             onClearWallSelection: () => this.callbacks.onClearWallSelection(),
             onClearDoorSelection: () => this.callbacks.onClearDoorSelection(),
             isSelectedNow: (id) => this.callbacks.getSelectedLightIds().has(id),
@@ -346,17 +313,9 @@ export class SelectionHandler extends BaseInteractionHandler {
         return { handled };
     }
 
-    private trySelectDoor(
-        pos: Vector2,
-        walls: WallSegment[],
-    ): { handled: boolean } {
+    private trySelectDoor(pos: Vector2, walls: WallSegment[]): { handled: boolean } {
         const doors = this.callbacks.getDoors();
-        const door = this.getDoorAtPosition(
-            pos,
-            doors,
-            walls,
-            DOOR_HIT_TOLERANCE_FT,
-        );
+        const door = this.getDoorAtPosition(pos, doors, walls, DOOR_HIT_TOLERANCE_FT);
         if (!door) return { handled: false };
 
         this.callbacks.onSelectDoor(door.id);
@@ -382,7 +341,7 @@ export class SelectionHandler extends BaseInteractionHandler {
         pos: Vector2,
         doors: Door[],
         walls: WallSegment[],
-        tolerance: number,
+        tolerance: number
     ): Door | null {
         for (const door of doors) {
             const wall = walls.find((w) => w.id === door.wallId);
@@ -399,40 +358,25 @@ export class SelectionHandler extends BaseInteractionHandler {
         return null;
     }
 
-    private trySelectObstacleVertex(
-        pos: Vector2,
-        addToSelection: boolean,
-    ): { handled: boolean } {
+    private trySelectObstacleVertex(pos: Vector2, addToSelection: boolean): { handled: boolean } {
         const obstacles = this.callbacks.getObstacles();
-        const selectedObstacleVertexIndices =
-            this.callbacks.getSelectedObstacleVertexIndices();
+        const selectedObstacleVertexIndices = this.callbacks.getSelectedObstacleVertexIndices();
 
         for (const obstacle of obstacles) {
             const vertices = obstacle.walls.map((w) => w.start);
-            const idx = findVertexAtPosition(
-                pos,
-                vertices,
-                VERTEX_HIT_TOLERANCE_FT,
-            );
+            const idx = findVertexAtPosition(pos, vertices, VERTEX_HIT_TOLERANCE_FT);
 
             if (idx !== null) {
-                const isAlreadySelected =
-                    selectedObstacleVertexIndices.has(idx);
+                const isAlreadySelected = selectedObstacleVertexIndices.has(idx);
                 const currentSelection = this.config.getSelection();
-                const isThisObstacleSelected =
-                    currentSelection.selectedObstacleId === obstacle.id;
+                const isThisObstacleSelected = currentSelection.selectedObstacleId === obstacle.id;
 
                 if (addToSelection && isThisObstacleSelected) {
                     // Toggle vertex in/out of selection within same obstacle
-                    this.callbacks.onSelectObstacleVertex(
-                        obstacle.id,
-                        idx,
-                        true,
-                    );
+                    this.callbacks.onSelectObstacleVertex(obstacle.id, idx, true);
                     if (isAlreadySelected) {
                         // Toggled off - check if still selected after update
-                        const nowSelected =
-                            this.callbacks.getSelectedObstacleVertexIndices();
+                        const nowSelected = this.callbacks.getSelectedObstacleVertexIndices();
                         if (!nowSelected.has(idx)) {
                             return { handled: true };
                         }
@@ -445,11 +389,7 @@ export class SelectionHandler extends BaseInteractionHandler {
                     // Clicking on already-selected vertex in multi-select: start drag
                 } else {
                     // Single select
-                    this.callbacks.onSelectObstacleVertex(
-                        obstacle.id,
-                        idx,
-                        false,
-                    );
+                    this.callbacks.onSelectObstacleVertex(obstacle.id, idx, false);
                 }
 
                 this.callbacks.onClearLightSelection();
@@ -471,7 +411,7 @@ export class SelectionHandler extends BaseInteractionHandler {
         obstacleId: string,
         vertexIndex: number,
         pos: Vector2,
-        vertices: Vector2[],
+        vertices: Vector2[]
     ): void {
         const operation = this.config.createObstacleVertexDragOperation();
         operation.setObstacleId(obstacleId);
@@ -522,7 +462,7 @@ export class SelectionHandler extends BaseInteractionHandler {
                 this.startObstacleDrag(
                     obstacle.id,
                     pos,
-                    obstacle.walls.map((w) => w.start),
+                    obstacle.walls.map((w) => w.start)
                 );
 
                 return { handled: true };
@@ -532,11 +472,7 @@ export class SelectionHandler extends BaseInteractionHandler {
         return { handled: false };
     }
 
-    private startObstacleDrag(
-        obstacleId: string,
-        pos: Vector2,
-        vertices: Vector2[],
-    ): void {
+    private startObstacleDrag(obstacleId: string, pos: Vector2, vertices: Vector2[]): void {
         const operation = this.config.createObstacleDragOperation();
         operation.setObstacleId(obstacleId);
         operation.setObstacleVertices(vertices);
@@ -549,15 +485,8 @@ export class SelectionHandler extends BaseInteractionHandler {
         });
     }
 
-    private trySelectWall(
-        pos: Vector2,
-        walls: WallSegment[],
-    ): { handled: boolean } {
-        const wall = this.callbacks.getWallAtPosition(
-            pos,
-            walls,
-            VERTEX_HIT_TOLERANCE_FT,
-        );
+    private trySelectWall(pos: Vector2, walls: WallSegment[]): { handled: boolean } {
+        const wall = this.callbacks.getWallAtPosition(pos, walls, VERTEX_HIT_TOLERANCE_FT);
         if (!wall) return { handled: false };
 
         this.callbacks.onSelectWall(wall.id);
@@ -583,7 +512,7 @@ export class SelectionHandler extends BaseInteractionHandler {
         vertexIndex: number | null,
         lightId: string | null,
         pos: Vector2,
-        _vertices: Vector2[],
+        _vertices: Vector2[]
     ): void {
         const operation = this.config.createUnifiedDragOperation();
         operation.setAnchor(vertexIndex, lightId);
@@ -605,16 +534,14 @@ export class SelectionHandler extends BaseInteractionHandler {
         this.config.dragManager.updateDrag(currentPos, EMPTY_MODIFIERS);
     }
 
-    private getSelectionOrigin(
-        context: InteractionContext,
-    ): Vector2 | undefined {
+    private getSelectionOrigin(context: InteractionContext): Vector2 | undefined {
         const selection = this.config.getSelection();
         return getSelectionOriginFromRoomState(
             selection,
             context.vertices,
             context.roomState.lights,
             context.roomState.walls,
-            context.roomState.doors,
+            context.roomState.doors
         );
     }
 }

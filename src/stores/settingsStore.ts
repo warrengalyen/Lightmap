@@ -1,11 +1,11 @@
-import { writable, get } from "svelte/store";
-import type { RafterConfig, DisplayPreferences } from "../types";
+import { writable, get } from 'svelte/store';
+import type { RafterConfig, DisplayPreferences } from '../types';
 import {
     DEFAULT_RAFTER_CONFIG,
     DEFAULT_DISPLAY_PREFERENCES,
     migrateLightRadiusVisibility,
-} from "../types";
-import { roomStore } from "./roomStore";
+} from '../types';
+import { roomStore } from './roomStore';
 
 export const rafterConfig = writable<RafterConfig>({
     ...DEFAULT_RAFTER_CONFIG,
@@ -47,7 +47,7 @@ export function initSettingsFromRoom(): void {
         };
         // Migrate legacy 'never' value to 'selected'
         mergedPrefs.lightRadiusVisibility = migrateLightRadiusVisibility(
-            mergedPrefs.lightRadiusVisibility,
+            mergedPrefs.lightRadiusVisibility
         );
         displayPreferences.set(mergedPrefs);
         displayPreferences.set(mergedPrefs);
@@ -59,9 +59,7 @@ export function toggleRafters(): void {
     rafterConfig.update((config) => ({ ...config, visible: !config.visible }));
 }
 
-export function setRafterOrientation(
-    orientation: "horizontal" | "vertical",
-): void {
+export function setRafterOrientation(orientation: 'horizontal' | 'vertical'): void {
     rafterConfig.update((config) => ({ ...config, orientation }));
 }
 
@@ -72,7 +70,6 @@ export function setRafterSpacing(spacing: number): void {
 export function toggleUnitFormat(): void {
     displayPreferences.update((prefs) => ({
         ...prefs,
-        unitFormat:
-            prefs.unitFormat === "feet-inches" ? "inches" : "feet-inches",
+        unitFormat: prefs.unitFormat === 'feet-inches' ? 'inches' : 'feet-inches',
     }));
 }

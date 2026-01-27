@@ -1,8 +1,5 @@
 import type { WallSegment, Door } from '../../types';
-import type {
-    DragStartContext,
-    DragUpdateContext,
-} from '../../types/interaction';
+import type { DragStartContext, DragUpdateContext } from '../../types/interaction';
 import type { DragManagerCallbacks } from '../DragManager';
 import { BaseDragOperation } from '../DragOperation';
 import { doorPositioningService } from '../../services';
@@ -19,7 +16,7 @@ export interface DoorDragConfig {
  * and not overlap with other doors on the same wall.
  */
 export class DoorDragOperation extends BaseDragOperation {
-  readonly type = 'door';
+    readonly type = 'door';
 
     private doorId: string | null = null;
     private originalPosition: number | null = null;
@@ -51,7 +48,13 @@ export class DoorDragOperation extends BaseDragOperation {
     }
 
     update(context: DragUpdateContext): void {
-    if (!this._isActive || !this.doorId || !this.startPosition || this.originalPosition === null) return;
+        if (
+            !this._isActive ||
+            !this.doorId ||
+            !this.startPosition ||
+            this.originalPosition === null
+        )
+            return;
 
         const door = this.config.getDoorById(this.doorId);
         if (!door) return;
@@ -59,14 +62,14 @@ export class DoorDragOperation extends BaseDragOperation {
         const wall = this.config.getWallById(door.wallId);
         if (!wall) return;
 
-    // Calculate new position using the service
-    const existingDoors = this.config.getDoorsByWallId(door.wallId);
-    const newPosition = doorPositioningService.calculateDragPosition(
-      context.position,
-      wall,
+        // Calculate new position using the service
+        const existingDoors = this.config.getDoorsByWallId(door.wallId);
+        const newPosition = doorPositioningService.calculateDragPosition(
+            context.position,
+            wall,
             door.width,
-      existingDoors,
-      this.doorId
+            existingDoors,
+            this.doorId
         );
 
         this.callbacks.onUpdateDoorPosition(this.doorId, newPosition);
@@ -80,7 +83,7 @@ export class DoorDragOperation extends BaseDragOperation {
     }
 
     cancel(): void {
-    if (!this._isActive || !this.doorId || this.originalPosition === null) return;
+        if (!this._isActive || !this.doorId || this.originalPosition === null) return;
 
         // Restore original door position
         this.callbacks.onUpdateDoorPosition(this.doorId, this.originalPosition);
@@ -89,9 +92,9 @@ export class DoorDragOperation extends BaseDragOperation {
         this.cleanup();
     }
 
-  private cleanup(): void {
-    this.doorId = null;
-    this.originalPosition = null;
-    this.startPosition = null;
-  }
+    private cleanup(): void {
+        this.doorId = null;
+        this.originalPosition = null;
+        this.startPosition = null;
+    }
 }

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.svelte-kit/
+package/
+
+# Coverage
+coverage/
+
+# Logs
+*.log
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Environment
+.env
+.env.*

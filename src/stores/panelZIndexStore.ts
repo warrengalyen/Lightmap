@@ -16,11 +16,10 @@ export const panelZIndices = writable<Record<string, number>>({});
  * @returns The new z-index value
  */
 export function bringPanelToFront(panelId: string): number {
-  currentMaxZIndex++;
-  panelZIndices.update(indices => ({
-    ...indices,
-    [panelId]: currentMaxZIndex
-  }));
-  return currentMaxZIndex;
+    currentMaxZIndex++;
+    panelZIndices.update((indices) => ({
+        ...indices,
+        [panelId]: currentMaxZIndex,
+    }));
+    return currentMaxZIndex;
 }
-

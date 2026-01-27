@@ -23,7 +23,7 @@ export function getWallDirection(wall: WallSegment): {
  */
 export function getDoorEndpoints(
     door: Door,
-  wall: WallSegment
+    wall: WallSegment
 ): { start: Vector2; end: Vector2; hingePos: Vector2 } {
     const { normalized, length } = getWallDirection(wall);
     if (length === 0) {
@@ -42,7 +42,7 @@ export function getDoorEndpoints(
     };
 
     // Hinge position depends on swing direction
-  const hingePos = door.swingDirection === 'right' ? start : end;
+    const hingePos = door.swingDirection === 'right' ? start : end;
 
     return { start, end, hingePos };
 }
