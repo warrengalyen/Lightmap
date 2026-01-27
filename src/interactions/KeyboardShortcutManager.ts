@@ -71,7 +71,7 @@ export class KeyboardShortcutManager {
     return ctrlMatch && shiftMatch && altMatch;
   }
 
-  /**
+    /**
    * Clear all bindings.
    */
   clear(): void {
@@ -92,6 +92,7 @@ export function createDefaultKeyboardShortcuts(callbacks: {
   redo: () => void;
   handleEscape: () => void;
   handleDelete: () => void;
+  selectAllObstacleVertices?: () => void;
 }): KeyBinding[] {
   return [
     // View mode shortcuts
@@ -152,6 +153,15 @@ export function createDefaultKeyboardShortcuts(callbacks: {
       ctrlKey: true,
       action: () => callbacks.redo(),
       description: 'Redo',
+    },
+
+    // Select all
+    {
+      key: 'a',
+      ctrlKey: true,
+      action: () => callbacks.selectAllObstacleVertices?.(),
+      condition: (ctx) => ctx.selection.selectedObstacleId !== null,
+      description: 'Select all obstacle vertices',
     },
 
     // General

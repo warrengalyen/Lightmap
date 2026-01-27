@@ -3,9 +3,10 @@ import type {
   DragStartContext,
   DragUpdateContext,
 } from '../../types/interaction';
-import type { SnapController, SnapGuide } from '../../controllers/SnapController';
+import type { SnapController } from '../../controllers/SnapController';
 import type { DragManagerCallbacks } from '../DragManager';
 import { BaseDragOperation } from '../DragOperation';
+import { applyWallSnappingWithGuides } from './grabModeHelpers';
 
 export interface WallDragConfig {
   snapController: SnapController;
@@ -66,21 +67,18 @@ export class WallDragOperation extends BaseDragOperation {
     // Calculate delta from start position
     const delta = this.calculateDelta(this.startPosition, constrainedPos);
 
-    // Calculate new wall positions
-    let newStart = this.applyDelta(this.originalStart, delta);
-    let newEnd = this.applyDelta(this.originalEnd, delta);
+    // Calculate new wall positions and apply snapping
+    const baseStart = this.applyDelta(this.originalStart, delta);
+    const baseEnd = this.applyDelta(this.originalEnd, delta);
 
-    // Snap when holding Shift
-    if (context.modifiers.shiftKey) {
-      const result = this.handleWallSnapping(newStart, newEnd, context.axisLock);
-      newStart = result.snappedStart;
-      newEnd = result.snappedEnd;
-      if (context.axisLock === 'none') {
-        this.callbacks.onSetSnapGuides(result.guides);
-      }
-    } else if (context.axisLock === 'none') {
-      this.callbacks.onSetSnapGuides([]);
-    }
+    const { start: newStart, end: newEnd } = applyWallSnappingWithGuides(
+      baseStart,
+      baseEnd,
+      this.wallId,
+      context,
+      this.config,
+      this.callbacks.onSetSnapGuides
+    );
 
     this.callbacks.onMoveWall(this.wallId, newStart, newEnd);
   }
@@ -100,29 +98,6 @@ export class WallDragOperation extends BaseDragOperation {
 
     this._isActive = false;
     this.cleanup();
-  }
-
-  private handleWallSnapping(
-    newStart: Vector2,
-    newEnd: Vector2,
-    _axisLock: string
-  ): { snappedStart: Vector2; snappedEnd: Vector2; guides: SnapGuide[] } {
-    if (!this.wallId) {
-      return { snappedStart: newStart, snappedEnd: newEnd, guides: [] };
-    }
-
-    const walls = this.config.getWalls();
-    const wallIndex = walls.findIndex(w => w.id === this.wallId);
-
-    if (wallIndex === -1) {
-      return { snappedStart: newStart, snappedEnd: newEnd, guides: [] };
-    }
-
-    const vertices = this.config.getVertices();
-    const numWalls = walls.length;
-    const excludeIndices = [wallIndex, (wallIndex + 1) % numWalls];
-
-    return this.config.snapController.snapWallToVertices(newStart, newEnd, vertices, excludeIndices);
   }
 
   private cleanup(): void {

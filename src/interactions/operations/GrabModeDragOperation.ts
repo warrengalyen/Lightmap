@@ -4,11 +4,9 @@ import type {
   DragUpdateContext,
   SelectionState,
 } from '../../types/interaction';
-import type { SnapGuide } from '../../controllers/SnapController';
 import type { DragManagerCallbacks } from '../DragManager';
 import type { BaseDragConfig, RoomStateWithDoors } from '../types';
 import { BaseDragOperation } from '../DragOperation';
-import { DEFAULT_GRID_SIZE_FT } from '../../constants/editor';
 import { doorPositioningService } from '../../services';
 import {
   calculateGrabOffset,
@@ -18,8 +16,9 @@ import {
   applyDelta,
   checkPointInRoom,
   captureOriginalPositions,
+  processTargetWithSnapping,
+  applyWallSnappingWithGuides,
 } from './grabModeHelpers';
-import { applyGridSnap } from '../utils';
 
 /**
  * Configuration for grab mode drag operations.
@@ -168,44 +167,29 @@ export class GrabModeDragOperation extends BaseDragOperation {
   private updateVerticesAndLights(adjustedPos: Vector2, context: DragUpdateContext): void {
     if (!this.startPosition || !this.selection) return;
 
-    let targetPos = adjustedPos;
+    const snapResult = processTargetWithSnapping(
+      adjustedPos,
+      this.startPosition,
+      context,
+      this.config,
+      {
+        selection: this.selection,
+        anchorVertexIndex: this.anchorVertexIndex,
+        anchorLightId: this.anchorLightId,
+        getVertices: this.config.getVertices,
+        getLights: this.config.getLights,
+      },
+      this.applyAxisConstraint.bind(this)
+    );
 
-    // SHIFT alignment takes priority - snap to other vertices/lights (only for single item)
-    if (context.modifiers.shiftKey) {
-      const result = this.handleShiftSnapping(targetPos);
-      targetPos = result.snappedPos;
-      if (context.axisLock !== 'none') {
-        targetPos = this.applyAxisConstraint(targetPos, context.axisLock, this.startPosition);
-      } else {
-        this.callbacks.onSetSnapGuides(result.guides);
-      }
-    }
-    // Grid snap - apply when SHIFT is not held
-    else {
-      const gridResult = applyGridSnap(
-        targetPos,
-        this.startPosition,
-        context.axisLock,
-        this.config,
-        DEFAULT_GRID_SIZE_FT
-      );
-
-      if (gridResult.wasSnapped) {
-        targetPos = gridResult.position;
-        // Clear snap guides only when no axis lock (axis lock guides managed by DragManager)
-        if (context.axisLock === 'none') {
-          this.callbacks.onSetSnapGuides([]);
-        }
-      } else if (context.axisLock !== 'none') {
-        // No grid snap - just apply axis lock
-        targetPos = this.applyAxisConstraint(targetPos, context.axisLock, this.startPosition);
-      } else {
-        this.callbacks.onSetSnapGuides([]);
-      }
+    if (snapResult.guides.length > 0) {
+      this.callbacks.onSetSnapGuides(snapResult.guides);
+    } else if (snapResult.clearGuides) {
+      this.callbacks.onSetSnapGuides([]);
     }
 
     // Calculate delta from anchor point
-    const delta = this.calculateDeltaFromAnchor(targetPos);
+    const delta = this.calculateDeltaFromAnchor(snapResult.position);
 
     // Move vertices
     for (const [idx, originalPos] of this.originalVertexPositions) {
@@ -244,21 +228,19 @@ export class GrabModeDragOperation extends BaseDragOperation {
 
     const delta = calculateDelta(this.startPosition, constrainedPos);
 
-    let newStart = applyDelta(this.originalWallVertices.start, delta);
-    let newEnd = applyDelta(this.originalWallVertices.end, delta);
+    const baseStart = applyDelta(this.originalWallVertices.start, delta);
+    const baseEnd = applyDelta(this.originalWallVertices.end, delta);
 
-    if (context.modifiers.shiftKey) {
-      const result = this.handleWallSnapping(newStart, newEnd);
-      newStart = result.snappedStart;
-      newEnd = result.snappedEnd;
-      if (context.axisLock === 'none') {
-        this.callbacks.onSetSnapGuides(result.guides);
-      }
-    } else if (context.axisLock === 'none') {
-      this.callbacks.onSetSnapGuides([]);
-    }
+    const { start: newStart, end: newEnd } = applyWallSnappingWithGuides(
+      baseStart,
+      baseEnd,
+      this.wallId,
+      context,
+      this.config,
+      this.callbacks.onSetSnapGuides
+    );
 
-    this.callbacks.onMoveWall(this.wallId, newStart, newEnd);
+    this.callbacks.onMoveWall(this.wallId!, newStart, newEnd);
   }
 
   private updateDoor(mousePos: Vector2): void {
@@ -281,54 +263,6 @@ export class GrabModeDragOperation extends BaseDragOperation {
     );
 
     this.callbacks.onUpdateDoorPosition(this.doorId, newPosition);
-  }
-
-  private handleShiftSnapping(
-    targetPos: Vector2
-  ): { snappedPos: Vector2; guides: SnapGuide[] } {
-    if (!this.selection) {
-      return { snappedPos: targetPos, guides: [] };
-    }
-
-    // Only snap for single vertex selection
-    if (this.selection.selectedVertexIndices.size === 1 &&
-        this.selection.selectedLightIds.size === 0 &&
-        this.anchorVertexIndex !== null) {
-      const vertices = this.config.getVertices();
-      return this.config.snapController.snapToVertices(targetPos, vertices, this.anchorVertexIndex);
-    }
-
-    // Only snap for single light selection
-    if (this.selection.selectedLightIds.size === 1 &&
-        this.selection.selectedVertexIndices.size === 0 &&
-        this.anchorLightId !== null) {
-      const lights = this.config.getLights();
-      return this.config.snapController.snapToLights(targetPos, lights, this.anchorLightId);
-    }
-
-    return { snappedPos: targetPos, guides: [] };
-  }
-
-  private handleWallSnapping(
-    newStart: Vector2,
-    newEnd: Vector2
-  ): { snappedStart: Vector2; snappedEnd: Vector2; guides: SnapGuide[] } {
-    if (!this.wallId) {
-      return { snappedStart: newStart, snappedEnd: newEnd, guides: [] };
-    }
-
-    const walls = this.config.getWalls();
-    const wallIndex = walls.findIndex(w => w.id === this.wallId);
-
-    if (wallIndex === -1) {
-      return { snappedStart: newStart, snappedEnd: newEnd, guides: [] };
-    }
-
-    const vertices = this.config.getVertices();
-    const numWalls = walls.length;
-    const excludeIndices = [wallIndex, (wallIndex + 1) % numWalls];
-
-    return this.config.snapController.snapWallToVertices(newStart, newEnd, vertices, excludeIndices);
   }
 
   private calculateDeltaFromAnchor(targetPos: Vector2): Vector2 {

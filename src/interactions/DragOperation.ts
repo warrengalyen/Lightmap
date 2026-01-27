@@ -5,6 +5,10 @@ import type {
   DragUpdateContext,
   AxisLock,
 } from '../types/interaction';
+import {
+  calculateDelta as calcDelta,
+  applyDelta as applyDeltaHelper,
+} from './operations/grabModeHelpers';
 
 /**
  * Abstract base class for drag operations.
@@ -52,19 +56,13 @@ export abstract class BaseDragOperation implements IDragOperation {
      * Calculate delta from start position to current position.
      */
     protected calculateDelta(from: Vector2, to: Vector2): Vector2 {
-        return {
-            x: to.x - from.x,
-            y: to.y - from.y,
-        };
+    return calcDelta(from, to);
     }
 
     /**
      * Apply a delta to a position.
      */
     protected applyDelta(position: Vector2, delta: Vector2): Vector2 {
-        return {
-            x: position.x + delta.x,
-            y: position.y + delta.y,
-        };
+    return applyDeltaHelper(position, delta);
     }
 }

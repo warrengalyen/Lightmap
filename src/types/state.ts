@@ -1,4 +1,4 @@
-import type { WallSegment, Door } from './geometry';
+import type { WallSegment, Door, Obstacle } from './geometry';
 import type { LightFixture } from './lighting';
 
 export interface RoomState {
@@ -6,6 +6,7 @@ export interface RoomState {
   walls: WallSegment[];
   lights: LightFixture[];
   doors: Door[];
+  obstacles: Obstacle[];
   isClosed: boolean;
   rafterConfig?: RafterConfig;
   displayPreferences?: DisplayPreferences;
@@ -13,7 +14,7 @@ export interface RoomState {
 
 export type AppMode = 'drafting' | 'viewing';
 export type ViewMode = 'editor' | 'shadow' | 'heatmap';
-export type Tool = 'select' | 'draw' | 'light' | 'door';
+export type Tool = 'select' | 'draw' | 'light' | 'door' | 'obstacle';
 
 export interface RafterConfig {
   orientation: 'horizontal' | 'vertical';
@@ -45,6 +46,7 @@ export const DEFAULT_ROOM_STATE: RoomState = {
   walls: [],
   lights: [],
   doors: [],
+  obstacles: [],
   isClosed: false,
 };
 

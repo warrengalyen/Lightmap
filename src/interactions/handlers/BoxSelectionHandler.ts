@@ -1,15 +1,20 @@
 import type { InputEvent } from '../../core/InputManager';
-import type { Vector2 } from '../../types';
+import type { Vector2, Obstacle } from '../../types';
 import type { InteractionContext, BoxSelectionState } from '../../types/interaction';
 import { BaseInteractionHandler } from '../InteractionHandler';
 import { findVerticesInBox, findLightsInBox } from '../../utils/math';
 
+export interface ObstacleVertexBoxSelection {
+  obstacleId: string;
+  vertexIndices: number[];
+}
 export interface BoxSelectionHandlerCallbacks {
   onBoxSelectionStart: (start: Vector2) => void;
   onBoxSelectionUpdate: (start: Vector2, current: Vector2) => void;
   onBoxSelectionComplete: (
     vertexIndices: number[],
     lightIds: string[],
+    obstacleVertices: ObstacleVertexBoxSelection[],
     addToSelection: boolean
   ) => void;
   onBoxSelectionCancel: () => void;
@@ -73,8 +78,21 @@ export class BoxSelectionHandler extends BaseInteractionHandler {
     const indicesInBox = findVerticesInBox(vertices, state.startPosition, state.currentPosition);
     const lightIdsInBox = findLightsInBox(lights, state.startPosition, state.currentPosition);
 
+    // Find obstacle vertices in box (only for the currently selected obstacle)
+    const selectedObstacleId = context.selection.selectedObstacleId;
+    const selectedObstacle = selectedObstacleId
+      ? (context.roomState.obstacles ?? []).find(o => o.id === selectedObstacleId)
+      : null;
+    const obstacleVerticesInBox = selectedObstacle
+      ? this.findObstacleVerticesInBox(
+          [selectedObstacle],
+          state.startPosition,
+          state.currentPosition
+        )
+      : [];
+
     // Complete selection
-    this.callbacks.onBoxSelectionComplete(indicesInBox, lightIdsInBox, addToSelection);
+    this.callbacks.onBoxSelectionComplete(indicesInBox, lightIdsInBox, obstacleVerticesInBox, addToSelection);
 
     // Reset state
     this.config.setBoxSelectionState({
@@ -84,6 +102,27 @@ export class BoxSelectionHandler extends BaseInteractionHandler {
     });
 
     return true;
+  }
+
+  private findObstacleVerticesInBox(
+    obstacles: Obstacle[],
+    boxStart: Vector2,
+    boxEnd: Vector2
+  ): ObstacleVertexBoxSelection[] {
+    const results: ObstacleVertexBoxSelection[] = [];
+
+    for (const obstacle of obstacles) {
+      const obstacleVertices = obstacle.walls.map(w => w.start);
+      const indicesInBox = findVerticesInBox(obstacleVertices, boxStart, boxEnd);
+      if (indicesInBox.length > 0) {
+        results.push({
+          obstacleId: obstacle.id,
+          vertexIndices: indicesInBox,
+        });
+      }
+    }
+
+    return results;
   }
 
   handleKeyDown(event: InputEvent, _context: InteractionContext): boolean {

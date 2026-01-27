@@ -1,4 +1,4 @@
-import type { RoomState, WallSegment, LightFixture, RafterConfig, DisplayPreferences, LightDefinition, Door, DoorSwingDirection, DoorSwingSide } from '../types';
+import type { RoomState, WallSegment, LightFixture, RafterConfig, DisplayPreferences, LightDefinition, Door, DoorSwingDirection, DoorSwingSide, Obstacle } from '../types';
 import { mergeLightDefinitions } from '../stores/lightDefinitionsStore';
 import type { ExportData } from './jsonExport';
 
@@ -56,11 +56,23 @@ export function validateRoomState(data: unknown): RoomState {
     }));
   }
 
+  // Validate obstacles (optional for backwards compatibility)
+  let obstacles: Obstacle[] = [];
+  if (obj.obstacles !== undefined) {
+    if (!Array.isArray(obj.obstacles)) {
+      throw new ValidationError('Invalid obstacles: must be an array');
+    }
+    for (const obstacle of obj.obstacles) {
+      validateObstacle(obstacle);
+    }
+    obstacles = obj.obstacles as Obstacle[];
+  }
   const result: RoomState = {
     ceilingHeight: obj.ceilingHeight,
     walls: obj.walls as WallSegment[],
     lights: obj.lights as LightFixture[],
     doors,
+    obstacles,
     isClosed: obj.isClosed,
   };
 
@@ -160,6 +172,30 @@ function validateDoor(data: unknown): void {
     if (!validSwingSides.includes(door.swingSide as DoorSwingSide)) {
       throw new ValidationError('Invalid door swingSide: must be "inside" or "outside"');
     }
+  }
+}
+
+function validateObstacle(data: unknown): void {
+  if (!data || typeof data !== 'object') {
+    throw new ValidationError('Invalid obstacle: expected an object');
+  }
+
+  const obstacle = data as Record<string, unknown>;
+
+  if (typeof obstacle.id !== 'string') {
+    throw new ValidationError('Invalid obstacle id: must be a string');
+  }
+
+  if (typeof obstacle.height !== 'number' || obstacle.height <= 0) {
+    throw new ValidationError('Invalid obstacle height: must be a positive number');
+  }
+
+  if (!Array.isArray(obstacle.walls)) {
+    throw new ValidationError('Invalid obstacle walls: must be an array');
+  }
+
+  for (const wall of obstacle.walls) {
+    validateWallSegment(wall);
   }
 }
 
@@ -288,7 +324,7 @@ function processImportData(data: unknown): RoomState {
   const obj = data as Record<string, unknown>;
 
   // Check if this is the new export format (version 1+)
-  if (obj.version === 1 && obj.roomState) {
+  if ((obj.version === 1 || obj.version === 2) && obj.roomState) {
     // New format: { version, roomState, lightDefinitions }
     const exportData = data as ExportData;
 

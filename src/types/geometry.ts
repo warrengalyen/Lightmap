@@ -33,3 +33,9 @@ export interface Door {
   swingDirection: DoorSwingDirection;  // Which side the hinge is on (left/right)
   swingSide: DoorSwingSide;            // Which side of wall door swings to (inside/outside)
 }
+export interface Obstacle {
+  id: string;
+  walls: WallSegment[];        // Closed polygon (reuses existing WallSegment)
+  height: number;              // Height in feet (e.g., 4 for half-wall)
+  label?: string;              // Optional label (e.g., "Kitchen Island")
+}

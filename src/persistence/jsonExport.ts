@@ -3,7 +3,7 @@ import type { RoomState, LightDefinition } from '../types';
 import { lightDefinitions } from '../stores/lightDefinitionsStore';
 
 export interface ExportData {
-  version: 1;
+  version: 1 | 2;
   roomState: RoomState;
   lightDefinitions: LightDefinition[];
 }
@@ -45,7 +45,7 @@ function createExportData(state: RoomState): ExportData {
   );
 
   return {
-    version: 1,
+    version: 2,
     roomState: state,
     lightDefinitions: usedCustomDefinitions,
   };

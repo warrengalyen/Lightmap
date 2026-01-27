@@ -6,17 +6,18 @@ import type { PolygonValidator } from '../../geometry/PolygonValidator';
 import type { SnapController } from '../../controllers/SnapController';
 import { BaseInteractionHandler } from '../InteractionHandler';
 import { DEFAULT_GRID_SIZE_FT } from '../../constants/editor';
+import { isPointInRoom } from '../../utils/geometry';
 import { handleDrawingMouseMove } from '../utils/drawingMouseMove';
 
-export interface DrawingHandlerCallbacks {
+export interface ObstacleDrawingHandlerCallbacks {
   onUpdateDrawingVertices: (vertices: Vector2[]) => void;
   onSetPhantomLine: (from: Vector2 | null, to: Vector2 | null) => void;
   onSetPreviewVertex: (pos: Vector2 | null) => void;
-  onCloseRoom: (walls: WallSegment[]) => void;
+  onCloseObstacle: (walls: WallSegment[]) => void;
   onSnapChange: (snapType: string) => void;
 }
 
-export interface DrawingHandlerConfig {
+export interface ObstacleDrawingHandlerConfig {
   wallBuilder: WallBuilder;
   polygonValidator: PolygonValidator;
   snapController: SnapController;
@@ -25,17 +26,17 @@ export interface DrawingHandlerConfig {
 }
 
 /**
- * Handles wall drawing mode.
- * Manages vertex placement, angle snapping, grid snapping, and room closure.
+ * Handles drawing obstacles (internal polygons) inside a closed room.
+ * Mirrors DrawingHandler but validates vertices are inside the room polygon.
  */
-export class DrawingHandler extends BaseInteractionHandler {
-  readonly name = 'drawing';
-  readonly priority = 100;
+export class ObstacleDrawingHandler extends BaseInteractionHandler {
+  readonly name = 'obstacle-drawing';
+  readonly priority = 95; // Just below DrawingHandler (100)
 
-  private config: DrawingHandlerConfig;
-  private callbacks: DrawingHandlerCallbacks;
+  private config: ObstacleDrawingHandlerConfig;
+  private callbacks: ObstacleDrawingHandlerCallbacks;
 
-  constructor(config: DrawingHandlerConfig, callbacks: DrawingHandlerCallbacks) {
+  constructor(config: ObstacleDrawingHandlerConfig, callbacks: ObstacleDrawingHandlerCallbacks) {
     super();
     this.config = config;
     this.callbacks = callbacks;
@@ -50,10 +51,17 @@ export class DrawingHandler extends BaseInteractionHandler {
     this.callbacks.onSetPhantomLine(null, null);
   }
 
-  private handleClosureAttempt(walls: WallSegment[] | null): void {
+  private handleClosureAttempt(walls: WallSegment[] | null, roomWalls: WallSegment[]): void {
     if (walls && this.config.polygonValidator.isValid(walls)) {
-      this.resetDrawingState();
-      this.callbacks.onCloseRoom(walls);
+      // Validate all vertices are inside the room
+      const allInside = walls.every(w => isPointInRoom(w.start, roomWalls));
+      if (allInside) {
+        this.resetDrawingState();
+        this.callbacks.onCloseObstacle(walls);
+      } else {
+        this.config.wallBuilder.cancel();
+        this.resetDrawingState();
+      }
     } else {
       this.config.wallBuilder.cancel();
       this.resetDrawingState();
@@ -61,15 +69,20 @@ export class DrawingHandler extends BaseInteractionHandler {
   }
 
   canHandle(_event: InputEvent, context: InteractionContext): boolean {
-    return context.isDrawingEnabled;
+    return context.isObstacleDrawing;
   }
 
   handleClick(event: InputEvent, context: InteractionContext): boolean {
-    if (!context.isDrawingEnabled) return false;
+    if (!context.isObstacleDrawing) return false;
 
     const { wallBuilder, snapController } = this.config;
     const pos = event.worldPos;
     const gridSize = this.getEffectiveGridSize();
+
+    // Verify point is inside the room
+    if (!isPointInRoom(pos, context.roomState.walls)) {
+      return true; // Consume the event but don't place
+    }
 
     // Grid snap mode
     if (this.config.getGridSnapEnabled() && gridSize > 0) {
@@ -79,8 +92,7 @@ export class DrawingHandler extends BaseInteractionHandler {
         wallBuilder.startDrawing(gridPos);
         this.callbacks.onUpdateDrawingVertices(wallBuilder.getVertices());
       } else {
-        // Check for closure
-        if (this.tryClosureWithGridSnap(gridPos, gridSize)) {
+        if (this.tryClosureWithGridSnap(gridPos, gridSize, context.roomState.walls)) {
           return true;
         }
 
@@ -99,7 +111,7 @@ export class DrawingHandler extends BaseInteractionHandler {
       const snap = wallBuilder.currentSnap;
 
       if (snap?.snapType === 'closure' && wallBuilder.vertexCount >= 3) {
-        this.handleClosureAttempt(wallBuilder.closeLoop());
+        this.handleClosureAttempt(wallBuilder.closeLoop(), context.roomState.walls);
       } else {
         wallBuilder.placeVertex(snappedPos);
         this.callbacks.onUpdateDrawingVertices(wallBuilder.getVertices());
@@ -110,7 +122,7 @@ export class DrawingHandler extends BaseInteractionHandler {
   }
 
   handleMouseMove(event: InputEvent, context: InteractionContext): boolean {
-    if (!context.isDrawingEnabled) {
+    if (!context.isObstacleDrawing) {
       this.callbacks.onSetPreviewVertex(null);
       return false;
     }
@@ -127,7 +139,7 @@ export class DrawingHandler extends BaseInteractionHandler {
   }
 
   handleKeyDown(event: InputEvent, context: InteractionContext): boolean {
-    if (!context.isDrawingEnabled) return false;
+    if (!context.isObstacleDrawing) return false;
 
     const { wallBuilder } = this.config;
 
@@ -141,14 +153,14 @@ export class DrawingHandler extends BaseInteractionHandler {
     return false;
   }
 
-  private tryClosureWithGridSnap(gridPos: Vector2, gridSize: number): boolean {
+  private tryClosureWithGridSnap(gridPos: Vector2, gridSize: number, roomWalls: WallSegment[]): boolean {
     const { wallBuilder } = this.config;
     const startVertex = wallBuilder.startVertex;
 
     if (startVertex && wallBuilder.vertexCount >= 3) {
       const dist = Math.hypot(gridPos.x - startVertex.x, gridPos.y - startVertex.y);
       if (dist < gridSize) {
-        this.handleClosureAttempt(wallBuilder.closeLoop());
+        this.handleClosureAttempt(wallBuilder.closeLoop(), roomWalls);
         return true;
       }
     }

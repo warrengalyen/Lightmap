@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Vector2, UnitFormat } from '../types';
 import { formatImperial } from '../utils/format';
-import { clearGroup } from '../utils/three';
+import { clearGroup, createTextSprite } from '../utils/three';
 import {
   Z_LAYERS,
   GEOMETRY,
@@ -96,15 +96,21 @@ export class MeasurementRenderer {
     }
   }
 
-  private renderXComponent(from: Vector2, to: Vector2, deltaX: number): void {
-    // Horizontal dashed line
+  private renderComponent(
+    lineStart: Vector2,
+    lineEnd: Vector2,
+    labelPos: Vector2,
+    distance: number,
+    color: number
+  ): void {
+    // Dashed line
     const points = [
-      new THREE.Vector3(from.x, from.y, Z_LAYERS.MEASUREMENT),
-      new THREE.Vector3(to.x, from.y, Z_LAYERS.MEASUREMENT),
+      new THREE.Vector3(lineStart.x, lineStart.y, Z_LAYERS.MEASUREMENT),
+      new THREE.Vector3(lineEnd.x, lineEnd.y, Z_LAYERS.MEASUREMENT),
     ];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const material = new THREE.LineDashedMaterial({
-      color: this.colors.xComponent,
+      color,
       dashSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.dashSize,
       gapSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.gapSize,
     });
@@ -114,69 +120,42 @@ export class MeasurementRenderer {
 
     // Label
     const label = this.createLabel(
-      formatImperial(deltaX, { format: this.currentUnitFormat }),
+      formatImperial(distance, { format: this.currentUnitFormat }),
+      color
+    );
+    label.position.set(labelPos.x, labelPos.y, Z_LAYERS.MEASUREMENT + 0.01);
+    this.group.add(label);
+  }
+
+  private renderXComponent(from: Vector2, to: Vector2, deltaX: number): void {
+    this.renderComponent(
+      from,
+      { x: to.x, y: from.y },
+      { x: (from.x + to.x) / 2, y: from.y - 0.4 },
+      deltaX,
       this.colors.xComponent
     );
-    label.position.set((from.x + to.x) / 2, from.y - 0.4, Z_LAYERS.MEASUREMENT + 0.01);
-    this.group.add(label);
   }
 
   private renderYComponent(from: Vector2, to: Vector2, deltaY: number): void {
-    // Vertical dashed line
-    const points = [
-      new THREE.Vector3(to.x, from.y, Z_LAYERS.MEASUREMENT),
-      new THREE.Vector3(to.x, to.y, Z_LAYERS.MEASUREMENT),
-    ];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineDashedMaterial({
-      color: this.colors.yComponent,
-      dashSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.dashSize,
-      gapSize: DASH_PATTERNS.MEASUREMENT_COMPONENT.gapSize,
-    });
-    const line = new THREE.Line(geometry, material);
-    line.computeLineDistances();
-    this.group.add(line);
-
-    // Label
-    const label = this.createLabel(
-      formatImperial(deltaY, { format: this.currentUnitFormat }),
+    this.renderComponent(
+      { x: to.x, y: from.y },
+      to,
+      { x: to.x + 0.5, y: (from.y + to.y) / 2 },
+      deltaY,
       this.colors.yComponent
     );
-    label.position.set(to.x + 0.5, (from.y + to.y) / 2, Z_LAYERS.MEASUREMENT + 0.01);
-    this.group.add(label);
   }
 
   private createLabel(text: string, backgroundColor: number): THREE.Sprite {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d')!;
-
-    const fontSize = 20;
-    const padding = 6;
-    context.font = `bold ${fontSize}px Arial`;
-    const textWidth = context.measureText(text).width;
-
-    canvas.width = Math.ceil(textWidth + padding * 2);
-    canvas.height = fontSize + padding;
-
-    // Draw background
-    context.fillStyle = `#${backgroundColor.toString(16).padStart(6, '0')}`;
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw text
-    context.font = `bold ${fontSize}px Arial`;
-    context.fillStyle = 'white';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(material);
-
-    const aspectRatio = canvas.width / canvas.height;
-    sprite.scale.set(aspectRatio * LABEL_SCALE.MEASUREMENT_LABEL, LABEL_SCALE.MEASUREMENT_LABEL, 1);
-
-    return sprite;
+    return createTextSprite(text, {
+      fontSize: 20,
+      padding: 6,
+      fontWeight: 'bold',
+      backgroundColor,
+      textColor: 'white',
+      scale: LABEL_SCALE.MEASUREMENT_LABEL,
+    });
   }
 
   /**

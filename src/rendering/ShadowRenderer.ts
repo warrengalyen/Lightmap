@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Vector2, WallSegment, LightFixture, BoundingBox, Door } from '../types';
+import type { Vector2, WallSegment, LightFixture, BoundingBox, Door, Obstacle } from '../types';
 import { raySegmentIntersect } from '../utils/math';
 import { disposeMeshArray } from '../utils/three';
 import { getDoorEndpoints } from '../utils/geometry';
@@ -96,7 +96,7 @@ export class ShadowRenderer {
     return polygon;
   }
 
-  updateShadows(lights: LightFixture[], walls: WallSegment[], bounds: BoundingBox, doors: Door[] = []): void {
+  updateShadows(lights: LightFixture[], walls: WallSegment[], bounds: BoundingBox, doors: Door[] = [], obstacles: Obstacle[] = [], ceilingHeight: number = 8): void {
     disposeMeshArray(this.shadowMeshes, this.scene);
 
     const darkGeometry = new THREE.PlaneGeometry(
@@ -118,8 +118,23 @@ export class ShadowRenderer {
     this.scene.add(darkMesh);
     this.shadowMeshes.push(darkMesh);
 
+    // Collect full-height obstacle walls (they block light like room walls)
+    const fullHeightObstacleWalls: WallSegment[] = [];
+    const partialHeightObstacles: Obstacle[] = [];
+
+    for (const obstacle of obstacles) {
+      if (obstacle.height >= ceilingHeight) {
+        fullHeightObstacleWalls.push(...obstacle.walls);
+      } else {
+        partialHeightObstacles.push(obstacle);
+      }
+    }
+
+    // Combine room walls with full-height obstacle walls for visibility computation
+    const allBlockingWalls = [...walls, ...fullHeightObstacleWalls];
+
     for (const light of lights) {
-      const polygon = this.computeVisibilityPolygon(light.position, walls, bounds, doors);
+      const polygon = this.computeVisibilityPolygon(light.position, allBlockingWalls, bounds, doors);
 
       if (polygon.length >= 3) {
         const shape = new THREE.Shape();
@@ -138,6 +153,89 @@ export class ShadowRenderer {
 
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.z = -0.03;
+        mesh.visible = this.isVisible;
+        this.scene.add(mesh);
+        this.shadowMeshes.push(mesh);
+      }
+
+      // Render partial-height obstacle shadows
+      for (const obstacle of partialHeightObstacles) {
+        this.renderPartialShadow(light, obstacle, ceilingHeight);
+      }
+    }
+  }
+
+  /**
+   * Renders a shadow trapezoid for a partial-height obstacle.
+   * Shadow extends D = h * d / (H - h) feet beyond each obstacle edge.
+   */
+  private renderPartialShadow(light: LightFixture, obstacle: Obstacle, ceilingHeight: number): void {
+    const h = obstacle.height;
+    const H = ceilingHeight;
+    if (h >= H || h <= 0) return;
+
+    const lightPos = light.position;
+
+    for (const wall of obstacle.walls) {
+      // Determine if this wall edge faces away from the light (back-face)
+      const wallMidX = (wall.start.x + wall.end.x) / 2;
+      const wallMidY = (wall.start.y + wall.end.y) / 2;
+      const wallDirX = wall.end.x - wall.start.x;
+      const wallDirY = wall.end.y - wall.start.y;
+      // Normal pointing "outward" (left of wall direction)
+      const normalX = -wallDirY;
+      const normalY = wallDirX;
+      // Dot product of normal with light-to-wall vector
+      const toLightX = lightPos.x - wallMidX;
+      const toLightY = lightPos.y - wallMidY;
+      const dot = normalX * toLightX + normalY * toLightY;
+
+      // Only cast shadow from edges facing away from the light
+      if (dot >= 0) continue;
+
+      // Compute shadow extension for each endpoint
+      const shadowPoints: Vector2[] = [];
+
+      // Start with the wall edge (near side of trapezoid)
+      shadowPoints.push(wall.end);
+      shadowPoints.push(wall.start);
+
+      // Compute extended shadow points
+      for (const endpoint of [wall.start, wall.end]) {
+        const dx = endpoint.x - lightPos.x;
+        const dy = endpoint.y - lightPos.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 0.001) continue;
+
+        // Shadow extension distance: D = h * d / (H - h)
+        const D = (h * d) / (H - h);
+        const dirX = dx / d;
+        const dirY = dy / d;
+
+        shadowPoints.push({
+          x: endpoint.x + dirX * D,
+          y: endpoint.y + dirY * D,
+        });
+      }
+
+      if (shadowPoints.length >= 3) {
+        const shape = new THREE.Shape();
+        shape.moveTo(shadowPoints[0].x, shadowPoints[0].y);
+        for (let i = 1; i < shadowPoints.length; i++) {
+          shape.lineTo(shadowPoints[i].x, shadowPoints[i].y);
+        }
+        shape.closePath();
+
+        const geometry = new THREE.ShapeGeometry(shape);
+        const opacity = 0.4 * (h / H); // Proportional to height ratio
+        const material = new THREE.MeshBasicMaterial({
+          color: 0x111111,
+          transparent: true,
+          opacity: Math.min(opacity, 0.5),
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.z = -0.035; // Between dark background and visibility cutout
         mesh.visible = this.isVisible;
         this.scene.add(mesh);
         this.shadowMeshes.push(mesh);

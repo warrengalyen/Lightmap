@@ -10,6 +10,8 @@ export interface SelectionState {
     selectedLightIds: Set<string>;
     selectedWallId: string | null;
   selectedDoorId: string | null;
+  selectedObstacleId: string | null;
+  selectedObstacleVertexIndices: Set<number>;
 }
 
 // ============================================
@@ -79,6 +81,7 @@ export interface InteractionContext {
     isDrawingEnabled: boolean;
     isPlacingLights: boolean;
   isPlacingDoors: boolean;
+  isObstacleDrawing: boolean;
     isMeasuring: boolean;
     isGrabMode: boolean;
     isBoxSelecting: boolean;

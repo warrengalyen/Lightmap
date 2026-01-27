@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import type { Vector2, WallSegment, LightFixture, UnitFormat, LightRadiusVisibility, Door } from '../types';
+import type { Vector2, WallSegment, LightFixture, UnitFormat, LightRadiusVisibility, Door, Obstacle } from '../types';
 import type { SnapGuide } from '../controllers/SnapController';
 import { distancePointToSegment } from '../utils/math';
 import { WALL_HIT_TOLERANCE_FT } from '../constants/editor';
 import { WallRenderer } from './WallRenderer';
 import { DoorRenderer } from './DoorRenderer';
 import { LightRenderer } from './LightRenderer';
+import { ObstacleRenderer } from './ObstacleRenderer';
 import { DrawingPreviewRenderer } from './DrawingPreviewRenderer';
 import { OverlayRenderer } from './OverlayRenderer';
 import { MeasurementRenderer } from './MeasurementRenderer';
@@ -20,6 +21,7 @@ export class EditorRenderer {
   private wallRenderer: WallRenderer;
   private doorRenderer: DoorRenderer;
   private lightRenderer: LightRenderer;
+  private obstacleRenderer: ObstacleRenderer;
   private drawingPreviewRenderer: DrawingPreviewRenderer;
   private overlayRenderer: OverlayRenderer;
   private measurementRenderer: MeasurementRenderer;
@@ -28,6 +30,7 @@ export class EditorRenderer {
     this.wallRenderer = new WallRenderer(scene);
     this.doorRenderer = new DoorRenderer(scene);
     this.lightRenderer = new LightRenderer(scene);
+    this.obstacleRenderer = new ObstacleRenderer(scene);
     this.drawingPreviewRenderer = new DrawingPreviewRenderer(scene);
     this.overlayRenderer = new OverlayRenderer(scene);
     this.measurementRenderer = new MeasurementRenderer(scene);
@@ -76,6 +79,7 @@ export class EditorRenderer {
 
   setUnitFormat(format: UnitFormat): void {
     this.wallRenderer.setUnitFormat(format);
+    this.obstacleRenderer.setUnitFormat(format);
     this.measurementRenderer.setUnitFormat(format);
   }
 
@@ -136,6 +140,18 @@ export class EditorRenderer {
   }
 
   // ============================================
+  // Obstacles
+  // ============================================
+
+  updateObstacles(
+    obstacles: Obstacle[],
+    selectedObstacleId: string | null,
+    selectedObstacleVertexIndices: Set<number> = new Set()
+  ): void {
+    this.obstacleRenderer.update(obstacles, selectedObstacleId, selectedObstacleVertexIndices);
+  }
+
+  // ============================================
   // Snap Guides
   // ============================================
 
@@ -167,6 +183,7 @@ export class EditorRenderer {
     this.wallRenderer.setVisible(visible);
     this.doorRenderer.setVisible(visible);
     this.lightRenderer.setVisible(visible);
+    this.obstacleRenderer.setVisible(visible);
     this.drawingPreviewRenderer.setVisible(visible);
     this.overlayRenderer.setVisible(visible);
     this.measurementRenderer.setVisible(visible);
@@ -176,6 +193,7 @@ export class EditorRenderer {
     this.wallRenderer.dispose();
     this.doorRenderer.dispose();
     this.lightRenderer.dispose();
+    this.obstacleRenderer.dispose();
     this.drawingPreviewRenderer.dispose();
     this.overlayRenderer.dispose();
     this.measurementRenderer.dispose();

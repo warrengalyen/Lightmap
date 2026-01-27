@@ -127,7 +127,7 @@
     style:max-height={maxHeight}
     style:z-index={zIndex}
   >
-    <div class="panel-header" on:mousedown={handleMouseDown} on:keydown={handleMouseDown}>
+    <div class="panel-header" on:mousedown={handleMouseDown} on:keydown={handleMouseDown} role="button" tabindex="0" aria-label="Drag to move panel">
       <h3>{title}</h3>
       {#if showCloseButton}
         <button class="close-button" on:click={handleClose} title="Close">

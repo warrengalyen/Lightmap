@@ -1,5 +1,7 @@
 #define MAX_LIGHTS 32
 #define MAX_POLYGON_VERTICES 64
+#define MAX_OBSTACLES 8
+#define MAX_OBSTACLE_VERTICES 64
 #define FEET_TO_METERS 0.3048
 
 uniform int uLightCount;
@@ -9,6 +11,9 @@ uniform float uLightBeamAngles[MAX_LIGHTS];
 uniform float uCeilingHeight;
 uniform int uVertexCount;
 uniform vec2 uPolygonVertices[MAX_POLYGON_VERTICES];
+uniform int uObstacleCount;
+uniform int uObstacleVertexCounts[MAX_OBSTACLES];
+uniform vec2 uObstacleVertices[MAX_OBSTACLE_VERTICES];
 
 varying vec2 vWorldPos;
 
@@ -41,6 +46,38 @@ bool isPointInPolygon(vec2 point) {
   return inside;
 }
 
+bool isPointInObstacle(vec2 point) {
+  int offset = 0;
+  for (int obs = 0; obs < MAX_OBSTACLES; obs++) {
+    if (obs >= uObstacleCount) break;
+
+    int vCount = uObstacleVertexCounts[obs];
+    if (vCount < 3) {
+      offset += vCount;
+      continue;
+    }
+
+    bool inside = false;
+    for (int i = 0; i < MAX_OBSTACLE_VERTICES; i++) {
+      if (i >= vCount) break;
+
+      int prevIdx = i == 0 ? vCount - 1 : i - 1;
+
+      vec2 vi = uObstacleVertices[offset + i];
+      vec2 vj = uObstacleVertices[offset + prevIdx];
+
+      if (((vi.y > point.y) != (vj.y > point.y)) &&
+          (point.x < (vj.x - vi.x) * (point.y - vi.y) / (vj.y - vi.y) + vi.x)) {
+        inside = !inside;
+      }
+    }
+
+    if (inside) return true;
+    offset += vCount;
+  }
+  return false;
+}
+
 float customSmoothstep(float edge0, float edge1, float x) {
   float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
   return t * t * (3.0 - 2.0 * t);
@@ -67,6 +104,11 @@ vec3 luxToColor(float lux) {
 void main() {
   // Discard pixels outside the wall polygon
   if (!isPointInPolygon(vWorldPos)) {
+    discard;
+  }
+
+  // Discard pixels inside any obstacle polygon
+  if (isPointInObstacle(vWorldPos)) {
     discard;
   }
 

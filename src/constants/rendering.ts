@@ -5,7 +5,9 @@
 
 // Z-layer ordering for depth management
 export const Z_LAYERS = {
+  OBSTACLE_FILL: -0.01,
   WALL: 0,
+  OBSTACLE_WALL: 0.01,
   VERTEX: 0.05,
   DRAWING_LINE: 0.05,
   DOOR_ARC: 0.05,
@@ -17,6 +19,7 @@ export const Z_LAYERS = {
   DRAWING_VERTEX: 0.1,
   PREVIEW_LIGHT_CENTER: 0.1,
   SNAP_GUIDE: 0.15,
+  OBSTACLE_LABEL: 0.2,
   SELECTION_BOX: 0.2,
   MEASUREMENT: 0.2,
   DIMENSION_LABEL: 0.2,

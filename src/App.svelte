@@ -7,6 +7,7 @@
   import WallPropertiesPanel from './components/WallPropertiesPanel.svelte';
   import LightPropertiesPanel from './components/LightPropertiesPanel.svelte';
   import DoorPropertiesPanel from './components/DoorPropertiesPanel.svelte';
+  import ObstaclePropertiesPanel from './components/ObstaclePropertiesPanel.svelte';
   import LightToolPanel from './components/LightToolPanel.svelte';
   import DoorToolPanel from './components/DoorToolPanel.svelte';
   import StatusBar from './components/StatusBar.svelte';
@@ -75,7 +76,7 @@
     switch (e.key.toLowerCase()) {
       case 'escape':
         // Switch to selection tool if currently using a drawing tool
-        if ($activeTool === 'draw' || $activeTool === 'light' || $activeTool === 'door') {
+        if ($activeTool === 'draw' || $activeTool === 'light' || $activeTool === 'door' || $activeTool === 'obstacle') {
           setActiveTool('select');
         }
         break;
@@ -91,6 +92,9 @@
         break;
       case 'd':
         setActiveTool('draw');
+        break;
+      case 'o':
+        setActiveTool('obstacle');
         break;
       case 's':
         displayPreferences.update(p => ({ ...p, gridSnapEnabled: !p.gridSnapEnabled }));
@@ -162,6 +166,7 @@
       <WallPropertiesPanel />
       <LightPropertiesPanel />
       <DoorPropertiesPanel />
+      <ObstaclePropertiesPanel />
     </div>
   </main>
 

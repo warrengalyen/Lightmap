@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { activeTool, viewMode, setActiveTool, setViewMode, selectedVertexIndex, selectedLightId, clearSelection } from '../stores/appStore';
-  import { canPlaceLights, canPlaceDoors, roomStore, resetRoom } from '../stores/roomStore';
+  import { canPlaceLights, canPlaceDoors, canDrawObstacles, roomStore, resetRoom } from '../stores/roomStore';
   import { toggleRafters, rafterConfig, displayPreferences } from '../stores/settingsStore';
   import { toggleLightingStats, lightingStatsConfig } from '../stores/lightingStatsStore';
   import { togglePropertiesPanel, propertiesPanelConfig } from '../stores/propertiesPanelStore';
@@ -28,6 +28,7 @@
   let currentViewMode: ViewMode;
   let lightsEnabled: boolean;
   let doorsEnabled: boolean;
+  let obstaclesEnabled: boolean;
   let raftersVisible: boolean;
   let undoEnabled: boolean;
   let redoEnabled: boolean;
@@ -45,6 +46,7 @@
   $: currentViewMode = $viewMode;
   $: lightsEnabled = $canPlaceLights;
   $: doorsEnabled = $canPlaceDoors;
+  $: obstaclesEnabled = $canDrawObstacles;
   $: raftersVisible = $rafterConfig.visible;
   $: undoEnabled = $canUndo;
   $: redoEnabled = $canRedo;
@@ -312,6 +314,20 @@
           <circle cx="13" cy="12" r="1"/>
         </svg>
         <span class="label">Door</span>
+      </button>
+      <button
+        class="tool-button"
+        class:active={currentTool === 'obstacle'}
+        on:click={() => handleToolChange('obstacle')}
+        disabled={!obstaclesEnabled}
+        title={obstaclesEnabled ? 'Draw Obstacle (O)' : 'Close room first'}
+      >
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="6" y="6" width="12" height="12" rx="1"/>
+          <line x1="6" y1="12" x2="18" y2="12"/>
+          <line x1="12" y1="6" x2="12" y2="18"/>
+        </svg>
+        <span class="label">Obstacle</span>
       </button>
       <div class="section-divider"></div>
       <button

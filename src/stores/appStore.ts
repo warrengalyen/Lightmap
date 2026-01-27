@@ -45,6 +45,12 @@ export const isDoorPlacementEnabled = derived(
   ([$mode, $tool]) => $mode === 'drafting' && $tool === 'door'
 );
 
+export const selectedObstacleId = writable<string | null>(null);
+export const selectedObstacleVertexIndices = writable<Set<number>>(new Set());
+export const isObstacleDrawingEnabled = derived(
+  [appMode, activeTool],
+  ([$mode, $tool]) => $mode === 'drafting' && $tool === 'obstacle'
+);
 export function setViewMode(mode: ViewMode): void {
   viewMode.set(mode);
   if (mode !== 'editor') {
@@ -59,6 +65,8 @@ export function setActiveTool(tool: Tool): void {
   selectedLightIds.set(new Set());
   selectedWallId.set(null);
   selectedDoorId.set(null);
+  selectedObstacleId.set(null);
+  selectedObstacleVertexIndices.set(new Set());
 }
 
 export function clearSelection(): void {
@@ -66,6 +74,8 @@ export function clearSelection(): void {
   selectedWallId.set(null);
   selectedVertexIndices.set(new Set());
   selectedDoorId.set(null);
+  selectedObstacleId.set(null);
+  selectedObstacleVertexIndices.set(new Set());
 }
 
 // Light selection helpers
@@ -105,4 +115,31 @@ export function selectDoor(id: string): void {
 
 export function clearDoorSelection(): void {
   selectedDoorId.set(null);
+}
+// Obstacle selection helpers
+export function selectObstacle(id: string): void {
+  selectedObstacleId.set(id);
+  selectedObstacleVertexIndices.set(new Set());
+  selectedWallId.set(null);
+  selectedLightIds.set(new Set());
+  selectedVertexIndices.set(new Set());
+  selectedDoorId.set(null);
+}
+export function clearObstacleSelection(): void {
+  selectedObstacleId.set(null);
+  selectedObstacleVertexIndices.set(new Set());
+}
+// Obstacle vertex selection helpers
+export function selectObstacleVertex(obstacleId: string, vertexIndex: number, addToSelection: boolean = false): void {
+  selectedObstacleId.set(obstacleId);
+  selectedObstacleVertexIndices.update(indices =>
+    selectionService.selectItem(indices, vertexIndex, addToSelection)
+  );
+  selectedWallId.set(null);
+  selectedLightIds.set(new Set());
+  selectedVertexIndices.set(new Set());
+  selectedDoorId.set(null);
+}
+export function clearObstacleVertexSelection(): void {
+  selectedObstacleVertexIndices.set(new Set());
 }

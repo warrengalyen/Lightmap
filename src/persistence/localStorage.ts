@@ -27,6 +27,10 @@ export function loadFromLocalStorage(): RoomState | null {
         door.swingSide = 'inside';
       }
     }
+    // Migration: add obstacles array if missing
+    if (!state.obstacles) {
+      state.obstacles = [];
+    }
     return state;
   } catch (e) {
     console.error('Failed to load from localStorage:', e);

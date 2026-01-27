@@ -41,6 +41,7 @@ const metricsInputs = derived(
   ([$room, $bounds, $config]) => ({
     lights: $room.lights,
     walls: $room.walls,
+    obstacles: $room.obstacles ?? [],
     ceilingHeight: $room.ceilingHeight,
     bounds: $bounds,
     gridSpacing: $config.gridSpacing,
@@ -66,7 +67,8 @@ export const lightingMetrics = derived<typeof debouncedInputs, LightingMetrics |
       $inputs.bounds,
       $inputs.ceilingHeight,
       $inputs.gridSpacing,
-      $inputs.roomType
+      $inputs.roomType,
+      $inputs.obstacles
     );
   }
 );

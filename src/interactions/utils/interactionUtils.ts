@@ -31,7 +31,9 @@ export function hasSelection(selection: SelectionState): boolean {
     selection.selectedVertexIndices.size > 0 ||
     selection.selectedLightIds.size > 0 ||
     selection.selectedWallId !== null ||
-    selection.selectedDoorId !== null
+    selection.selectedDoorId !== null ||
+    selection.selectedObstacleId !== null ||
+    selection.selectedObstacleVertexIndices.size > 0
   );
 }
 

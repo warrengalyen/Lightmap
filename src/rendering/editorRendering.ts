@@ -10,6 +10,7 @@ import {
 } from '../constants/rendering';
 import { getTheme } from '../constants/themes';
 import { getWallDirection, getDoorEndpoints } from '../utils/geometry';
+import { createTextSprite } from '../utils/three';
 
 /**
  * Pure rendering functions for editor geometry.
@@ -234,34 +235,13 @@ export function createSelectionBox(start: Vector2, end: Vector2): THREE.Line {
 }
 
 export function createDimensionLabel(text: string): THREE.Sprite {
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d')!;
-
-  const fontSize = 24;
-  const padding = 12;
-  context.font = `${fontSize}px Arial`;
-  const textWidth = context.measureText(text).width;
-
-  canvas.width = Math.ceil(textWidth + padding * 2);
-  canvas.height = fontSize + padding;
-
-  context.font = `${fontSize}px Arial`;
-  context.fillStyle = 'white';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  context.fillStyle = 'black';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture });
-  const sprite = new THREE.Sprite(material);
-
-  const aspectRatio = canvas.width / canvas.height;
-  sprite.scale.set(aspectRatio * 0.5, 0.5, 1);
-
-  return sprite;
+  return createTextSprite(text, {
+    fontSize: 24,
+    padding: 12,
+    backgroundColor: 'white',
+    textColor: 'black',
+    scale: 0.5,
+  });
 }
 
 /**
