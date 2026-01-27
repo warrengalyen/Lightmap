@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
+    import { get } from 'svelte/store';
     import Canvas from './components/Canvas.svelte';
     import Toolbar from './components/Toolbar.svelte';
     import PropertyPanel from './components/PropertyPanel.svelte';
@@ -15,17 +16,22 @@
     import RafterControls from './components/RafterControls.svelte';
     import LightingStatsPanel from './components/LightingStatsPanel.svelte';
     import LightDefinitionManager from './components/LightDefinitionManager.svelte';
+    import ViewerPage from './components/ViewerPage.svelte';
     import { roomStore } from './stores/roomStore';
     import { activeTool, setActiveTool, requestCameraFit } from './stores/appStore';
     import { loadFromLocalStorage, setupAutoSave } from './persistence/localStorage';
     import { initSettingsFromRoom, displayPreferences } from './stores/settingsStore';
     import { togglePropertiesPanel } from './stores/propertiesPanelStore';
+    import { currentRoute } from './stores/routerStore';
     import './stores/themeStore'; // Initialize theme CSS variables
     import type { Vector2 } from './types';
 
     let canvasComponent: Canvas;
     let mousePos: Vector2 = { x: 0, y: 0 };
     let snapType: string = '';
+
+    // Reactive route binding
+    $: route = $currentRoute;
     let showLengthInput: boolean = false;
     let showLightManager: boolean = false;
     let cleanupAutoSave: (() => void) | null = null;
@@ -111,18 +117,20 @@
     }
 
     onMount(() => {
-        const savedState = loadFromLocalStorage();
-        if (savedState) {
-            roomStore.set(savedState);
-            // Initialize settings from saved room state
-            initSettingsFromRoom();
-            // Fit camera to the loaded project
-            requestCameraFit();
+        // Only initialize editor features when on the editor route
+        if (get(currentRoute) === 'editor') {
+            const savedState = loadFromLocalStorage();
+            if (savedState) {
+                roomStore.set(savedState);
+                // Initialize settings from saved room state
+                initSettingsFromRoom();
+                // Fit camera to the loaded project
+                requestCameraFit();
+            }
+
+            cleanupAutoSave = setupAutoSave(roomStore);
+            window.addEventListener('keydown', handleGlobalKeydown);
         }
-
-        cleanupAutoSave = setupAutoSave(roomStore);
-
-        window.addEventListener('keydown', handleGlobalKeydown);
     });
 
     onDestroy(() => {
@@ -133,71 +141,78 @@
     });
 </script>
 
-<div class="app">
-    <Toolbar
-        on:toggleMeasurement={handleToggleMeasurement}
-        on:openLightManager={handleOpenLightManager}
-    />
+{#if route === 'viewer'}
+    <ViewerPage />
+{:else}
+    <div class="app">
+        <Toolbar
+            on:toggleMeasurement={handleToggleMeasurement}
+            on:openLightManager={handleOpenLightManager}
+        />
 
-    <main class="main">
-        <div class="canvas-area">
-            <Canvas
-                bind:this={canvasComponent}
-                on:mouseMove={handleMouseMove}
-                on:snapChange={handleSnapChange}
-                on:measurement={handleMeasurement}
-            />
-            {#if measurement}
-                <div class="measurement-panel">
-                    <div class="measurement-title">Measurement</div>
-                    <div class="measurement-row">
-                        <span class="measurement-label" style="color: var(--measurement-x);"
-                            >ΔX:</span
-                        >
-                        <span class="measurement-value"
-                            >{Math.abs(measurement.deltaX).toFixed(2)} ft</span
-                        >
+        <main class="main">
+            <div class="canvas-area">
+                <Canvas
+                    bind:this={canvasComponent}
+                    on:mouseMove={handleMouseMove}
+                    on:snapChange={handleSnapChange}
+                    on:measurement={handleMeasurement}
+                />
+                {#if measurement}
+                    <div class="measurement-panel">
+                        <div class="measurement-title">Measurement</div>
+                        <div class="measurement-row">
+                            <span class="measurement-label" style="color: var(--measurement-x);"
+                                >ΔX:</span
+                            >
+                            <span class="measurement-value"
+                                >{Math.abs(measurement.deltaX).toFixed(2)} ft</span
+                            >
+                        </div>
+                        <div class="measurement-row">
+                            <span class="measurement-label" style="color: var(--measurement-y);"
+                                >ΔY:</span
+                            >
+                            <span class="measurement-value"
+                                >{Math.abs(measurement.deltaY).toFixed(2)} ft</span
+                            >
+                        </div>
+                        <div class="measurement-row">
+                            <span
+                                class="measurement-label"
+                                style="color: var(--measurement-distance);">Distance:</span
+                            >
+                            <span class="measurement-value"
+                                >{measurement.distance.toFixed(2)} ft</span
+                            >
+                        </div>
+                        <div class="measurement-hint">Press M or Esc to clear</div>
                     </div>
-                    <div class="measurement-row">
-                        <span class="measurement-label" style="color: var(--measurement-y);"
-                            >ΔY:</span
-                        >
-                        <span class="measurement-value"
-                            >{Math.abs(measurement.deltaY).toFixed(2)} ft</span
-                        >
-                    </div>
-                    <div class="measurement-row">
-                        <span class="measurement-label" style="color: var(--measurement-distance);"
-                            >Distance:</span
-                        >
-                        <span class="measurement-value">{measurement.distance.toFixed(2)} ft</span>
-                    </div>
-                    <div class="measurement-hint">Press M or Esc to clear</div>
-                </div>
-            {/if}
-            <RafterControls />
-            <LightingStatsPanel />
-            <LightToolPanel on:openLightManager={handleOpenLightManager} />
-            <DoorToolPanel />
-            <PropertyPanel />
-            <VertexPropertiesPanel />
-            <WallPropertiesPanel />
-            <LightPropertiesPanel />
-            <DoorPropertiesPanel />
-            <ObstaclePropertiesPanel />
-        </div>
-    </main>
+                {/if}
+                <RafterControls />
+                <LightingStatsPanel />
+                <LightToolPanel on:openLightManager={handleOpenLightManager} />
+                <DoorToolPanel />
+                <PropertyPanel />
+                <VertexPropertiesPanel />
+                <WallPropertiesPanel />
+                <LightPropertiesPanel />
+                <DoorPropertiesPanel />
+                <ObstaclePropertiesPanel />
+            </div>
+        </main>
 
-    <StatusBar {mousePos} {snapType} />
+        <StatusBar {mousePos} {snapType} />
 
-    <LengthInput
-        visible={showLengthInput}
-        on:submit={handleLengthSubmit}
-        on:cancel={handleLengthCancel}
-    />
+        <LengthInput
+            visible={showLengthInput}
+            on:submit={handleLengthSubmit}
+            on:cancel={handleLengthCancel}
+        />
 
-    <LightDefinitionManager visible={showLightManager} on:close={handleCloseLightManager} />
-</div>
+        <LightDefinitionManager visible={showLightManager} on:close={handleCloseLightManager} />
+    </div>
+{/if}
 
 <style>
     :global(*) {

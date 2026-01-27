@@ -461,7 +461,7 @@
                 class="view-button"
                 class:active={currentViewMode === 'editor'}
                 on:click={() => handleViewModeChange('editor')}
-                title="Editor View (1)"
+                title="Layout View (1)"
             >
                 <svg
                     class="icon-svg"
@@ -470,10 +470,11 @@
                     stroke="currentColor"
                     stroke-width="2"
                 >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    <rect x="3" y="3" width="18" height="18" rx="1" />
+                    <line x1="3" y1="12" x2="14" y2="12" />
+                    <line x1="14" y1="3" x2="14" y2="12" />
                 </svg>
-                <span class="label">Editor</span>
+                <span class="label">Layout</span>
             </button>
             <button
                 class="view-button"
