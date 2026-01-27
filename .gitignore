@@ -31,3 +31,5 @@ coverage/
 
 package-lock.json
 *.sh
+
+reports/

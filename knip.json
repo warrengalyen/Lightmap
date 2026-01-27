@@ -1,0 +1,12 @@
+{
+    "$schema": "https://unpkg.com/knip@5/schema.json",
+    "entry": ["src/main.ts", "vite.config.ts", "eslint.config.js"],
+    "project": ["src/**/*.{ts,svelte}", "tests/**/*.{ts,svelte}"],
+    "ignore": ["dist/**", "node_modules/**"],
+    "ignoreDependencies": ["@eslint/js"],
+    "ignoreExportsUsedInFile": true,
+    "vitest": {
+        "config": ["vitest.config.{js,ts}", "vite.config.ts"],
+        "entry": ["tests/**/*.test.{ts,svelte}"]
+    }
+}

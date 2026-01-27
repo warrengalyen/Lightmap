@@ -14,7 +14,10 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "prepare": "husky"
+        "prepare": "husky",
+        "analyze:cleanup": "rimraf reports",
+        "analyze:unused": "knip --reporter json > reports/knip/knip-report.json || exit 0",
+        "analyze:dupe": "jscpd --format typescript --format javascript src"
     },
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
@@ -26,10 +29,13 @@
         "eslint-plugin-svelte": "^3.14.0",
         "globals": "^17.3.0",
         "husky": "^9.1.7",
+        "jscpd": "^4.0.5",
         "jsdom": "^28.1.0",
+        "knip": "^5.42.6",
         "lint-staged": "^16.2.7",
         "prettier": "^3.8.1",
         "prettier-plugin-svelte": "^3.4.1",
+        "rimraf": "^6.0.1",
         "svelte-eslint-parser": "^1.4.1",
         "typescript": "~5.9.3",
         "typescript-eslint": "^8.54.0",
