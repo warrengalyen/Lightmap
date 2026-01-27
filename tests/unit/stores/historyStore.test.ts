@@ -11,6 +11,7 @@ describe('historyStore', () => {
             walls: [],
             lights: [],
             doors: [],
+            obstacles: [],
             isClosed: false,
         });
         historyStore.clear();

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { checker } from 'vite-plugin-checker';
 import { execSync } from 'child_process';
 
 function getGitVersion(): string {
@@ -22,6 +23,12 @@ export default defineConfig({
                 return html.replace(/(["'=])\.\/(?!\/)/g, '$1');
             },
         },
+        checker({
+            typescript: true,
+            eslint: {
+                lintCommand: 'eslint .',
+            },
+        }),
     ],
     define: {
         __APP_VERSION__: JSON.stringify(getGitVersion()),

@@ -39,6 +39,7 @@ describe('LocalStorage Persistence', () => {
             ],
             lights: [],
             doors: [],
+            obstacles: [],
             isClosed: false,
         };
 
@@ -55,6 +56,7 @@ describe('LocalStorage Persistence', () => {
             walls: [],
             lights: [],
             doors: [],
+            obstacles: [],
             isClosed: true,
         };
         mockLocalStorage['lightmap_project'] = JSON.stringify(state);
@@ -106,6 +108,7 @@ describe('LocalStorage Persistence', () => {
                 },
             ],
             doors: [],
+            obstacles: [],
             isClosed: true,
         };
 

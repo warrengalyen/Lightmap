@@ -20,6 +20,8 @@ describe('JSON Export/Import', () => {
                         properties: { lumen: 800, beamAngle: 60, warmth: 2700 },
                     },
                 ],
+                doors: [],
+                obstacles: [],
                 isClosed: true,
             };
 
@@ -37,6 +39,8 @@ describe('JSON Export/Import', () => {
                 ceilingHeight: 8,
                 walls: [],
                 lights: [],
+                doors: [],
+                obstacles: [],
                 isClosed: false,
             };
 
