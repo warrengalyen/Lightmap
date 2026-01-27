@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { checker } from 'vite-plugin-checker';
 import { execSync } from 'child_process';
@@ -25,9 +25,6 @@ export default defineConfig({
         },
         checker({
             typescript: true,
-            eslint: {
-                lintCommand: 'eslint .',
-            },
         }),
     ],
     define: {
