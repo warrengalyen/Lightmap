@@ -27,6 +27,18 @@ export interface RafterConfig {
 export type UnitFormat = 'feet-inches' | 'inches';
 export type LightRadiusVisibility = 'selected' | 'always';
 
+// Helper function to migrate legacy 'never' value to current type
+export function migrateLightRadiusVisibility(value: unknown): LightRadiusVisibility {
+  if (value === 'never') {
+    return 'selected';
+  }
+  if (value === 'selected' || value === 'always') {
+    return value;
+  }
+  // Fallback to default
+  return 'selected';
+}
+
 export interface DisplayPreferences {
   useFractions: boolean;
   snapThreshold: number;
