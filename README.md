@@ -114,8 +114,6 @@ npm run build
 npm run preview
 ```
 
-Open browser to `http://localhost:4173`
-
 ### Testing
 
 ```bash
